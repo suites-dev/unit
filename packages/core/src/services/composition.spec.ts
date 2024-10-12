@@ -48,6 +48,7 @@ const adapter = registry([
 
 const composed = {
   mode: 'composed',
+        bindings: new Map(),
   boundaries: new CompositionBoundaryContainer([]),
 } satisfies ResolverOptions;
 
@@ -168,6 +169,7 @@ describe('opt-in composition', () => {
       jest.fn(() => ({})),
       {
         mode: 'composed',
+        bindings: new Map(),
         boundaries: new CompositionBoundaryContainer([
           { kind: 'guard', identifier: Client, metadata: undefined, create: createGuard },
         ]),
@@ -189,6 +191,7 @@ describe('opt-in composition', () => {
       jest.fn(() => ({})),
       {
         mode: 'composed',
+        bindings: new Map(),
         boundaries: new CompositionBoundaryContainer([
           // @ts-expect-error JavaScript can supply a boundary that returns undefined.
           { kind: 'guard', identifier: Client, metadata: undefined, create: () => undefined },
@@ -217,6 +220,7 @@ describe('opt-in composition', () => {
       jest.fn(() => ({})),
       {
         mode: 'composed',
+        bindings: new Map(),
         boundaries: new CompositionBoundaryContainer([
           { kind: 'guard', identifier: Client, metadata: undefined, create: () => defaultBoundary },
           {

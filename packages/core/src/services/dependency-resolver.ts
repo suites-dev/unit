@@ -14,8 +14,8 @@ import { DependencyMap } from './dependency-map.js';
 
 export type ResolverOptions =
   | { readonly mode: 'solitary' }
-  | { readonly mode: 'selective' }
-  | { readonly mode: 'composed'; readonly boundaries: CompositionBoundaryLookup };
+  | { readonly mode: 'selective'; readonly bindings: ReadonlyMap<InjectableIdentifier, Type> }
+  | { readonly mode: 'composed'; readonly bindings: ReadonlyMap<InjectableIdentifier, Type>; readonly boundaries: CompositionBoundaryLookup };
 
 type ResolvedDependency = Type | FinalValue | StubbedInstance<unknown>;
 type ResolvedBoundary = { value: ResolvedDependency };
@@ -25,6 +25,7 @@ export class DependencyResolver {
   private readonly usedMockEntries = new Set<IdentifierToMockOrFinal>();
   private readonly availableClassesToExpose = new Set<InjectableIdentifier>();
   private readonly constructionPath: DependencyPathEntry[] = [];
+  private readonly exposedDependencies: IdentifierToMockOrFinal[0][] = [];
   private readonly composedDependencies: IdentifierToMockOrFinal[0][] = [];
 
   constructor(
@@ -104,6 +105,13 @@ export class DependencyResolver {
       return boundary.value;
     }
 
+    const implementation = this.options.mode === 'solitary' ? undefined : this.options.bindings.get(identifier);
+    if (implementation !== undefined) {
+      const instance = this.instantiateClass(implementation, metadata, identifier);
+      this.exposedDependencies.push({ identifier, metadata });
+      return instance;
+    }
+
     if (this.options.mode === 'composed' && this.isComposableClass(identifier)) {
       const instance = this.instantiateClass(identifier, metadata);
       this.composedDependencies.push({ identifier, metadata });
@@ -138,7 +146,7 @@ export class DependencyResolver {
       return this.dependencyMap.get(identifier, metadata) as ResolvedDependency;
     }
 
-    const tracksCycles = this.options.mode === 'composed';
+    const tracksCycles = this.options.mode === 'composed' || (this.options.mode === 'selective' && this.options.bindings.size > 0);
     if (
       tracksCycles &&
       this.constructionPath.some(
@@ -191,6 +199,10 @@ export class DependencyResolver {
         this.constructionPath.pop();
       }
     }
+  }
+
+  public getExposedDependencies(): IdentifierToMockOrFinal[0][] {
+    return this.exposedDependencies;
   }
 
   public getComposedDependencies(): IdentifierToMockOrFinal[0][] {

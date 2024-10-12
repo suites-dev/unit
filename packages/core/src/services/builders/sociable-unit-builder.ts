@@ -1,4 +1,5 @@
-import type { FinalValue, Type } from '@suites/types.common';
+import { DependencyResolutionError } from '@suites/types.common';
+import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { DoublesAdapter, StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { MockOverride, UnitTestBed } from '../../types.js';
@@ -7,10 +8,19 @@ import { normalizeIdentifier } from '../../normalize-identifier.static.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
 import { CompositionBoundaryContainer, type CompositionBoundary } from '../composition-boundary.js';
+import { stringifyIdentifier } from '../functions.static.js';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 
 export interface SociableTestBedBuilderState<TClass, TMode extends 'selective' | 'composed'> {
+  bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SociableTestBedBuilderState<TClass, TMode>;
+  bind<TDependency>(
+    identifier: Exclude<InjectableIdentifier<TDependency>, AbstractType>,
+    implementation: Type<TDependency>
+  ): SociableTestBedBuilderState<TClass, TMode>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     metadata?: IdentifierMetadata
@@ -42,6 +52,10 @@ type Override = (
 interface SociableConfiguration {
   readonly mode: ConstructionMode;
   readonly overrides: readonly Override[];
+  readonly bindings: readonly {
+    readonly identifier: InjectableIdentifier;
+    readonly implementation: Type;
+  }[];
 }
 
 export class SociableTestBedBuilder<TClass> {
@@ -64,11 +78,12 @@ export class SociableTestBedBuilder<TClass> {
     return configuredBuilder(this.#context, {
       mode: { kind: 'selective', classes: [first, ...rest] },
       overrides: [],
+      bindings: [],
     });
   }
 
   public compose(): SociableTestBedBuilderState<TClass, 'composed'> {
-    return configuredBuilder(this.#context, { mode: { kind: 'composed' }, overrides: [] });
+    return configuredBuilder(this.#context, { mode: { kind: 'composed' }, overrides: [], bindings: [] });
   }
 }
 
@@ -83,6 +98,15 @@ function configuredBuilder<TClass, TMode extends 'selective' | 'composed'>(
     });
 
   return {
+    bind(identifier: InjectableIdentifier, implementation: Type) {
+      if (typeof implementation !== 'function') {
+        throw new TypeError('Binding a dependency token requires a concrete implementation');
+      }
+      return configuredBuilder<TClass, TMode>(context, {
+        ...configuration,
+        bindings: [...configuration.bindings, { identifier, implementation }],
+      });
+    },
     mock(identifier, metadata) {
       return {
         impl: (implementation) =>
@@ -103,6 +127,18 @@ async function compile<TClass>(
   context: BuilderContext<TClass>,
   configuration: SociableConfiguration
 ): Promise<UnitTestBed<TClass>> {
+  const bindings = new Map<InjectableIdentifier, Type>();
+  for (const { identifier, implementation } of configuration.bindings) {
+    const existing = bindings.get(identifier);
+    if (existing !== undefined && existing !== implementation) {
+      throw new DependencyResolutionError(
+        'Conflicting bindings for ' + stringifyIdentifier(identifier, undefined) + ': ' +
+          existing.name + ' and ' + implementation.name + '. Bind each requested token to one implementation.'
+      );
+    }
+    bindings.set(identifier, implementation);
+  }
+
   const doubles = await context.doubles;
   const entries: IdentifierToMockOrFinal[] = [];
   const finalized: IdentifierToFinal[] = [];
@@ -129,10 +165,10 @@ async function compile<TClass>(
   const classes = mode.kind === 'selective' ? mode.classes : [];
   const options = (
     mode.kind === 'selective'
-      ? { mode: 'selective' }
-      : { mode: 'composed', boundaries: new CompositionBoundaryContainer(boundaries) }
+      ? { mode: 'selective', bindings }
+      : { mode: 'composed', bindings, boundaries: new CompositionBoundaryContainer(boundaries) }
   ) satisfies ResolverOptions;
-  const { container, instance, resolution, composedDependencies } =
+  const { container, instance, resolution, composedDependencies, exposedDependencies } =
     await context.mocker.constructUnit(
       context.targetClass,
       classes,
@@ -162,6 +198,6 @@ For detailed instructions and best practices, refer to our documentation: https:
 
   return {
     unit: instance,
-    unitRef: new UnitReference(container, classes, finalized, composedDependencies),
+    unitRef: new UnitReference(container, classes, finalized, composedDependencies, exposedDependencies),
   };
 }
