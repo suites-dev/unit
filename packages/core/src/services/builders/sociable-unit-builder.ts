@@ -13,6 +13,7 @@ import { TestBedBuilder } from './testbed-builder.js';
 
 export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
+  expose(dependency: string | symbol, implementation: Type): SociableTestBedBuilder<TClass>;
 }
 
 /** A sociable graph with explicitly selected mocked boundaries. */
@@ -22,6 +23,7 @@ export interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 
 abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
   protected readonly classesToExpose: Type[] = [];
+  protected readonly exposedBindings = new Map<InjectableIdentifier, Type>();
   protected abstract get resolutionOptions(): ResolverOptions;
 
   public constructor(
@@ -55,7 +57,7 @@ abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
       }
     );
 
-    const { container, instance, resolution, composedDependencies } =
+    const { container, instance, resolution, composedDependencies, exposedDependencies } =
       await this.unitMocker.constructUnit<TClass>(
         this.targetClass,
         this.classesToExpose,
@@ -95,7 +97,8 @@ For detailed instructions and best practices, refer to our documentation: https:
         container,
         this.classesToExpose,
         this.identifiersToBeFinalized,
-        composedDependencies
+        composedDependencies,
+        exposedDependencies
       ),
     };
   }
@@ -103,17 +106,31 @@ For detailed instructions and best practices, refer to our documentation: https:
 
 export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> {
   protected get resolutionOptions(): ResolverOptions {
-    return {};
+    return { exposedBindings: this.exposedBindings };
   }
 
-  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
-    this.classesToExpose.push(dependency);
+  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  public expose(
+    dependency: string | symbol,
+    implementation: Type
+  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  public expose(
+    dependency: Type | string | symbol,
+    implementation?: Type
+  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
+    if (typeof dependency === 'function' && implementation === undefined) {
+      this.classesToExpose.push(dependency);
+    } else if (implementation !== undefined) {
+      this.exposedBindings.set(dependency, implementation);
+    } else {
+      throw new Error('Exposing a dependency token requires a concrete implementation.');
+    }
     return this;
   }
 
   /** Recursively constructs discovered classes. Exclude abstract tokens and I/O explicitly. */
   public compose(): ComposedTestBedBuilder<TClass> {
-    if (this.classesToExpose.length > 0) {
+    if (this.classesToExpose.length > 0 || this.exposedBindings.size > 0) {
       throw new Error('Cannot combine .compose() with .expose(); choose one sociable strategy.');
     }
     const composed = new ComposedSociableTestBedBuilder(

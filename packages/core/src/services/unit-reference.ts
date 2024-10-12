@@ -148,7 +148,8 @@ export class UnitReference {
     private readonly mocksContainer: DependencyContainer,
     private readonly exposedInstances: InjectableIdentifier[],
     private readonly fakedDependencies: IdentifierToFinal[],
-    private readonly composedDependencies: readonly IdentifierToMockOrFinal[0][] = []
+    private readonly composedDependencies: readonly IdentifierToMockOrFinal[0][] = [],
+    private readonly exposedDependencies: readonly IdentifierToMockOrFinal[0][] = []
   ) {}
 
   public get<TDependency>(type: AbstractType<TDependency>): StubbedInstance<TDependency>;
@@ -193,6 +194,19 @@ export class UnitReference {
 current testing context, as it is marked as a faked dependency.
 Faked dependencies are not intended for direct retrieval and should be accessed through the appropriate
 testing context or container. Refer to the docs for further information: https://suites.dev/docs`);
+    }
+
+    if (
+      this.exposedDependencies.some(
+        (entry) =>
+          entry.identifier === identifier &&
+          isDeepStrictEqual(entry.metadata, selectedDependency?.[0].metadata)
+      )
+    ) {
+      throw new DependencyResolutionError(
+        `The dependency ${stringifyIdentifier(identifier, identifierMetadata)} is marked as an exposed dependency. ` +
+          'Access the real instance through the unit instead of unitRef.get().'
+      );
     }
 
     if (

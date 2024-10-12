@@ -14,6 +14,7 @@ import { DependencyMap } from './dependency-map.js';
 /** Opt-in graph construction; omitted options retain the V4 resolver behavior. */
 export interface ResolverOptions {
   compose?: boolean;
+  exposedBindings?: ReadonlyMap<InjectableIdentifier, Type>;
   excludedIdentifiers?: readonly InjectableIdentifier[];
 }
 
@@ -22,6 +23,7 @@ export class DependencyResolver {
   private readonly availableClassesToExpose = new Set<AbstractType>();
   private readonly constructionPath: Type[] = [];
   private readonly composedDependencies: IdentifierToMockOrFinal[0][] = [];
+  private readonly exposedDependencies: IdentifierToMockOrFinal[0][] = [];
 
   constructor(
     private readonly classesToExpose: Type[],
@@ -58,6 +60,13 @@ export class DependencyResolver {
     if (existingMock !== undefined) {
       this.dependencyMap.set(identifier, existingMock, metadata as never);
       return existingMock;
+    }
+
+    const implementation = this.options.exposedBindings?.get(identifier);
+    if (implementation !== undefined) {
+      const instance = this.instantiateClass(implementation, metadata, identifier);
+      this.exposedDependencies.push({ identifier, metadata });
+      return instance;
     }
 
     if (this.options.compose) {
@@ -100,10 +109,12 @@ export class DependencyResolver {
 
   public instantiateClass(
     type: Type,
-    metadata: IdentifierMetadata | undefined = undefined
+    metadata: IdentifierMetadata | undefined = undefined,
+    identifier: InjectableIdentifier = type
   ): Type | FinalValue | StubbedInstance<unknown> {
-    if (this.dependencyMap.has(type, metadata)) {
-      return this.dependencyMap.get(type, metadata) as Type | FinalValue | StubbedInstance<unknown>;
+    if (this.dependencyMap.has(identifier, metadata)) {
+      return this.dependencyMap.get(identifier, metadata) as
+        Type | FinalValue | StubbedInstance<unknown>;
     }
 
     if (this.options.compose && this.constructionPath.includes(type)) {
@@ -133,7 +144,7 @@ export class DependencyResolver {
       });
 
       const instance = new type(...ctorParams);
-      this.dependencyMap.set(type, instance, metadata as never);
+      this.dependencyMap.set(identifier, instance, metadata as never);
 
       const propsInjectables = injectableRegistry.list().filter(({ type }) => type === 'PROPERTY');
 
@@ -146,6 +157,10 @@ export class DependencyResolver {
     } finally {
       if (this.options.compose) this.constructionPath.pop();
     }
+  }
+
+  public getExposedDependencies(): IdentifierToMockOrFinal[0][] {
+    return this.exposedDependencies;
   }
 
   public getComposedDependencies(): IdentifierToMockOrFinal[0][] {

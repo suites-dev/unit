@@ -12,6 +12,7 @@ export interface MockedUnit<TClass> {
   container: DependencyContainer;
   instance: TClass;
   composedDependencies?: IdentifierToMockOrFinal[0][];
+  exposedDependencies?: IdentifierToMockOrFinal[0][];
   resolution: {
     notFound: IdentifierToMockOrFinal[];
     mocks: { metadata?: unknown; identifier: AbstractType }[];
@@ -64,6 +65,7 @@ export class UnitMocker {
       instance: instance as TClass,
       resolution: dependencyResolver.getResolutionSummary(),
       composedDependencies: dependencyResolver.getComposedDependencies(),
+      exposedDependencies: dependencyResolver.getExposedDependencies(),
     };
   }
 }
