@@ -28,6 +28,7 @@ export class DependencyResolver {
   private readonly availableClassesToExpose = new Set<InjectableIdentifier>();
   private readonly constructionPath: DependencyPathEntry[] = [];
   private readonly composedDependencies: IdentifierToMockOrFinal[0][] = [];
+  private readonly exposedDependencies: IdentifierToMockOrFinal[0][] = [];
 
   constructor(
     private readonly classesToExpose: Type[],
@@ -103,12 +104,10 @@ export class DependencyResolver {
       return boundary.value;
     }
 
-    const exposedImplementation = this.options.exposedBindings?.get(identifier);
-    if (exposedImplementation !== undefined) {
-      const instance = this.instantiateClass(exposedImplementation, metadata, identifier);
-      if (this.options.compose) {
-        this.composedDependencies.push({ identifier, metadata });
-      }
+    const implementation = this.options.exposedBindings?.get(identifier);
+    if (implementation !== undefined) {
+      const instance = this.instantiateClass(implementation, metadata, identifier);
+      this.exposedDependencies.push({ identifier, metadata });
       return instance;
     }
 
@@ -203,6 +202,10 @@ export class DependencyResolver {
         this.constructionPath.pop();
       }
     }
+  }
+
+  public getExposedDependencies(): IdentifierToMockOrFinal[0][] {
+    return this.exposedDependencies;
   }
 
   public getComposedDependencies(): IdentifierToMockOrFinal[0][] {

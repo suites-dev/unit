@@ -1,4 +1,4 @@
-import type { DeepPartial, FinalValue, Type } from '@suites/types.common';
+import type { AbstractType, DeepPartial, FinalValue, Type } from '@suites/types.common';
 import type { ArgsType, DoublesAdapter, Stub, StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { MockOverride, UnitTestBed } from '../../types.js';
@@ -13,6 +13,14 @@ import { TestBedBuilder } from './testbed-builder.js';
 export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type, ...dependencies: Type[]): SelectiveSociableTestBedBuilder<TClass>;
   compose(): ComposedSociableTestBedBuilder<TClass>;
+  bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): SociableTestBedBuilder<TClass>;
+  bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SociableTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
@@ -20,6 +28,14 @@ export interface SociableTestBedBuilder<TClass> {
 }
 
 interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
+  bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): ComposedTestBedBuilder<TClass>;
+  bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): ComposedTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
@@ -28,6 +44,14 @@ interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 
 interface SelectiveTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   expose(dependency: Type, ...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
+  bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): SelectiveTestBedBuilder<TClass>;
+  bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SelectiveTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
@@ -112,7 +136,7 @@ abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
       })),
     ]);
 
-    const { container, instance, resolution, composedDependencies } =
+    const { container, instance, resolution, composedDependencies, exposedDependencies } =
       await this.unitMocker.constructUnit<TClass>(
         this.targetClass,
         this.classesToExpose,
@@ -146,7 +170,8 @@ For detailed instructions and best practices, refer to our documentation: https:
         container,
         this.classesToExpose,
         this.identifiersToBeFinalized,
-        composedDependencies
+        composedDependencies,
+        exposedDependencies
       ),
     };
   }
@@ -175,6 +200,22 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
     return selective;
   }
 
+  public bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): SociableTestBedBuilder<TClass>;
+  public bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SociableTestBedBuilder<TClass>;
+  public bind(
+    identifier: InjectableIdentifier,
+    implementation: Type
+  ): SociableTestBedBuilder<TClass> {
+    this.setExposedBinding(identifier, implementation);
+    return this;
+  }
+
   public override mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
@@ -198,6 +239,22 @@ class ComposedSociableTestBedBuilder<TClass>
   extends SociableBuilderBase<TClass>
   implements ComposedTestBedBuilder<TClass>
 {
+  public bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): ComposedTestBedBuilder<TClass>;
+  public bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): ComposedTestBedBuilder<TClass>;
+  public bind(
+    identifier: InjectableIdentifier,
+    implementation: Type
+  ): ComposedTestBedBuilder<TClass> {
+    this.setExposedBinding(identifier, implementation);
+    return this;
+  }
+
   public override mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
@@ -218,6 +275,22 @@ class SelectiveSociableTestBedBuilder<TClass>
   extends SociableBuilderBase<TClass>
   implements SelectiveTestBedBuilder<TClass>
 {
+  public bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): SelectiveTestBedBuilder<TClass>;
+  public bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SelectiveTestBedBuilder<TClass>;
+  public bind(
+    identifier: InjectableIdentifier,
+    implementation: Type
+  ): SelectiveTestBedBuilder<TClass> {
+    this.setExposedBinding(identifier, implementation);
+    return this;
+  }
+
   public expose(
     dependency: Type,
     ...dependencies: Type[]
