@@ -8,12 +8,6 @@ on:
       - next
       - master
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: 'E2E Target Branch'
-        required: true
-        type: string
-        default: 'next'
 
 permissions:
   contents: read
@@ -28,13 +22,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.ref || inputs.target_branch }}
+          persist-credentials: false
           fetch-depth: 0
+
+      - name: Create local simulation branch
+        run: git checkout -B e2e-simulation
 
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '22.x'
+          package-manager-cache: false
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -118,13 +116,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.ref || inputs.target_branch }}
+          persist-credentials: false
+
+      - name: Create local simulation branch
+        run: git checkout -B e2e-simulation
 
       # Build and publish with the supported development toolchain.
       - name: Setup Node for build tools
         uses: actions/setup-node@v6
         with:
           node-version: '22.x'
+          package-manager-cache: false
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

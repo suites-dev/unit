@@ -6,16 +6,10 @@ on:
   workflow_call:
     inputs:
       target_branch:
-        description: 'Branch to test release from'
+        description: 'Must match the branch selected for the calling workflow'
         required: true
         type: string
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: 'Branch to test release from'
-        required: true
-        type: string
-        default: 'next'
 
 permissions:
   contents: read
@@ -23,6 +17,9 @@ permissions:
 jobs:
   e2e-full:
     name: Full E2E (${{ matrix.e2e-project }}, Node ${{ matrix.node-version }})
+    env:
+      REQUESTED_BRANCH: ${{ inputs.target_branch }}
+      RUN_BRANCH: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -45,10 +42,18 @@ jobs:
           - e2e-project: 'vitest/inversify'
             node-version: 18.x
     steps:
+      - name: Verify release branch
+        run: |
+          if [ -n "$REQUESTED_BRANCH" ] && [ "$REQUESTED_BRANCH" != "$RUN_BRANCH" ]; then
+            echo "Select the release target in the calling workflow's branch selector." >&2
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.target_branch }}
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
           fetch-depth: 0
 
       # Build and publish with the supported development toolchain.
@@ -56,6 +61,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '22.x'
+          package-manager-cache: false
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -108,7 +114,7 @@ jobs:
           --conventional-prerelease \
           --preid e2e \
           --no-changelog \
-          --allow-branch ${{ inputs.target_branch }} \
+          --allow-branch "$RUN_BRANCH" \
           --no-git-tag-version \
           --no-push \
           --force-publish \
