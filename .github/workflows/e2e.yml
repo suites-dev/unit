@@ -121,10 +121,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || inputs.target_branch }}
 
-      - name: Setup Node ${{ matrix.node-version }}
+      # Build and publish with the supported development toolchain.
+      - name: Setup Node for build tools
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '22.x'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -147,10 +148,9 @@ jobs:
       - name: Setup Registry
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '22.x'
           registry-url: http://localhost:4873
           scope: '@suites'
-          always-auth: false
 
       - name: Install jq
         run: sudo apt-get install jq
@@ -219,6 +219,14 @@ jobs:
           rm pnpm-lock.yaml
           rm package.json
           rm -f .npmrc
+
+      # Exercise the published packages on every consumer runtime in the matrix.
+      - name: Setup Node ${{ matrix.node-version }} for tests
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: http://localhost:4873
+          scope: '@suites'
 
       - name: Install Dependencies from Verdaccio
         run: |

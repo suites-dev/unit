@@ -21,7 +21,7 @@ function createEsmResolverStrategy(): (path: string) => boolean {
       try {
         require.resolve(path);
         return true;
-      } catch (error) {
+      } catch {
         return false;
       }
     }

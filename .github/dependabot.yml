@@ -1,7 +1,9 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directory: "/" # Location of package manifests
+    directories:
+      - "/"
+      - "/e2e"
     schedule:
       interval: "daily" # Check for updates daily
     commit-message:
@@ -9,12 +11,9 @@ updates:
     open-pull-requests-limit: 10
     groups:
       security-updates:
+        applies-to: security-updates
         patterns:
           - "*"
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
       minor-and-patch:
         patterns:
           - "*"

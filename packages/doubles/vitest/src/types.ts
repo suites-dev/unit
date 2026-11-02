@@ -1,4 +1,4 @@
-import type { MaybeMockedDeep, Mock, Mocked as VitestMocked } from '@vitest/spy';
+import type { MaybeMockedDeep, MockedFunction, Mocked as VitestMocked } from '@vitest/spy';
 
 type MockFunction<T extends (...args: any[]) => any> = VitestMocked<ReturnType<T>> & T;
 
@@ -68,4 +68,7 @@ export type Mocked<T> = MaybeMockedDeep<T> & {
  * @see {@link https://vitest.dev/api/vi.html#vi-fn | Vitest Function Mocks}
  * @see {@link https://suites.dev/docs/api-reference/mock | Stub Reference}
  */
-export type Stub<TArgs extends any[] = any[], TReturn = any> = Mock<TArgs, TReturn>;
+// MockedFunction accepts a function signature across Vitest 1.x and later versions.
+export type Stub<TArgs extends any[] = any[], TReturn = any> = MockedFunction<
+  (...args: TArgs) => TReturn
+>;
