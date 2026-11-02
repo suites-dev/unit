@@ -50,8 +50,9 @@
     "prebuild": "pnpm rimraf dist",
     "postinstall": "node postinstall.mjs",
     "build": "sh build.sh",
-    "test": "VITE_CJS_IGNORE_WARNING=true pnpm vitest run --coverage",
-    "lint": "pnpm eslint '{src,test}/**/*.ts'"
+    "test": "VITE_CJS_IGNORE_WARNING=true pnpm vitest run --coverage && pnpm test:types",
+    "lint": "pnpm eslint '{src,test}/**/*.ts'",
+    "test:types": "tsc --noEmit --skipLibCheck --strict --target es2020 --module esnext --moduleResolution bundler src/types.spec.ts"
   },
   "files": [
     "unit.d.ts",
@@ -69,9 +70,9 @@
     "@suites/types.doubles": "workspace:^3.1.0"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^1.6.1",
-    "@vitest/spy": "^1.6.1",
-    "vitest": "^1.6.1"
+    "@vitest/coverage-v8": "^4.1.12",
+    "@vitest/spy": "^4.1.12",
+    "vitest": "^4.1.12"
   },
   "publishConfig": {
     "access": "public",

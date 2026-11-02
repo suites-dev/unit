@@ -6,24 +6,20 @@ on:
   workflow_call:
     inputs:
       target_branch:
-        description: 'Branch to test release from'
+        description: 'Must match the branch selected for the calling workflow'
         required: true
         type: string
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: 'Branch to test release from'
-        required: true
-        type: string
-        default: 'next'
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   e2e-full:
     name: Full E2E (${{ matrix.e2e-project }}, Node ${{ matrix.node-version }})
+    env:
+      REQUESTED_BRANCH: ${{ inputs.target_branch }}
+      RUN_BRANCH: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -46,16 +42,26 @@ jobs:
           - e2e-project: 'vitest/inversify'
             node-version: 18.x
     steps:
+      - name: Verify release branch
+        run: |
+          if [ -n "$REQUESTED_BRANCH" ] && [ "$REQUESTED_BRANCH" != "$RUN_BRANCH" ]; then
+            echo "Select the release target in the calling workflow's branch selector." >&2
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.target_branch }}
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
           fetch-depth: 0
 
-      - name: Setup Node ${{ matrix.node-version }}
+      # Build and publish with the supported development toolchain.
+      - name: Setup Node for build tools
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '22.x'
+          package-manager-cache: false
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -75,21 +81,20 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Setup Registry
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node-version }}
-          registry-url: http://localhost:4873
-          scope: '@suites'
-          always-auth: false
+      - name: Configure local test registry
+        env:
+          TEST_NPMRC: ${{ runner.temp }}/verdaccio.npmrc
+        run: |
+          printf '%s\n' 'registry=http://localhost:4873/' '@suites:registry=http://localhost:4873/' > "$TEST_NPMRC"
+          echo "NPM_CONFIG_USERCONFIG=$TEST_NPMRC" >> "$GITHUB_ENV"
 
       - name: Install jq
         run: sudo apt-get install jq
 
-      - name: Remove provenance from package.json files
+      - name: Restrict package publishing to the local test registry
         run: |
           find packages -name 'package.json' | while read filename; do
-            jq 'del(.publishConfig.provenance)' "$filename" > temp.json && mv temp.json "$filename"
+            jq 'del(.publishConfig.provenance) | .publishConfig.registry = "http://localhost:4873"' "$filename" > temp.json && mv temp.json "$filename"
           done
 
       - name: Config Git
@@ -109,7 +114,7 @@ jobs:
           --conventional-prerelease \
           --preid e2e \
           --no-changelog \
-          --allow-branch ${{ inputs.target_branch }} \
+          --allow-branch "$RUN_BRANCH" \
           --no-git-tag-version \
           --no-push \
           --force-publish \
@@ -132,6 +137,7 @@ jobs:
       - name: Publish Packages to Verdaccio
         run: |
           pnpm lerna publish from-package --yes \
+          --registry http://localhost:4873 \
           --no-git-tag-version \
           --no-push \
           --no-git-reset \
@@ -159,11 +165,21 @@ jobs:
           rm package.json
           rm -f .npmrc
 
+      # Exercise the published packages on every consumer runtime in the matrix.
+      - name: Setup Node ${{ matrix.node-version }} for tests
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # npm 10 can crash while resolving Vitest's peer dependencies on Node 22.
+      - name: Use npm 11 for Vitest fixtures
+        if: contains(matrix.e2e-project, 'vitest')
+        run: npm install --global npm@11.19.0 --registry=https://registry.npmjs.org/
+
       - name: Install Dependencies from Verdaccio
         run: |
           cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          npm install --no-cache --no-package-lock
-          npm install --dev --no-package-lock @types/node@${{ matrix.node-version }}
+          npm install --no-cache --no-package-lock --save-dev @types/node@${{ matrix.node-version }}
 
       - name: Execute Test
         run: |

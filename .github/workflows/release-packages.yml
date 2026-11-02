@@ -12,7 +12,7 @@ on:
         required: true
         default: 'prerelease'
       target_branch:
-        description: 'Target Branch'
+        description: 'Target Branch (must match the workflow branch selector)'
         type: choice
         options:
           - 'master'
@@ -47,8 +47,7 @@ jobs:
     with:
       target_branch: ${{ github.event.inputs.target_branch }}
     permissions:
-      contents: write
-      id-token: write
+      contents: read
 
   tag-version:
     name: Tag Version

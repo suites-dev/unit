@@ -49,7 +49,7 @@ export { mock } from './mock.static.js';
  * ```
  *
  * @since 3.0.0
- * @see {@link https://sinonjs.org/releases/latest/stubs/ | Sinon Stubs}
+ * @see {@link https://sinonjs.org/concepts/stubs/ | Sinon Stubs}
  * @see {@link https://suites.dev/docs/api-reference/mock | Stub API Reference}
  * @see {@link mock} for mocking entire objects
  */

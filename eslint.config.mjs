@@ -41,6 +41,7 @@ export default [
       '@typescript-eslint/no-dupe-class-members': 'error',
       '@typescript-eslint/no-unsafe-declaration-merging': 'off',
       '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-empty-object-type': ['error', { allowInterfaces: 'with-single-extends' }],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/consistent-type-imports': [

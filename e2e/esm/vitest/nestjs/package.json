@@ -25,5 +25,10 @@
   },
   "engines": {
     "node": ">= 20"
+  },
+  "allowScripts": {
+    "@suites/di.nestjs": true,
+    "@suites/doubles.vitest": true,
+    "@swc/core": true
   }
 }
