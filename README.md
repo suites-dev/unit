@@ -12,7 +12,6 @@ A unit testing framework for TypeScript backends working with inversion of contr
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
   <a href="https://github.com/suites-dev/suites/blob/master/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" /></a>
   <a href="https://npmjs.org/package/@suites/unit"><img src="https://img.shields.io/npm/dm/@suites/unit.svg?label=%40suites%2Funit" alt="npm downloads" /></a>
-  <a href="https://npmjs.org/package/@automock/jest"><img src="https://img.shields.io/npm/dm/@automock/jest.svg?label=%40automock%2Fjest" alt="npm downloads" /></a>
 </div>
 
 <h3 align="center">
@@ -25,10 +24,6 @@ A unit testing framework for TypeScript backends working with inversion of contr
   <a href="https://suites.dev/docs/guides">Guides</a>
 </h3>
 
-<p align="center">
-<strong>Dependency Injection Frameworks:</strong> <a href="https://nestjs.com">NestJS</a> (<a href="https://docs.nestjs.com/recipes/suites">official</a>), <a href="https://inversify.io/">InversifyJS</a> (<a href="https://inversify.io/docs/ecosystem/suites/">official</a>)</a><br/>
-<strong>Testing Libraries:</strong> <a href="https://jestjs.io">Jest</a>, <a href="https://vitest.dev">Vitest</a>, <a href="https://sinonjs.org">Sinon</a>
-</p>
 <p align="center">
 Using Suites? <a href="https://github.com/suites-dev/suites/discussions/655">Share your experience</a>, and help us shape the future of Suites
 </p>
