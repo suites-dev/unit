@@ -59,7 +59,7 @@
     "jest-environment-node": "29.1.0",
     "jest-junit": "^16.0.0",
     "lerna": "^9.0.7",
-    "lint-staged": "^16.1.5",
+    "lint-staged": "^17.6.0",
     "madge": "^7.0.0",
     "prettier": "^3.6.2",
     "reflect-metadata": "0.2.2",
