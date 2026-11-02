@@ -24,5 +24,10 @@
   },
   "engines": {
     "node": ">= 20"
+  },
+  "allowScripts": {
+    "@suites/di.inversify": true,
+    "@suites/doubles.vitest": true,
+    "@swc/core": true
   }
 }

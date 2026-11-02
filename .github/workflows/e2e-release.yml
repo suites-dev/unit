@@ -165,11 +165,15 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      # npm 10 can crash while resolving Vitest's peer dependencies on Node 22.
+      - name: Use npm 11 for Vitest fixtures
+        if: contains(matrix.e2e-project, 'vitest')
+        run: npm install --global npm@11.19.0 --registry=https://registry.npmjs.org/
+
       - name: Install Dependencies from Verdaccio
         run: |
           cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          npm install --no-cache --no-package-lock
-          npm install --dev --no-package-lock @types/node@${{ matrix.node-version }}
+          npm install --no-cache --no-package-lock --save-dev @types/node@${{ matrix.node-version }}
 
       - name: Execute Test
         run: |
