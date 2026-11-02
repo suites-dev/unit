@@ -18,8 +18,7 @@ on:
         default: 'next'
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   e2e-full:
@@ -76,20 +75,20 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Setup Registry
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22.x'
-          registry-url: http://localhost:4873
-          scope: '@suites'
+      - name: Configure local test registry
+        env:
+          TEST_NPMRC: ${{ runner.temp }}/verdaccio.npmrc
+        run: |
+          printf '%s\n' 'registry=http://localhost:4873/' '@suites:registry=http://localhost:4873/' > "$TEST_NPMRC"
+          echo "NPM_CONFIG_USERCONFIG=$TEST_NPMRC" >> "$GITHUB_ENV"
 
       - name: Install jq
         run: sudo apt-get install jq
 
-      - name: Remove provenance from package.json files
+      - name: Restrict package publishing to the local test registry
         run: |
           find packages -name 'package.json' | while read filename; do
-            jq 'del(.publishConfig.provenance)' "$filename" > temp.json && mv temp.json "$filename"
+            jq 'del(.publishConfig.provenance) | .publishConfig.registry = "http://localhost:4873"' "$filename" > temp.json && mv temp.json "$filename"
           done
 
       - name: Config Git
@@ -132,6 +131,7 @@ jobs:
       - name: Publish Packages to Verdaccio
         run: |
           pnpm lerna publish from-package --yes \
+          --registry http://localhost:4873 \
           --no-git-tag-version \
           --no-push \
           --no-git-reset \
@@ -164,8 +164,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: http://localhost:4873
-          scope: '@suites'
 
       - name: Install Dependencies from Verdaccio
         run: |
