@@ -21,6 +21,9 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      # Keep Node types within the highest supported Node major.
+      - dependency-name: "@types/node"
+        versions: [">=25"]
       - dependency-name: "jest"
         versions: ["<29.1.0"]
       - dependency-name: "eslint"
