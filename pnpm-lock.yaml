@@ -216,14 +216,14 @@ importers:
         version: link:../../types/doubles
     devDependencies:
       '@vitest/coverage-v8':
-        specifier: ^4.1.12
-        version: 4.1.12(vitest@4.1.12)
+        specifier: ^5.0.5
+        version: 5.0.5(vitest@4.1.12)
       '@vitest/spy':
         specifier: ^4.1.12
         version: 4.1.12
       vitest:
         specifier: ^4.1.12
-        version: 4.1.12(@types/node@24.19.2)(@vitest/coverage-v8@4.1.12)(vite@8.3.5)
+        version: 4.1.12(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.5)
 
   packages/types/common: {}
 
@@ -2460,26 +2460,24 @@ packages:
       eslint-visitor-keys: 5.0.1
     dev: true
 
-  /@vitest/coverage-v8@4.1.12(vitest@4.1.12):
-    resolution: {integrity: sha512-6S7/iVknKglLAxMFxQGNppBI0iqJS2NgM6FBxavitj7KaDq/vywOWGf6dGu7F2L1Qy0G6S3uTp7aGshHrzK8JA==}
+  /@vitest/coverage-v8@5.0.5(vitest@4.1.12):
+    resolution: {integrity: sha512-4KpkGdIrSqBihx/JyP/e+S+IKB98etg1XDQiLAxksLfcShnwi1VReGeOT9NI43hLHbknosKp/1CCLn9Zgcs8mg==}
     peerDependencies:
-      '@vitest/browser': 4.1.12
-      vitest: 4.1.12
+      '@vitest/browser': 5.0.5
+      vitest: 5.0.5
     peerDependenciesMeta:
       '@vitest/browser':
         optional: true
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
-      '@vitest/utils': 4.1.12
+      '@vitest/istanbul-lib-coverage': 1.0.2
+      '@vitest/istanbul-lib-report': 1.0.2
       ast-v8-to-istanbul: 1.0.7
-      istanbul-lib-coverage: 3.2.2
-      istanbul-lib-report: 3.0.1
-      istanbul-reports: 3.2.0
       magicast: 0.5.5
-      obug: 2.2.1
+      obug: 3.0.0
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 4.1.12(@types/node@24.19.2)(@vitest/coverage-v8@4.1.12)(vite@8.3.5)
+      vitest: 4.1.12(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.5)
     dev: true
 
   /@vitest/expect@4.1.12:
@@ -2491,6 +2489,18 @@ packages:
       '@vitest/utils': 4.1.12
       chai: 6.3.0
       tinyrainbow: 3.2.0
+    dev: true
+
+  /@vitest/istanbul-lib-coverage@1.0.2:
+    resolution: {integrity: sha512-9J/JMwOf9AoJhAywhrn7ScKTL38hsWQP/qPG60OtaAFcQ5OXPwKsxZFlbnuCKmZ61m8/lGgHYnFpdyQZUvG/iA==}
+    engines: {node: '>=22'}
+    dev: true
+
+  /@vitest/istanbul-lib-report@1.0.2:
+    resolution: {integrity: sha512-gUsfXZJbzPamoIY5TvHFiMMoXESBrUMo+xqaj+rYrWI69+EnvRlYBlP96ZnHPY4vX8kyUpgAnFUCg5wZG/HkDQ==}
+    engines: {node: '>=22'}
+    dependencies:
+      '@vitest/istanbul-lib-coverage': 1.0.2
     dev: true
 
   /@vitest/mocker@4.1.12(vite@8.3.5):
@@ -6651,6 +6661,11 @@ packages:
     engines: {node: '>=12.20.0'}
     dev: true
 
+  /obug@3.0.0:
+    resolution: {integrity: sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw==}
+    engines: {node: '>=12.20.0'}
+    dev: true
+
   /once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
     dependencies:
@@ -8314,7 +8329,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitest@4.1.12(@types/node@24.19.2)(@vitest/coverage-v8@4.1.12)(vite@8.3.5):
+  /vitest@4.1.12(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.5):
     resolution: {integrity: sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     hasBin: true
@@ -8356,7 +8371,7 @@ packages:
         optional: true
     dependencies:
       '@types/node': 24.19.2
-      '@vitest/coverage-v8': 4.1.12(vitest@4.1.12)
+      '@vitest/coverage-v8': 5.0.5(vitest@4.1.12)
       '@vitest/expect': 4.1.12
       '@vitest/mocker': 4.1.12(vite@8.3.5)
       '@vitest/pretty-format': 4.1.12
