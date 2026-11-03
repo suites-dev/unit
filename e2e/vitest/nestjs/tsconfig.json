@@ -1,7 +1,8 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "skipLibCheck": false
   },
   "include": ["*e2e.test.ts", "global.d.ts"],
   "exclude": ["node_modules"]

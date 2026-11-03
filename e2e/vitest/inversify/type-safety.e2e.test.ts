@@ -30,4 +30,18 @@ describe('Inversify DI Adapter Type Safety', () => {
 
     expect(unitRef).toBeDefined();
   });
+
+  it('rejects non-object Inversify metadata at compile time', async () => {
+    const builder = TestBed.solitary(InversifyJSTestClass);
+    const { unitRef } = await builder.compile();
+
+    // Type-check these invalid calls without executing them.
+    const checkInvalidMetadata = () => {
+      // @ts-expect-error Inversify identifier metadata must be an object.
+      builder.mock('TOKEN', 'invalid metadata');
+      // @ts-expect-error The DI reference also constrains augmented mock lookups.
+      unitRef.get('TOKEN', 'invalid metadata');
+    };
+    expect(checkInvalidMetadata).toBeDefined();
+  });
 });

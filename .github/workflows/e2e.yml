@@ -221,7 +221,7 @@ jobs:
       - name: Install Dependencies from Verdaccio
         run: |
           cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          pnpm add --lockfile=false --save-dev @types/node@${{ matrix.node-version }}
+          pnpm add --ignore-scripts --lockfile=false --save-dev @types/node@${{ matrix.node-version }}
 
       - name: Execute Test
         run: |
