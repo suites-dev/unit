@@ -89,9 +89,10 @@ Add a `suites.d.ts` file included by your test TypeScript configuration:
 
 ```ts
 /// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-Suites 4 uses this explicit reference instead of modifying installed package files.
+For Inversify, replace `@suites/di.nestjs/metadata` with `@suites/di.inversify/metadata`. Suites 4 loads these module augmentations directly instead of modifying installed package files.
 
 ## Key Features
 
@@ -100,7 +101,7 @@ Suites 4 uses this explicit reference instead of modifying installed package fil
 - **Jest API Integration** - Use familiar patterns like `mockResolvedValue`, `mockImplementation`
 - **Deep Mocking** - Nested objects are automatically mocked
 - **Stub Functions** - Access raw `jest.Mock` stubs via the `Stub` type
-- **Zero Configuration** - Works out of the box with Jest projects
+- **Automatic Runtime Detection** - Works out of the box with Jest projects
 
 ## Mock API
 
