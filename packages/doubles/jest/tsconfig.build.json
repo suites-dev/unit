@@ -7,12 +7,5 @@
     "target": "esnext",
     "skipLibCheck": true
   },
-  "exclude": [
-    "index.ts",
-    "node_modules",
-    "test",
-    "**/*.spec.ts",
-    "jest.config.ts",
-    "dist"
-  ]
+  "exclude": ["index.ts", "node_modules", "test", "**/*.spec.ts", "jest.config.cjs", "dist"]
 }
