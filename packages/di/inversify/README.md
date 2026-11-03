@@ -67,7 +67,7 @@ describe('UserService', () => {
 
 ## Requirements
 
-Suites 4 requires Node 22.22.2+, 24.15.0+, or 26.x, and Inversify 8.2.3 or later in the 8.x line. See the [Suites 4 migration guide](../../../docs/migration-v4.md) for decorator and metadata changes.
+Suites 4 requires Node 22.22.2+, 24.15.0+, or 26.x, and Inversify 7.x or 8.x. See the [Suites 4 migration guide](../../../docs/migration-v4.md) for decorator and metadata changes.
 
 ## Installation
 
@@ -83,7 +83,7 @@ Or with Vitest:
 npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.vitest
 ```
 
-**Peer dependencies:** Requires `inversify` (>= 6.0) and `reflect-metadata`.
+**Peer dependencies:** Requires `inversify` in `^7.0.0 || ^8.0.0` and `reflect-metadata`. Inversify 7 remains supported; upgrading to 8 is optional.
 
 👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
 

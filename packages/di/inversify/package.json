@@ -56,7 +56,7 @@
     "@inversifyjs/core": "^15.0.1"
   },
   "peerDependencies": {
-    "inversify": "^8.2.3",
+    "inversify": "^7.0.0 || ^8.0.0",
     "reflect-metadata": "<1.0.0"
   },
   "devDependencies": {
