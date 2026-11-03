@@ -1,6 +1,6 @@
 # Upgrading to Suites 4
 
-Suites 4 moves the package family to maintained Node.js releases. This branch stages `4.0.0-next.0`; it does not publish a release or move npm distribution tags.
+Suites 4 moves the package family to maintained Node.js releases and replaces install-time type modifications with explicit adapter references.
 
 ## Choose a supported Node release
 
@@ -14,10 +14,10 @@ Node 16, 18, 20, odd-numbered majors, and untested future majors are outside the
 
 ## Upgrade the package family together
 
-Once the Suites 4 prerelease is published to the `next` tag, upgrade `@suites/unit` and the DI and test-double adapters your project uses in the same install. For a NestJS project using Jest:
+Upgrade `@suites/unit` and the DI and test-double adapters your project uses in the same install. For a NestJS project using Jest:
 
 ```bash
-pnpm add --save-dev @suites/unit@next @suites/di.nestjs@next @suites/doubles.jest@next
+pnpm add --save-dev @suites/unit@4 @suites/di.nestjs@4 @suites/doubles.jest@4
 ```
 
 Keep `reflect-metadata` as a runtime dependency where your DI framework requires it. Run your existing tests after upgrading; the `TestBed` API is unchanged by this runtime migration.
@@ -77,7 +77,7 @@ The root pnpm workspace includes E2E linting. Each E2E consumer fixture installs
 
 CI and the local Docker runner test the minimum and current release in every supported DI major. The cases live in `e2e/di-compatibility.json`; the runner verifies that the consumer and adapter resolve the same framework version before running each fixture. Installs use strict peer checks with lifecycle scripts disabled, and declarations are checked with `skipLibCheck: false`.
 
-The package manifests and internal workspace dependencies are staged at `4.0.0-next.0`. Release maintainers should publish prereleases with the `next` distribution tag. Use the existing Prepare Release workflow's graduate operation when promoting the tested prerelease to stable 4.0.0, then publish with `latest`. Do not publish the staged prerelease under `latest`.
+Release maintainers publish stable releases from `master` with the `latest` distribution tag. Use the Prepare Release workflow's graduate operation to turn staged prerelease versions into stable versions before running Publish Packages. Publishing a prerelease to npm first is optional; prereleases, when used, belong under the `next` distribution tag.
 
 ### Preserve package release history
 
@@ -85,7 +85,7 @@ Merge the Suites 4 upgrade into `next` with a merge commit or rebase merge. Pres
 
 Use package-scoped headers such as `feat(unit): support Node 22, 24, and 26` with an explicit `BREAKING CHANGE:` footer explaining the required migration. The configured Angular changelog parser does not recognize `!` in headers, so use the footer to mark breaking changes. Keep tooling and CI commits separate from package changes.
 
-Run **Release Preview** on `next` with `prerelease` before preparing a prerelease, and with `graduate` before promoting to stable. Review every package's proposed version and generated changelog, including its breaking-change notes. Changelogs accumulate changes since each package's previous stable tag, so graduation retains the complete migration notes from prereleases. **Prepare Release** writes and commits those changelogs; the preview itself does not commit, tag, push, or publish.
+Run **Release Preview** on `next` with `prerelease` before preparing a prerelease, or on `master` with `graduate` before releasing staged prerelease versions as stable. Review every package's proposed version and generated changelog, including its breaking-change notes. Changelogs accumulate changes since each package's previous stable tag, so graduation retains the complete migration notes from prereleases. **Prepare Release** writes and commits those changelogs; the preview itself does not commit, tag, push, or publish.
 
 Dependency updates for Jest, Vitest, and ESLint are grouped so companion packages can be reviewed and tested together.
 

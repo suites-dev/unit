@@ -150,7 +150,7 @@ Supported DI framework versions:
 
 CI tests the minimum and current releases of each supported major on Node 22, 24, and 26.
 
-This branch prepares Suites 4. The published Suites 3.x releases retain their existing Node support. See [Upgrading to Suites 4](docs/migration-v4.md) before upgrading.
+Suites 3.x releases retain their existing Node support. See [Upgrading to Suites 4](docs/migration-v4.md) before upgrading.
 
 ## Installation
 
