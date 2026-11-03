@@ -24,7 +24,7 @@ declare module '@suites/unit' {
    * Represents a test double instance where all methods and properties are stubbed.
    *
    * This abstract type provides the foundation for creating test doubles in unit tests.
-   * When a testing adapter is installed, this type is automatically augmented with
+   * When the testing adapter's `/unit` declaration is referenced, this type gains
    * framework-specific capabilities through TypeScript module augmentation.
    *
    * @template T The type of the object being transformed into a test double
@@ -49,7 +49,7 @@ declare module '@suites/core.unit' {
    *
    * The return type of `.get()` is augmented by adapter packages to provide
    * framework-specific mock types. Configure augmentation by referencing the
-   * adapter's unit.d.ts in your global.d.ts.
+   * adapter's unit.d.ts in your suites.d.ts.
    *
    * @since 3.0.0
    * @see {@link https://suites.dev/docs/api-reference/unit-reference | UnitReference API Reference}
