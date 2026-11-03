@@ -83,6 +83,16 @@ npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.vitest
 
 👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
 
+## TypeScript setup
+
+Add a `suites.d.ts` file included by your test TypeScript configuration:
+
+```ts
+/// <reference types="@suites/doubles.vitest/unit" />
+```
+
+Suites 4 uses this explicit reference instead of modifying installed package files.
+
 ## Key Features
 
 - **Automatic Mock Generation** - Creates `vi.fn()` mocks for all methods and properties
@@ -127,7 +137,6 @@ Suites supports multiple mocking libraries:
 
 - **@suites/doubles.vitest** - Mocking adapter for Vitest (this package)
 - **[@suites/doubles.jest](https://www.npmjs.com/package/@suites/doubles.jest)** - Mocking adapter for Jest
-- **[@suites/doubles.sinon](https://www.npmjs.com/package/@suites/doubles.sinon)** - Mocking adapter for Sinon
 
 All adapters provide the same consistent `Mocked<T>` and `Stub` types while using framework-specific mocking implementations.
 

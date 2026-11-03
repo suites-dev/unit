@@ -2,7 +2,8 @@ import { expect, expectTypeOf, it, vi } from 'vitest';
 import type { Stub } from './types.js';
 
 it('preserves explicit stub arguments and return values', () => {
-  const stub: Stub<[name: string, count: number], boolean> = vi.fn();
+  const stub: Stub<[name: string, count: number], boolean> =
+    vi.fn<(name: string, count: number) => boolean>();
 
   expectTypeOf(stub).parameters.toEqualTypeOf<[string, number]>();
   expectTypeOf(stub).returns.toEqualTypeOf<boolean>();
@@ -14,7 +15,7 @@ it('preserves explicit stub arguments and return values', () => {
 });
 
 it('preserves the resolved value type of async stubs', async () => {
-  const stub: Stub<[id: string], Promise<number>> = vi.fn();
+  const stub: Stub<[id: string], Promise<number>> = vi.fn<(id: string) => Promise<number>>();
 
   expectTypeOf(stub.mockResolvedValue).parameter(0).toEqualTypeOf<number>();
   stub.mockResolvedValue(42);

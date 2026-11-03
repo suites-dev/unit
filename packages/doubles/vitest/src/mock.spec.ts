@@ -196,9 +196,9 @@ describe('Mocking Proxy Mechanism Unit Spec', () => {
 
       mockObject.user.create.mockRejectedValue(new Error('Some error'));
 
-      await expect(
-        mockObject.user.create({ id: '123', name: 'Mashu', age: 123 })
-      ).rejects.toThrowError('Some error');
+      await expect(mockObject.user.create({ id: '123', name: 'Mashu', age: 123 })).rejects.toThrow(
+        'Some error'
+      );
     });
   });
 });

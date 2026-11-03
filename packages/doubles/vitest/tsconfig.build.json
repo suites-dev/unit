@@ -8,10 +8,5 @@
     "outDir": "dist",
     "skipLibCheck": true
   },
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts",
-    "vitest.config.ts",
-    "dist"
-  ]
+  "exclude": ["node_modules", "**/*.spec.ts", "vitest.config.mts", "dist"]
 }
