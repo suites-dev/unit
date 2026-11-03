@@ -1,21 +1,25 @@
 const path = require('path');
 const packagesDir = path.join(__dirname, 'packages');
 
-const config = (coverageDir?: string) => ({
+const config = (coverageDir) => ({
   preset: 'ts-jest',
   roots: ['<rootDir>'],
   rootDir: '.',
   moduleFileExtensions: ['js', 'json', 'ts'],
   testRegex: '.(spec|test).ts$',
   transform: {
-    '^.+\\.(t|j)s$': [
+    '^.+\\.m?js$': ['@swc/jest', { module: { type: 'commonjs' } }],
+    '^.+\\.ts$': [
       'ts-jest',
       {
-        isolatedModules: true,
         tsconfig: path.join(__dirname, 'tsconfig.test.json'),
       },
-    ] as any,
+    ],
   },
+  // These dependencies are ESM-only; compile them for Jest's CJS test runtime on Node 22.
+  transformIgnorePatterns: [
+    '/node_modules/(?!(?:\\.pnpm/)?(?:inversify|@inversifyjs[+/]|@nestjs[+/]|uuid))',
+  ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@suites/core.unit(.*)$': path.join(packagesDir, 'core/src$1'),
@@ -25,7 +29,6 @@ const config = (coverageDir?: string) => ({
     '^@suites/di.nestjs(.*)$': path.join(packagesDir, 'di/nestjs/src$1'),
     '^@suites/di.inversify(.*)$': path.join(packagesDir, 'di/inversify/src$1'),
     '^@suites/doubles.jest(.*)$': path.join(packagesDir, 'doubles/jest/src$1'),
-    '^@suites/doubles.sinon(.*)$': path.join(packagesDir, 'doubles/sinon/src$1'),
     '^@suites/doubles.vitest(.*)$': path.join(packagesDir, 'doubles/vitest/src$1'),
   },
   coveragePathIgnorePatterns: ['/node_modules/', 'spec-assets.ts', '/__test__/'],
@@ -40,9 +43,9 @@ const config = (coverageDir?: string) => ({
         file: process.env.COVERAGE_FILE || 'coverage-report.xml',
       },
     ],
-  ] as any,
+  ],
   reporters: ['default', 'jest-junit'],
   testResultsProcessor: 'jest-junit',
 });
 
-export default config;
+module.exports = config;
