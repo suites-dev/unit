@@ -84,6 +84,17 @@ npm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.vitest
 
 👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
 
+## TypeScript setup
+
+Add a `suites.d.ts` file included by your test `tsconfig.json`:
+
+```ts
+/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.nestjs/metadata" />
+```
+
+For Vitest, use `@suites/doubles.vitest/unit` instead. The NestJS metadata reference rejects metadata arguments to `TestBed.mock()` and `unitRef.get()`. These references load module augmentations directly from the packages, including when install scripts are disabled.
+
 ## Key Features
 
 - **Automatic Mock Generation** - Creates mocks for all NestJS `@Injectable()` decorated services
@@ -91,7 +102,7 @@ npm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.vitest
 - **ForwardRef Compatible** - Supports NestJS `forwardRef()` for circular dependencies
 - **Property Injection** - Supports constructor and property-based injection
 - **Type-Safe Mocks** - Full TypeScript support with proper type inference
-- **Zero Configuration** - No changes required to existing NestJS applications
+- **Automatic Runtime Detection** - No changes required to existing NestJS applications
 
 ## Supported NestJS Patterns
 
