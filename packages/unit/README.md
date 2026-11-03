@@ -29,7 +29,7 @@ Suites is a **unit testing framework** that provides:
 - **Framework Agnostic** - Write tests once, use the same pattern across NestJS services, InversifyJS modules, or plain TypeScript classes
 - **AI Ready** - The consistent pattern makes it trivial for coding agents to generate correct tests without extensive context
 
-Works with [NestJS](https://nestjs.com) (official), [InversifyJS](https://inversify.io) (official), [Jest](https://jestjs.io), [Vitest](https://vitest.dev), and [Sinon](https://sinonjs.org).
+Works with [NestJS](https://nestjs.com) (official), [InversifyJS](https://inversify.io) (official), [Jest](https://jestjs.io), and [Vitest](https://vitest.dev).
 
 ```typescript
 import { TestBed, type Mocked } from '@suites/unit';

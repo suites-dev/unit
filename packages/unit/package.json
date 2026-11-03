@@ -1,7 +1,7 @@
 {
   "name": "@suites/unit",
   "private": false,
-  "version": "3.1.1",
+  "version": "4.0.0-next.0",
   "license": "Apache-2.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -28,7 +28,6 @@
     "mocks",
     "test",
     "jest",
-    "sinon",
     "vitest",
     "dependency injection",
     "nestjs",
@@ -61,7 +60,7 @@
     }
   ],
   "engines": {
-    "node": "^16.10.0 || ^18.12.0 || >=20.0.0"
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
   },
   "scripts": {
     "prebuild": "pnpm rimraf dist",
@@ -74,15 +73,14 @@
     "README.md"
   ],
   "dependencies": {
-    "@suites/core.unit": "workspace:^3.1.0",
-    "@suites/types.common": "workspace:^3.1.0",
-    "@suites/types.di": "workspace:^3.1.0",
-    "@suites/types.doubles": "workspace:^3.1.0"
+    "@suites/core.unit": "workspace:^4.0.0-next.0",
+    "@suites/types.common": "workspace:^4.0.0-next.0",
+    "@suites/types.di": "workspace:^4.0.0-next.0",
+    "@suites/types.doubles": "workspace:^4.0.0-next.0"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
-  "packageManager": "pnpm@8.15.9",
-  "gitHead": "62e9e59e0a68b670ec5578400ce28c9f0f9f0eac"
+  "packageManager": "pnpm@12.16.1"
 }

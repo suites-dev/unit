@@ -15,7 +15,7 @@ describe('Suites Adapter Package Resolving Integration Test', () => {
     it('should include all supported doubles adapters', () => {
       const adapters = Object.keys(SuitesDoublesAdapters);
       expect(adapters).toContain('jest');
-      expect(adapters).toContain('sinon');
+      expect(adapters).not.toContain('sinon');
       expect(adapters).toContain('vitest');
     });
   });

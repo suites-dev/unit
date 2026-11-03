@@ -1,7 +1,6 @@
-import type { Config } from 'jest';
-import baseConfig from '../../jest.base.config';
+const baseConfig = require('../../jest.base.config.cjs');
 
-const config: Config = {
+const config = {
   ...baseConfig(process.env.COVERAGE_DIR),
   id: 'core',
   displayName: 'core',
@@ -16,4 +15,4 @@ const config: Config = {
   ],
 };
 
-export default config;
+module.exports = config;
