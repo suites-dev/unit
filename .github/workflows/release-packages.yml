@@ -55,21 +55,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.target_branch }}
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
+          node-version: '26.x'
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -85,30 +85,29 @@ jobs:
       - name: Prerelease Version (Exact Version)
         if: ${{ github.event.inputs.release_type == 'prerelease' && github.event.inputs.exact_version }}
         run: |
-          npx lerna version ${{ github.event.inputs.exact_version }} --yes --no-changelog
+          pnpm exec lerna version ${{ github.event.inputs.exact_version }} --yes --conventional-commits
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prerelease Version
         if: ${{ github.event.inputs.release_type == 'prerelease' && !github.event.inputs.exact_version }}
         run: |
-          npx lerna version --yes \
+          pnpm exec lerna version --yes \
           --conventional-commits \
           --conventional-prerelease \
-          --preid ${{ github.event.inputs.preid }} \
-          --no-changelog
+          --preid ${{ github.event.inputs.preid }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Graduate Version
         if: ${{ github.event.inputs.release_type == 'graduate' }}
-        run: npx lerna version --conventional-graduate --yes
+        run: pnpm exec lerna version --conventional-graduate --yes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Stable Version
         if: ${{ github.event.inputs.release_type == 'stable' }}
-        run: npx lerna version --conventional-commits --yes
+        run: pnpm exec lerna version --conventional-commits --yes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
