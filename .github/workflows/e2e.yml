@@ -72,6 +72,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🧪 Testing Matrix" >> $GITHUB_STEP_SUMMARY
           echo "- **Projects**: 6 (jest/nestjs, vitest/nestjs, esm/jest/nestjs, esm/vitest/nestjs, jest/inversify, vitest/inversify)" >> $GITHUB_STEP_SUMMARY
+          echo "- **DI versions**: NestJS 10/11/12 and Inversify 7/8, minimum and current releases" >> $GITHUB_STEP_SUMMARY
           echo "- **Node versions**: 3 (22.x, 24.x, 26.x)" >> $GITHUB_STEP_SUMMARY
           echo "- **Total jobs**: 18 (6 projects x 3 Node versions)" >> $GITHUB_STEP_SUMMARY
 
@@ -191,19 +192,6 @@ jobs:
           --exact \
           --dist-tag e2e
 
-      - name: Parse E2E Project
-        run: |
-          project="${{ matrix.e2e-project }}"
-          if [[ "$project" == esm/* ]]; then
-            IFS='/' read -r _ library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=esm/$library" >> $GITHUB_ENV
-          else
-            IFS='/' read -r library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=$library" >> $GITHUB_ENV
-          fi
-
       - name: Clean Source
         run: |
           rm -rf packages
@@ -218,12 +206,5 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install Dependencies from Verdaccio
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          pnpm add --ignore-scripts --lockfile=false --save-dev @types/node@${{ matrix.node-version }}
-
-      - name: Execute Test
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          pnpm test
+      - name: Test supported DI versions from Verdaccio
+        run: node e2e/run-di-compatibility.cjs "${{ matrix.e2e-project }}"

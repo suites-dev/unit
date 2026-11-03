@@ -220,18 +220,11 @@ async function resetNodeContainer(): Promise<void> {
 async function setupAndTest(packagePath: string): Promise<void> {
   console.log(`➡️ Setting up and testing ${packagePath}...`);
   await resetNodeContainer();
-  console.log(`📦 Installing dependencies for ${packagePath}...`);
-  await execInNodeContainer('pnpm', [
-    '--dir',
-    packagePath,
-    'install',
-    '--lockfile=false',
-    '--registry',
-    VERDACCIO_URL,
+  console.log(`🏁 Testing supported DI versions for ${packagePath}...`);
+  await execInNodeContainer('node', [
+    '/e2e/run-di-compatibility.cjs',
+    packagePath.replace(/^\/e2e\//, ''),
   ]);
-
-  console.log(`🏁 Running tests for ${packagePath}...`);
-  await execInNodeContainer('pnpm', ['--dir', packagePath, 'test']);
 }
 
 /**

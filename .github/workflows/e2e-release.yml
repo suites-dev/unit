@@ -137,19 +137,6 @@ jobs:
           --exact \
           --dist-tag e2e
 
-      - name: Parse E2E Project
-        run: |
-          project="${{ matrix.e2e-project }}"
-          if [[ "$project" == esm/* ]]; then
-            IFS='/' read -r _ library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=esm/$library" >> $GITHUB_ENV
-          else
-            IFS='/' read -r library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=$library" >> $GITHUB_ENV
-          fi
-
       - name: Clean Source
         run: |
           rm -rf packages
@@ -164,15 +151,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install Dependencies from Verdaccio
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          pnpm add --ignore-scripts --lockfile=false --save-dev @types/node@${{ matrix.node-version }}
-
-      - name: Execute Test
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          pnpm test
+      - name: Test supported DI versions from Verdaccio
+        run: node e2e/run-di-compatibility.cjs "${{ matrix.e2e-project }}"
 
       - name: Test Success Summary
         if: success()
