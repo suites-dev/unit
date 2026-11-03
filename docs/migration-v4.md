@@ -28,15 +28,20 @@ Suites 4 removes Sinon support. `@suites/doubles.sinon` is no longer maintained 
 
 For example, replace Sinon `.returns(value)` and `.resolves(value)` calls with Jest or Vitest `.mockReturnValue(value)` and `.mockResolvedValue(value)`. Replace `stub.calledWith(argument)` assertions with `expect(stub).toHaveBeenCalledWith(argument)`. Suites 4 does not discover or load the old Sinon adapter, even if it remains installed.
 
-### Load your test-double types explicitly
+### Load your adapter types explicitly
 
-Add a `suites.d.ts` file included by your test `tsconfig.json`, choosing the adapter you use:
+Add a `suites.d.ts` file included by your test `tsconfig.json`, choosing your test-double and DI adapters:
 
 ```ts
 /// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-For Vitest, replace `jest` with `vitest`. Suites 4 removes install scripts that edited neighboring packages. This reference works with pnpm's isolated dependencies and with lifecycle scripts disabled.
+For Vitest, replace `jest` with `vitest`. For Inversify, replace `nestjs` with `inversify`. Include one test-double reference and one DI reference per test TypeScript project.
+
+The `/unit` reference enables `Mocked<T>`, `Stub`, and framework-specific mock methods. The `/metadata` reference selects the DI adapter's identifier metadata: NestJS rejects a metadata argument, while Inversify accepts named and tagged metadata objects. Without a DI reference, metadata remains generic.
+
+Suites 4 removes install scripts that edited neighboring packages. TypeScript now loads these packaged declaration files directly. This works with pnpm's isolated dependencies and with lifecycle scripts disabled; `reflect-metadata` is still needed at runtime for decorators.
 
 ### Update Jest together with its globals
 

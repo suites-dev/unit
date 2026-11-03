@@ -189,14 +189,16 @@ For complete installation instructions, see the [Installation Guide](https://sui
 
 ### Type Definitions
 
-Create a `global.d.ts` file in your project root (or in your test directory) to enable proper TypeScript support:
+Create a `suites.d.ts` file included by your test `tsconfig.json`:
 
 ```typescript
-/// <reference types='@suites/doubles.jest/unit' />
-/// <reference types='@suites/di.nestjs/metadata' />
+/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-Replace `@suites/doubles.jest` and `@suites/di.nestjs` with your chosen adapters.
+Use `@suites/doubles.vitest/unit` for Vitest or `@suites/di.inversify/metadata` for Inversify. Include one test-double adapter and one DI adapter per test TypeScript project.
+
+The `/unit` reference supplies mock types and methods. The `/metadata` reference enforces the DI adapter's metadata rules: NestJS has no identifier metadata; Inversify supports named and tagged bindings. These are packaged type declarations, so no postinstall script or edits to `node_modules` are required.
 
 For detailed configuration instructions, see the [Installation Guide](https://suites.dev/docs/get-started/installation).
 
@@ -218,10 +220,6 @@ If you're currently using Automock, we've created a comprehensive migration guid
 guide covers all the changes and improvements, making the upgrade process smooth and straightforward.
 
 [↗️ Migrating from Automock Guide](https://suites.dev/docs/migration-guides/from-automock)
-
-## TypeScript adapter types
-
-Include a `suites.d.ts` file in your test TypeScript configuration with `/// <reference types="@suites/doubles.jest/unit" />`. Replace `jest` with `vitest` when using the Vitest adapter.
 
 ## License
 
