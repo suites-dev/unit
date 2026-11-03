@@ -11,7 +11,9 @@ services:
       - e2e-network
 
   executor:
-    image: node:24-alpine
+    build:
+      context: .
+      dockerfile: e2e/Dockerfile
     working_dir: /e2e
     volumes:
       - ./e2e:/e2e

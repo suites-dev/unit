@@ -5,7 +5,7 @@ import { InversifyJSTestClass, SymbolToken } from './e2e-assets';
 describe('Inversify DI Adapter Type Safety', () => {
   it('allows metadata argument for string tokens', async () => {
     const { unitRef } = await TestBed.solitary(InversifyJSTestClass)
-      .mock<string>('BarToken', { name: 'someTarget' })
+      .mock<string>('BarToken', { named: 'someTarget' })
       .final('value')
       .compile();
 

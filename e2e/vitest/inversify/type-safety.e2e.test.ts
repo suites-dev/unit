@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 import { describe, it, expect } from 'vitest';
 import { TestBed } from '@suites/unit';
-import { InversifyJSTestClass, SymbolToken } from './e2e-assets';
+import { InversifyJSTestClass, SymbolToken } from './e2e-assets.js';
 
 describe('Inversify DI Adapter Type Safety', () => {
   it('allows metadata argument for string tokens', async () => {
     const { unitRef } = await TestBed.solitary(InversifyJSTestClass)
-      .mock<string>('BarToken', { name: 'someTarget' })
+      .mock<string>('BarToken', { named: 'someTarget' })
       .final('value')
       .compile();
 

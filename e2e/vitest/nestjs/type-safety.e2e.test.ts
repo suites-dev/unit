@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TestBed } from '@suites/unit';
-import { NestJSTestClass } from './e2e-assets';
+import { NestJSTestClass } from './e2e-assets.js';
 
 describe('NestJS DI Adapter Type Safety', () => {
   it('allows mocking without metadata', async () => {

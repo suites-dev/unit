@@ -1,0 +1,13 @@
+# Each fixture installs published packages independently of the source workspace.
+packages: []
+lockfile: false
+minimumReleaseAgeExclude:
+  - '@suites/*'
+  - '@vitest/spy@5.1.0'
+  - '@vitest/coverage-v8@5.1.0'
+  - '@vitest/mocker@5.1.0'
+  - 'vitest@5.1.0'
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  '@nestjs/core': false
