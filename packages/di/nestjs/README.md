@@ -80,7 +80,7 @@ Or with Vitest:
 npm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.vitest
 ```
 
-**Peer dependencies:** Requires `@nestjs/common` (>= 8.0) and `reflect-metadata`.
+**Peer dependencies:** Requires `@nestjs/common` in `^10.0.0 || ^11.0.0 || ^12.0.1` and `reflect-metadata`. NestJS 10 and 11 remain supported; upgrading to 12 is optional.
 
 👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
 
