@@ -58,6 +58,8 @@ NestJS 10/11 and Inversify 7 remain supported. You can upgrade Suites without ch
 
 The Inversify adapter reads the public metadata model shared by versions 7 and 8. When migrating from Inversify 6, use `LazyServiceIdentifier`, replace removed `@targetName('value')` decorators with `@named('value')`, and use `@injectFromBase()` for inherited injection metadata. Select named mocks with `{ named: 'value' }` in `TestBed.mock()` or `unitRef.get()`. See the [Inversify migration guide](https://inversify.io/docs/guides/migrating-from-v6/) for framework changes.
 
+For constructor parameters using `@named(...)` or `@tagged(...)` that previously relied on inferred injection types, add `@inject(Dependency)` explicitly. Plain class-typed parameters without these decorators can still use inferred injection.
+
 The Node 26 type definitions used to develop Suites do not require consumers to run Node 26. Consumer tests also run on Node 22 and 24.
 
 ## Develop and test Suites
