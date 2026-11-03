@@ -36,23 +36,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.target_branch }}
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
+          node-version: '26.x'
           registry-url: https://registry.npmjs.org/
           scope: '@suites'
-          always-auth: true
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -69,11 +68,11 @@ jobs:
           echo "**Branch:** \`${{ github.event.inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Packages:" >> $GITHUB_STEP_SUMMARY
-          lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
+          pnpm exec lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
 
       - name: Publish Packages
         run: |
-          npx lerna publish from-package --yes \
+          pnpm exec lerna publish from-package --yes \
             --dist-tag ${{ github.event.inputs.dist_tag }} \
             --no-git-reset
         env:

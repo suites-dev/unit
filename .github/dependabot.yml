@@ -1,40 +1,56 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  - package-ecosystem: 'npm'
     directories:
-      - "/"
-      - "/e2e"
+      - '/'
+      - '/e2e/jest/*'
+      - '/e2e/vitest/*'
+      - '/e2e/esm/jest/*'
+      - '/e2e/esm/vitest/*'
     schedule:
-      interval: "daily" # Check for updates daily
+      interval: 'daily' # Check for updates daily
     commit-message:
-      prefix: "deps"
+      prefix: 'deps'
     open-pull-requests-limit: 10
     groups:
       security-updates:
         applies-to: security-updates
         patterns:
-          - "*"
+          - '*'
+      vitest:
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+      jest:
+        patterns:
+          - 'jest'
+          - '@jest/*'
+          - '@types/jest'
+          - 'jest-environment-*'
+          - 'ts-jest'
+      eslint:
+        patterns:
+          - 'eslint'
+          - '@eslint/*'
+          - '@typescript-eslint/*'
       minor-and-patch:
         patterns:
-          - "*"
+          - '*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
     ignore:
-      # Keep Node types within the highest supported Node major.
-      - dependency-name: "@types/node"
-        versions: [">=25"]
-      - dependency-name: "jest"
-        versions: ["<29.1.0"]
-      - dependency-name: "eslint"
-        versions: ["<8.0.0"]
-      - dependency-name: "lerna"
-        versions: ["<7.3.1"]
+      # Upgrade the supported Node majors deliberately.
+      - dependency-name: '@types/node'
+        versions: ['>=27']
+      # Revisit when ts-jest and typescript-eslint support TypeScript 7.
+      - dependency-name: 'typescript'
+        versions: ['>=7']
 
-  - package-ecosystem: "github-actions"
-    directory: "/" # Location of GitHub Actions workflows
+  - package-ecosystem: 'github-actions'
+    directory: '/' # Location of GitHub Actions workflows
     schedule:
-      interval: "daily" # Check for updates daily
+      interval: 'daily' # Check for updates daily
     commit-message:
-      prefix: "deps"
+      prefix: 'deps'
     open-pull-requests-limit: 10

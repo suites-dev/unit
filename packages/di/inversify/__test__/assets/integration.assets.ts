@@ -1,11 +1,10 @@
 import {
   inject,
   injectable,
-  LazyServiceIdentifer,
+  LazyServiceIdentifier,
   multiInject,
   named,
   tagged,
-  targetName,
   unmanaged,
 } from 'inversify';
 
@@ -87,15 +86,11 @@ export const SymbolToken = Symbol.for('SymbolToken');
 export class ConstructorBasedInjectionClass {
   public constructor(
     @inject('Interface')
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    @targetName('dependencyOne')
+    @named('dependencyOne')
     private readonly dependencyOne: DependencyOne,
     private readonly dependencyTwo: DependencyTwo,
     @inject('Interface')
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    @targetName('dependencyFive')
+    @named('dependencyFive')
     private readonly dependencyFive: DependencyFive,
     @inject('CUSTOM_TOKEN')
     @throwable
@@ -103,13 +98,15 @@ export class ConstructorBasedInjectionClass {
     @inject(DependencySix)
     @tagged('tagged', 'withValue')
     private readonly dependencySix: DependencySix,
-    @inject(new LazyServiceIdentifer(() => DependencySeven))
+    @inject(new LazyServiceIdentifier(() => DependencySeven))
     private readonly dependencySeven: DependencySeven,
     @inject('CUSTOM_TOKEN_SECOND') private readonly dependencyMissingWithToken: undefined,
     @inject(SymbolToken) private readonly dummy: DummyType,
     @multiInject('LITERAL_VALUE_ARR') private readonly literalValueArray: string[],
     @inject('LITERAL_VALUE_STR') private readonly literalValueString: string,
-    @named('arbitrary-name') private readonly dependencyEight: DependencyEight,
+    @inject(DependencyEight)
+    @named('arbitrary-name')
+    private readonly dependencyEight: DependencyEight,
     @unmanaged() private readonly dependencyNice: DependencyNine,
     @inject(DependencyTen) @throwable private readonly testClassTen: DummyType
   ) {}
@@ -126,10 +123,10 @@ export class PropertiesBasedInjectionClass {
   @throwable
   private readonly dependencyFour: DependencyFour;
 
-  @inject(new LazyServiceIdentifer(() => DependencyThree))
+  @inject(new LazyServiceIdentifier(() => DependencyThree))
   private readonly dependencyThree: DependencyThree;
 
-  @inject(new LazyServiceIdentifer(() => DependencySix))
+  @inject(new LazyServiceIdentifier(() => DependencySix))
   @tagged('tagged', 'withValue')
   private readonly dependencySix: undefined;
 
@@ -154,7 +151,7 @@ export class ConstructorCombinedWithPropsClass {
   @inject('LITERAL_VALUE_STR')
   private readonly literalValueString: string;
 
-  @inject(new LazyServiceIdentifer(() => DependencyThree))
+  @inject(new LazyServiceIdentifier(() => DependencyThree))
   private readonly dependencyThree: DependencyThreeInterface;
 
   public constructor(

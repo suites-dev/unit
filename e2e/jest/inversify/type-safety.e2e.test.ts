@@ -5,7 +5,7 @@ import { InversifyJSTestClass, SymbolToken } from './e2e-assets';
 describe('Inversify DI Adapter Type Safety', () => {
   it('allows metadata argument for string tokens', async () => {
     const { unitRef } = await TestBed.solitary(InversifyJSTestClass)
-      .mock<string>('BarToken', { name: 'someTarget' })
+      .mock<string>('BarToken', { named: 'someTarget' })
       .final('value')
       .compile();
 
@@ -28,5 +28,19 @@ describe('Inversify DI Adapter Type Safety', () => {
       .compile();
 
     expect(unitRef).toBeDefined();
+  });
+
+  it('rejects non-object Inversify metadata at compile time', async () => {
+    const builder = TestBed.solitary(InversifyJSTestClass);
+    const { unitRef } = await builder.compile();
+
+    // Type-check these invalid calls without executing them.
+    const checkInvalidMetadata = () => {
+      // @ts-expect-error Inversify identifier metadata must be an object.
+      builder.mock('TOKEN', 'invalid metadata');
+      // @ts-expect-error The DI reference also constrains augmented mock lookups.
+      unitRef.get('TOKEN', 'invalid metadata');
+    };
+    expect(checkInvalidMetadata).toBeDefined();
   });
 });

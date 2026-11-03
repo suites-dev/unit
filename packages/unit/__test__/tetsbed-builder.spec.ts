@@ -1,3 +1,4 @@
+import { adapter } from './assets/test-adapter.js';
 import { testBedBuilderFactory } from '../src/testbed-builder.js';
 
 const initiationStub = jest.fn();
@@ -26,13 +27,14 @@ describe('Testbed Builder Unit Spec', () => {
     ).create(FakeBuilderType as never);
   });
 
-  it('should call the constructor of the fake builder type', () => {
+  it('should call the constructor of the fake builder type', async () => {
     expect(initiationStub).toHaveBeenCalledWith(
-      Promise.resolve({ jest: '@suites/doubles.jest' }),
+      expect.any(Promise),
       expect.any(Object),
       TargetClass,
       expect.any(Object)
     );
+    await expect(initiationStub.mock.calls[0][0]).resolves.toBe(adapter);
   });
 
   it('should create new testbed builder with the given fake builder type', () => {

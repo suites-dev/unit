@@ -1,6 +1,6 @@
 {
   "name": "@suites/doubles.jest",
-  "version": "3.1.0",
+  "version": "4.0.0-next.0",
   "license": "Apache-2.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -44,36 +44,35 @@
     }
   ],
   "engines": {
-    "node": "^16.10.0 || ^18.12.0 || >=20.0.0"
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
   },
   "scripts": {
     "prebuild": "pnpm rimraf dist",
-    "postinstall": "node postinstall.js",
     "build": "sh ./build.sh",
     "test": "jest --coverage --verbose",
     "lint": "pnpm eslint '{src,test}/**/*.ts'"
   },
   "files": [
     "unit.d.ts",
-    "dist",
-    "postinstall.js"
+    "dist"
   ],
   "peerDependencies": {
-    "jest": "> 26.0"
+    "jest": "^30.5.2",
+    "@jest/globals": "^30.5.2"
   },
   "dependencies": {
-    "@suites/core.unit": "workspace:^3.1.0",
-    "@suites/types.common": "workspace:^3.1.0",
-    "@suites/types.di": "workspace:^3.1.0",
-    "@suites/types.doubles": "workspace:^3.1.0"
+    "@suites/core.unit": "workspace:^4.0.0-next.0",
+    "@suites/types.common": "workspace:^4.0.0-next.0",
+    "@suites/types.di": "workspace:^4.0.0-next.0",
+    "@suites/types.doubles": "workspace:^4.0.0-next.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^30.5.2",
+    "@jest/globals": "^30.5.2"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
-  "packageManager": "pnpm@8.15.9",
-  "gitHead": "62e9e59e0a68b670ec5578400ce28c9f0f9f0eac"
+  "packageManager": "pnpm@12.16.1"
 }

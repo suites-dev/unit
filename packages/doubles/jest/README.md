@@ -79,9 +79,20 @@ Or with InversifyJS:
 npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.jest
 ```
 
-**Peer dependencies:** Requires `jest` (> 26.0).
+**Peer dependencies:** Requires matching `jest` and `@jest/globals` 30.5.2 or later in the 30.x line.
 
 👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
+
+## TypeScript setup
+
+Add a `suites.d.ts` file included by your test TypeScript configuration:
+
+```ts
+/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.nestjs/metadata" />
+```
+
+For Inversify, replace `@suites/di.nestjs/metadata` with `@suites/di.inversify/metadata`. Suites 4 loads these module augmentations directly instead of modifying installed package files.
 
 ## Key Features
 
@@ -90,7 +101,7 @@ npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.jest
 - **Jest API Integration** - Use familiar patterns like `mockResolvedValue`, `mockImplementation`
 - **Deep Mocking** - Nested objects are automatically mocked
 - **Stub Functions** - Access raw `jest.Mock` stubs via the `Stub` type
-- **Zero Configuration** - Works out of the box with Jest projects
+- **Automatic Runtime Detection** - Works out of the box with Jest projects
 
 ## Mock API
 
@@ -127,7 +138,6 @@ Suites supports multiple mocking libraries:
 
 - **@suites/doubles.jest** - Mocking adapter for Jest (this package)
 - **[@suites/doubles.vitest](https://www.npmjs.com/package/@suites/doubles.vitest)** - Mocking adapter for Vitest
-- **[@suites/doubles.sinon](https://www.npmjs.com/package/@suites/doubles.sinon)** - Mocking adapter for Sinon
 
 All adapters provide the same consistent `Mocked<T>` and `Stub` types while using framework-specific mocking implementations.
 
@@ -145,4 +155,3 @@ We welcome contributions! See our [contribution guidelines](https://github.com/s
 ## License
 
 Apache-2.0 © [Suites](https://suites.dev)
-

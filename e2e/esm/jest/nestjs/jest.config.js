@@ -17,8 +17,6 @@ export default {
   // Map .js imports to .ts source files (TypeScript ESM quirk)
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
-    // Force @suites packages to use CJS build in node_modules
-    '^@suites/(.+)$': '<rootDir>/node_modules/@suites/$1/dist/cjs/index.js',
   },
 
   // Transform TypeScript AND JavaScript files with ESM support

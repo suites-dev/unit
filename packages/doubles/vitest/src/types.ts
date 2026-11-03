@@ -16,7 +16,7 @@ type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : M
  * @template T The type of the object being mocked
  *
  * @remarks
- * When `@suites/doubles.vitest` is installed, this type augments the base
+ * When `@suites/doubles.vitest/unit` is referenced, this type augments the base
  * `Mocked<T>` type from `@suites/unit` with Vitest-specific functionality.
  * All mocked methods support Vitest's mock API including `mockReturnValue`,
  * `mockResolvedValue`, `mockImplementation`, and assertion matchers.
@@ -59,7 +59,7 @@ export type Mocked<T> = MaybeMockedDeep<T> & {
  * @template TArgs The tuple type of the function's arguments
  *
  * @remarks
- * When `@suites/doubles.vitest` is installed, this type augments the base
+ * When `@suites/doubles.vitest/unit` is referenced, this type augments the base
  * `Stub` type from `@suites/unit` with Vitest's mock function capabilities.
  * It's the fundamental building block for all function mocking in Vitest.
  *

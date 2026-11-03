@@ -83,7 +83,7 @@ describe('Mocking Proxy Mechanism Unit Spec', () => {
     test('should allow specifying arguments', () => {
       const mockObject = mock<ArbitraryMock>();
       mockObject.getSomethingWithArgs(1, 2);
-      expect(mockObject.getSomethingWithArgs).toBeCalledWith(1, 2);
+      expect(mockObject.getSomethingWithArgs).toHaveBeenCalledWith(1, 2);
     });
   });
 
@@ -196,9 +196,9 @@ describe('Mocking Proxy Mechanism Unit Spec', () => {
 
       mockObject.user.create.mockRejectedValue(new Error('Some error'));
 
-      await expect(
-        mockObject.user.create({ id: '123', name: 'Mashu', age: 123 })
-      ).rejects.toThrowError('Some error');
+      await expect(mockObject.user.create({ id: '123', name: 'Mashu', age: 123 })).rejects.toThrow(
+        'Some error'
+      );
     });
   });
 });

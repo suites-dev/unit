@@ -33,7 +33,6 @@ export class AdapterNotFoundError extends SuitesError {
  */
 export const SuitesDoublesAdapters = {
   jest: '@suites/doubles.jest',
-  sinon: '@suites/doubles.sinon',
   vitest: '@suites/doubles.vitest',
   bun: '@suites/doubles.bun',
   deno: '@suites/doubles.deno',

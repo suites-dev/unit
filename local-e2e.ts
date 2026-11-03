@@ -1,4 +1,4 @@
-#!/usr/bin/env npx ts-node
+#!/usr/bin/env -S pnpm exec ts-node
 
 import { spawn, SpawnOptions } from 'child_process';
 import { readFile, writeFile } from 'fs/promises';
@@ -74,13 +74,11 @@ async function main(): Promise<void> {
       // NestJS
       'jest/nestjs',
       'vitest/nestjs',
-      'sinon/nestjs',
       'esm/jest/nestjs',
       'esm/vitest/nestjs',
       // Inversify
       'jest/inversify',
       'vitest/inversify',
-      'sinon/inversify',
     ];
 
     for (const e2e of e2es) {
@@ -213,7 +211,7 @@ function execInNodeContainer(
 async function resetNodeContainer(): Promise<void> {
   console.log('🔄 Resetting node container...');
   await exec('docker compose', ['-f', COMPOSE_FILE, 'restart', NODE_CONTAINER, '--timeout=0']);
-  await execInNodeContainer('npm', ['config', 'set', 'registry', VERDACCIO_URL]);
+  await execInNodeContainer('pnpm', ['config', 'set', 'registry', VERDACCIO_URL, '--global']);
 }
 
 /**
@@ -222,19 +220,11 @@ async function resetNodeContainer(): Promise<void> {
 async function setupAndTest(packagePath: string): Promise<void> {
   console.log(`➡️ Setting up and testing ${packagePath}...`);
   await resetNodeContainer();
-  console.log(`📦 Installing dependencies for ${packagePath}...`);
-  await execInNodeContainer('npm', [
-    'install',
-    '--registry',
-    VERDACCIO_URL,
-    '--prefix',
-    packagePath,
-    '--no-package-lock',
-    '--silent',
+  console.log(`🏁 Testing supported DI versions for ${packagePath}...`);
+  await execInNodeContainer('node', [
+    '/e2e/run-di-compatibility.cjs',
+    packagePath.replace(/^\/e2e\//, ''),
   ]);
-
-  console.log(`🏁 Running tests for ${packagePath}...`);
-  await execInNodeContainer('npm', ['test', '--prefix', packagePath]);
 }
 
 /**
@@ -243,10 +233,10 @@ async function setupAndTest(packagePath: string): Promise<void> {
 async function removeProvenance(filePath: string): Promise<void> {
   const content = await readFile(filePath, 'utf-8');
   const pkg = JSON.parse(content);
-  if (pkg.publishConfig?.provenance) {
-    delete pkg.publishConfig.provenance;
-    await writeFile(filePath, JSON.stringify(pkg, null, 2) + '\n');
-  }
+  pkg.publishConfig ??= {};
+  delete pkg.publishConfig.provenance;
+  pkg.publishConfig.registry = 'http://localhost:4873';
+  await writeFile(filePath, JSON.stringify(pkg, null, 2) + '\n');
 }
 
 /**
@@ -291,6 +281,6 @@ async function listPackageJsons(directory: string): Promise<string[]> {
 async function startDockerCompose(): Promise<void> {
   await cleanDockerCompose();
   console.log('🐳 Starting Docker Compose services...');
-  await exec('docker compose', ['-f', COMPOSE_FILE, 'up', '-d', '--wait']);
+  await exec('docker compose', ['-f', COMPOSE_FILE, 'up', '-d', '--build', '--wait']);
   console.log('🐳 Docker Compose services are ready ✅');
 }

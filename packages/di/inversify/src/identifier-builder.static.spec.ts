@@ -1,4 +1,4 @@
-import { LazyServiceIdentifer } from 'inversify';
+import { LazyServiceIdentifier } from 'inversify';
 import { IdentifierBuilder } from './identifier-builder.static.js';
 
 class ArbitraryFakeClass {}
@@ -44,7 +44,7 @@ describe('Identifier Builder Unit Spec', () => {
 
   it('should return an identifier object with from lazy loader value when no extra metadata', () => {
     const inversifyInjectableMetadataItems = [
-      { key: 'inject', value: new LazyServiceIdentifer(() => ArbitraryFakeClass) },
+      { key: 'inject', value: new LazyServiceIdentifier(() => ArbitraryFakeClass) },
     ];
 
     const paramType = ArbitraryFakeClass;
@@ -62,7 +62,7 @@ describe('Identifier Builder Unit Spec', () => {
 
   it('should throw an error indicating undefined dependency detected when lazy loader value is undefined', () => {
     const inversifyInjectableMetadataItems = [
-      { key: 'inject', value: new LazyServiceIdentifer(() => undefined as never) },
+      { key: 'inject', value: new LazyServiceIdentifier(() => undefined as never) },
     ];
 
     expect(() =>

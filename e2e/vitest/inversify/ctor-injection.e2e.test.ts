@@ -12,7 +12,7 @@ import {
   TestClassFour,
   TestClassOne,
   TestClassTwo,
-} from './e2e-assets';
+} from './e2e-assets.js';
 
 describe('Suites Vitest / InversifyJS E2E Test Ctor', () => {
   let unit: InversifyJSTestClass;
@@ -33,7 +33,7 @@ describe('Suites Vitest / InversifyJS E2E Test Ctor', () => {
       .final({ log: () => 'baz-from-test' })
       .mock('UNDEFINED')
       .final({ method: () => 456 })
-      .mock<Bar>('BarToken', { name: 'someTarget' })
+      .mock<Bar>('BarToken', { named: 'someTarget' })
       .final({})
       .mock<string>('CONSTANT_VALUE')
       .final('arbitrary-string')

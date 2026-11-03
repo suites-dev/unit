@@ -33,14 +33,7 @@ jobs:
             'esm/jest/nestjs',
             'esm/vitest/nestjs',
           ]
-        node-version: [18.x, 20.x]
-        exclude:
-          - e2e-project: 'vitest/nestjs'
-            node-version: 18.x
-          - e2e-project: 'esm/vitest/nestjs'
-            node-version: 18.x
-          - e2e-project: 'vitest/inversify'
-            node-version: 18.x
+        node-version: [22.x, 24.x, 26.x]
     steps:
       - name: Verify release branch
         run: |
@@ -50,7 +43,7 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.ref_name }}
           persist-credentials: false
@@ -58,15 +51,15 @@ jobs:
 
       # Build and publish with the supported development toolchain.
       - name: Setup Node for build tools
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
+          node-version: '26.x'
           package-manager-cache: false
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -109,7 +102,7 @@ jobs:
 
       - name: Version Packages
         run: |
-          npx lerna version --yes \
+          pnpm exec lerna version --yes \
           --conventional-commits \
           --conventional-prerelease \
           --preid e2e \
@@ -132,7 +125,7 @@ jobs:
           echo "**Project:** ${{ matrix.e2e-project }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Simulated Versions:" >> $GITHUB_STEP_SUMMARY
-          lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
+          pnpm exec lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
 
       - name: Publish Packages to Verdaccio
         run: |
@@ -144,47 +137,22 @@ jobs:
           --exact \
           --dist-tag e2e
 
-      - name: Parse E2E Project
-        run: |
-          project="${{ matrix.e2e-project }}"
-          if [[ "$project" == esm/* ]]; then
-            IFS='/' read -r _ library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=esm/$library" >> $GITHUB_ENV
-          else
-            IFS='/' read -r library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=$library" >> $GITHUB_ENV
-          fi
-
       - name: Clean Source
         run: |
           rm -rf packages
           rm -rf node_modules
-          rm pnpm-lock.yaml
+          rm pnpm-lock.yaml pnpm-workspace.yaml
           rm package.json
           rm -f .npmrc
 
       # Exercise the published packages on every consumer runtime in the matrix.
       - name: Setup Node ${{ matrix.node-version }} for tests
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
 
-      # npm 10 can crash while resolving Vitest's peer dependencies on Node 22.
-      - name: Use npm 11 for Vitest fixtures
-        if: contains(matrix.e2e-project, 'vitest')
-        run: npm install --global npm@11.19.0 --registry=https://registry.npmjs.org/
-
-      - name: Install Dependencies from Verdaccio
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          npm install --no-cache --no-package-lock --save-dev @types/node@${{ matrix.node-version }}
-
-      - name: Execute Test
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          npm test
+      - name: Test supported DI versions from Verdaccio
+        run: node e2e/run-di-compatibility.cjs "${{ matrix.e2e-project }}"
 
       - name: Test Success Summary
         if: success()

@@ -5,8 +5,8 @@
     "sourceMap": false
   },
   "exclude": [
-    "jest.config.ts",
-    "jest.base.config.ts",
+    "jest.config.cjs",
+    "jest.base.config.cjs",
     "spec-assets.ts",
     "node_modules",
     "dist",
