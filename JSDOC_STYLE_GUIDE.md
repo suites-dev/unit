@@ -234,7 +234,7 @@ export type TypeAlias<T> = /* ... */;
 ```typescript
 /**
  * Base abstract type for mocked instances. Adapters can augment this with
- * library-specific implementations (Jest, Vitest, Sinon) via module augmentation.
+ * library-specific implementations (Jest, Vitest) via module augmentation.
  *
  * @template T The type being mocked
  * @since 4.0.0

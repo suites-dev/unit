@@ -93,8 +93,8 @@ When using `TestBed.solitary()`, all dependencies are automatically mocked. Each
 
 ```typescript
 // These stubs start with no return values
-userApi.getRandom  // Returns undefined by default
-database.saveUser  // Returns undefined by default
+userApi.getRandom; // Returns undefined by default
+database.saveUser; // Returns undefined by default
 
 // Configure them in your tests
 userApi.getRandom.mockResolvedValue({ id: 1, name: 'John' });
@@ -136,8 +136,12 @@ describe('User Service', () => {
 
 Before installing Suites, ensure your project meets these requirements:
 
+- **Node.js**: 22.22.2+, 24.15.0+, or 26.x. Node 16, 18, 20, and odd-numbered releases are not supported by Suites 4.
+
 - **Dependency Injection Framework**: NestJS, InversifyJS, or plain TypeScript classes with constructor injection
-- **Testing Library**: Jest, Vitest, or Sinon
+- **Testing Library**: Jest or Vitest
+
+This branch prepares Suites 4. The published Suites 3.x releases retain their existing Node support. See [Upgrading to Suites 4](docs/migration-v4.md) before upgrading.
 
 ## Installation
 
@@ -146,7 +150,7 @@ First, install Suites' unit package:
 ```bash
 npm i -D @suites/unit
 # or
-yarn add -D @suites/unit
+pnpm add -D @suites/unit
 # or
 pnpm add -D @suites/unit
 ```
@@ -154,24 +158,27 @@ pnpm add -D @suites/unit
 Then, install **ONE** adapter for your DI framework and **ONE** adapter for your testing library:
 
 **DI Framework Adapters:**
+
 - **NestJS** - `@suites/di.nestjs`
 - **InversifyJS** - `@suites/di.inversify`
 
 **Testing Library Adapters:**
+
 - **Jest** - `@suites/doubles.jest`
 - **Vitest** - `@suites/doubles.vitest`
-- **Sinon** - `@suites/doubles.sinon`
 
 **Example for NestJS + Jest:**
+
 ```bash
 npm i -D @suites/doubles.jest @suites/di.nestjs
 # or
-yarn add -D @suites/doubles.jest @suites/di.nestjs
+pnpm add -D @suites/doubles.jest @suites/di.nestjs
 # or
 pnpm add -D @suites/doubles.jest @suites/di.nestjs
 ```
 
 > **Note:** If you're using NestJS or Inversify, you'll also need to install `reflect-metadata` as a runtime dependency (not a dev dependency):
+>
 > ```bash
 > npm i reflect-metadata
 > ```
@@ -211,6 +218,10 @@ If you're currently using Automock, we've created a comprehensive migration guid
 guide covers all the changes and improvements, making the upgrade process smooth and straightforward.
 
 [↗️ Migrating from Automock Guide](https://suites.dev/docs/migration-guides/from-automock)
+
+## TypeScript adapter types
+
+Include a `suites.d.ts` file in your test TypeScript configuration with `/// <reference types="@suites/doubles.jest/unit" />`. Replace `jest` with `vitest` when using the Vitest adapter.
 
 ## License
 
