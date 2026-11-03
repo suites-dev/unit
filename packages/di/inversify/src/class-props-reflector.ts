@@ -1,15 +1,14 @@
 import type { ClassInjectable } from '@suites/types.di';
 import { UndefinedDependency, UndefinedDependencyError } from '@suites/types.di';
 import type { Type } from '@suites/types.common';
-import { METADATA_KEY } from 'inversify';
+import { getClassMetadata } from '@inversifyjs/core';
+import { toInjectableMetadata } from './class-metadata.js';
 import type {
   InversifyInjectableIdentifierMetadata,
   InversifyInjectableMetadata,
   MetadataReflector,
 } from './types.js';
 import type { IdentifierObject, IdentifierBuilder } from './identifier-builder.static.js';
-
-const { TAGGED_PROP } = METADATA_KEY;
 
 export type ClassPropsReflector = ReturnType<typeof ClassPropsReflector>;
 
@@ -21,15 +20,14 @@ export function ClassPropsReflector(
     const classProperties = reflectProperties(targetClass);
     const classInstance = Object.create(targetClass.prototype);
 
-    return Object.keys(classProperties).map((propertyKey) => {
+    return Reflect.ownKeys(classProperties).map((propertyKey) => {
       const propertyParamType = reflector.getMetadata('design:type', classInstance, propertyKey) as
-        | Type
-        | undefined;
+        Type | undefined;
 
       const propertyMetadataItems = classProperties[propertyKey as never];
 
       if (!propertyMetadataItems && !propertyParamType) {
-        throw new UndefinedDependencyError(`Suites encountered an error while attempting to detect a token or type for the dependency for property '${propertyKey}' in the class '${targetClass.name}'.
+        throw new UndefinedDependencyError(`Suites encountered an error while attempting to detect a token or type for the dependency for property '${String(propertyKey)}' in the class '${targetClass.name}'.
 This issue is commonly caused by either improper decoration of the property or a problem during the reflection of the parameter type.
 In some cases, this error may arise due to circular dependencies. If this is the case, please ensure that the circular dependency
 is resolved, or consider using 'LazyServiceIdentifier' to address it.`);
@@ -62,8 +60,15 @@ is resolved, or consider using 'LazyServiceIdentifier' to address it.`);
     return UndefinedDependency;
   }
 
-  function reflectProperties(targetClass: Type): Record<string, InversifyInjectableMetadata[]> {
-    return reflector.getMetadata(TAGGED_PROP, targetClass) || [];
+  function reflectProperties(
+    targetClass: Type
+  ): Record<string | symbol, InversifyInjectableMetadata[]> {
+    return Object.fromEntries(
+      [...getClassMetadata(targetClass).properties].map(([key, metadata]) => [
+        key,
+        toInjectableMetadata(metadata),
+      ])
+    );
   }
 
   return { reflectInjectables };

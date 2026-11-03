@@ -15,22 +15,11 @@
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "types": [
-      "node",
-      "jest"
-    ],
-    "lib": [
-      "es6"
-    ],
-    "allowSyntheticDefaultImports": true
+    "types": ["node", "jest"],
+    "lib": ["es6"],
+    "allowSyntheticDefaultImports": true,
+    "ignoreDeprecations": "6.0",
+    "strict": false
   },
-  "exclude": [
-    "e2e",
-    "index.ts",
-    "node_modules",
-    "dist",
-    "__test__",
-    "env",
-    "coverage"
-  ]
+  "exclude": ["e2e", "index.ts", "node_modules", "dist", "__test__", "env", "coverage"]
 }

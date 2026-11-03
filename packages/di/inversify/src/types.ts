@@ -1,6 +1,5 @@
 import type { ClassInjectable } from '@suites/types.di';
 import type { Type } from '@suites/types.common';
-import type { interfaces } from 'inversify';
 
 /**
  * Metadata interface for InversifyJS injectable dependencies.
@@ -9,10 +8,9 @@ import type { interfaces } from 'inversify';
  * @since 3.0.0
  * @see {@link https://inversify.io/docs/api/decorator/ | InversifyJS Metadata}
  */
-export interface InversifyInjectableMetadata<T extends interfaces.ServiceIdentifier<T> = never>
-  extends interfaces.Metadata {
+export interface InversifyInjectableMetadata<T = unknown> {
   /** The metadata key type (inject, multi_inject, or custom) */
-  key: 'inject' | 'multi_inject' | string;
+  key: string | symbol;
   /** The service identifier or lazy reference */
   value: T | unknown | LazyServiceIdentifierToken;
 }
@@ -44,7 +42,10 @@ export type InversifyInjectableIdentifierMetadata = ClassInjectable<Record<strin
  *
  * @since 3.0.0
  */
-export const INVERSIFY_PRESERVED_KEYS: readonly string[] = ['inject', 'multi_inject'] as const;
+export const INVERSIFY_PRESERVED_KEYS: readonly (string | symbol)[] = [
+  'inject',
+  'multi_inject',
+] as const;
 
 /**
  * Metadata type for InversifyJS dependency identifiers.

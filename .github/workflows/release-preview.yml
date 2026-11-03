@@ -39,22 +39,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.ref_name }}
           persist-credentials: false
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
+          node-version: '26.x'
           package-manager-cache: false
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Validate release options
         run: |
@@ -86,7 +86,9 @@ jobs:
       - name: Preview Versions (Prerelease)
         if: ${{ inputs.release_type == 'prerelease' }}
         run: |
-          pnpm exec lerna version prerelease --yes \
+          pnpm exec lerna version --yes \
+            --conventional-commits \
+            --conventional-prerelease \
             --preid "$PREID" \
             --no-git-tag-version \
             --no-push \
@@ -131,38 +133,16 @@ jobs:
           git diff packages/*/package.json packages/*/*/package.json | head -100 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Generate Changelog Preview
+      - name: Show Generated Changelogs
         run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 📰 Changelog Preview" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Generate changelog using conventional-changelog-cli via lerna exec
-          # Process output to remove lerna stream prefixes and format as markdown
-          pnpm exec lerna exec --concurrency 1 --stream -- \
-            'conventional-changelog --preset angular --release-count 1 \
-            --commit-path $PWD --pkg $PWD/package.json' 2>/dev/null | \
-            sed 's/^[^:]*: //' >> $GITHUB_STEP_SUMMARY || echo "No changelog entries generated" >> $GITHUB_STEP_SUMMARY
-
-      - name: Show Conventional Commit Analysis
-        run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🔍 Commit Analysis" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Count commit types
-          breaking=$(git log --oneline --no-merges $(git describe --tags --abbrev=0)..HEAD 2>/dev/null | grep -c "!" || echo "0")
-          features=$(git log --oneline --no-merges $(git describe --tags --abbrev=0)..HEAD 2>/dev/null | grep -c "^[a-z0-9]* feat" || echo "0")
-          fixes=$(git log --oneline --no-merges $(git describe --tags --abbrev=0)..HEAD 2>/dev/null | grep -c "^[a-z0-9]* fix" || echo "0")
-
-          echo "- **Breaking Changes**: $breaking" >> $GITHUB_STEP_SUMMARY
-          echo "- **Features**: $features" >> $GITHUB_STEP_SUMMARY
-          echo "- **Fixes**: $fixes" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "$breaking" -gt 0 ]; then
-            echo "⚠️ **This release contains breaking changes!**" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📰 Generated Package Changelogs" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo 'These are the changelog changes written by the version command above.' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```diff' >> "$GITHUB_STEP_SUMMARY"
+          git diff -- 'packages/**/CHANGELOG.md' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cleanup
         if: always()

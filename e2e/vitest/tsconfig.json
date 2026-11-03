@@ -2,7 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "target": "esnext",
-    "types": ["vitest"],
+    "types": ["node", "vitest"],
     "allowJs": true
   }
 }

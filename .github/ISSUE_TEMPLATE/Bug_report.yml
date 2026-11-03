@@ -63,7 +63,7 @@ body:
       label: "Suites version"
       description: |
         Which version of Suites are you using?
-        Whether you use `@suites/jest` or `@suites/sinon`
+        Whether you use `@suites/doubles.jest` or `@suites/doubles.vitest`
       placeholder: "2.0.0"
 
   - type: input

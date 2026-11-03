@@ -34,7 +34,7 @@ describe('Suites Jest / InversifyJS E2E Test Ctor', () => {
       .final({ log: () => 'baz-from-test' })
       .mock('UNDEFINED')
       .final({ method: () => 456 })
-      .mock<Bar>('BarToken', { name: 'someTarget' })
+      .mock<Bar>('BarToken', { named: 'someTarget' })
       .final({})
       .mock<string>('CONSTANT_VALUE')
       .final('arbitrary-string')

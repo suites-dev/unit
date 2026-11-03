@@ -1,12 +1,4 @@
-import {
-  inject,
-  injectable,
-  LazyServiceIdentifer,
-  multiInject,
-  named,
-  tagged,
-  targetName,
-} from 'inversify';
+import { inject, injectable, LazyServiceIdentifier, multiInject, named, tagged } from 'inversify';
 
 const throwable = tagged('canThrow', true);
 
@@ -80,10 +72,10 @@ export class InversifyJSTestClass {
     @inject('LOGGER') private readonly logger: Logger,
     @inject('UNDEFINED') private readonly undefinedParam: undefined,
     @inject('BarToken')
-    @targetName('someTarget')
+    @named('someTarget')
     private readonly undefinedParamSecond: Bar,
     @inject(TestClassFour) @throwable private readonly testClassFour: Foo,
-    @inject(new LazyServiceIdentifer(() => TestClassThree))
+    @inject(new LazyServiceIdentifier(() => TestClassThree))
     private readonly testClassThree: Relation<TestClassThree>,
     @inject(Foo) @named('arbitraryName') private readonly fooRepository: Repository<Foo>,
     private readonly testClassTwo: TestClassTwo,
@@ -124,7 +116,7 @@ export class InversifyJSTestClassProp {
   @inject(TestClassFour)
   private readonly testClassFour: undefined;
 
-  @inject(new LazyServiceIdentifer(() => TestClassThree))
+  @inject(new LazyServiceIdentifier(() => TestClassThree))
   private readonly testClassThree: Relation<TestClassThree>;
 
   @inject(Foo)

@@ -93,8 +93,8 @@ When using `TestBed.solitary()`, all dependencies are automatically mocked. Each
 
 ```typescript
 // These stubs start with no return values
-userApi.getRandom  // Returns undefined by default
-database.saveUser  // Returns undefined by default
+userApi.getRandom; // Returns undefined by default
+database.saveUser; // Returns undefined by default
 
 // Configure them in your tests
 userApi.getRandom.mockResolvedValue({ id: 1, name: 'John' });
@@ -136,8 +136,21 @@ describe('User Service', () => {
 
 Before installing Suites, ensure your project meets these requirements:
 
+- **Node.js**: 22.22.2+, 24.15.0+, or 26.x. Node 16, 18, 20, and odd-numbered releases are not supported by Suites 4.
+
 - **Dependency Injection Framework**: NestJS, InversifyJS, or plain TypeScript classes with constructor injection
-- **Testing Library**: Jest, Vitest, or Sinon
+- **Testing Library**: Jest or Vitest
+
+Supported DI framework versions:
+
+| Framework | Version range                       |
+| --------- | ----------------------------------- |
+| NestJS    | `^10.0.0 \|\| ^11.0.0 \|\| ^12.0.1` |
+| Inversify | `^7.0.0 \|\| ^8.0.0`                |
+
+CI tests the minimum and current releases of each supported major on Node 22, 24, and 26.
+
+Suites 3.x releases retain their existing Node support. See [Upgrading to Suites 4](docs/migration-v4.md) before upgrading.
 
 ## Installation
 
@@ -146,7 +159,7 @@ First, install Suites' unit package:
 ```bash
 npm i -D @suites/unit
 # or
-yarn add -D @suites/unit
+pnpm add -D @suites/unit
 # or
 pnpm add -D @suites/unit
 ```
@@ -154,24 +167,27 @@ pnpm add -D @suites/unit
 Then, install **ONE** adapter for your DI framework and **ONE** adapter for your testing library:
 
 **DI Framework Adapters:**
+
 - **NestJS** - `@suites/di.nestjs`
 - **InversifyJS** - `@suites/di.inversify`
 
 **Testing Library Adapters:**
+
 - **Jest** - `@suites/doubles.jest`
 - **Vitest** - `@suites/doubles.vitest`
-- **Sinon** - `@suites/doubles.sinon`
 
 **Example for NestJS + Jest:**
+
 ```bash
 npm i -D @suites/doubles.jest @suites/di.nestjs
 # or
-yarn add -D @suites/doubles.jest @suites/di.nestjs
+pnpm add -D @suites/doubles.jest @suites/di.nestjs
 # or
 pnpm add -D @suites/doubles.jest @suites/di.nestjs
 ```
 
 > **Note:** If you're using NestJS or Inversify, you'll also need to install `reflect-metadata` as a runtime dependency (not a dev dependency):
+>
 > ```bash
 > npm i reflect-metadata
 > ```
@@ -182,14 +198,16 @@ For complete installation instructions, see the [Installation Guide](https://sui
 
 ### Type Definitions
 
-Create a `global.d.ts` file in your project root (or in your test directory) to enable proper TypeScript support:
+Create a `suites.d.ts` file included by your test `tsconfig.json`:
 
 ```typescript
-/// <reference types='@suites/doubles.jest/unit' />
-/// <reference types='@suites/di.nestjs/metadata' />
+/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-Replace `@suites/doubles.jest` and `@suites/di.nestjs` with your chosen adapters.
+Use `@suites/doubles.vitest/unit` for Vitest or `@suites/di.inversify/metadata` for Inversify. Include one test-double adapter and one DI adapter per test TypeScript project.
+
+The `/unit` reference supplies mock types and methods. The `/metadata` reference enforces the DI adapter's metadata rules: NestJS has no identifier metadata; Inversify supports named and tagged bindings. These are packaged type declarations, so no postinstall script or edits to `node_modules` are required.
 
 For detailed configuration instructions, see the [Installation Guide](https://suites.dev/docs/get-started/installation).
 

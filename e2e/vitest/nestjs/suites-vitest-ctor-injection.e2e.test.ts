@@ -10,7 +10,7 @@ import {
   TestClassFour,
   TestClassOne,
   TestClassTwo,
-} from './e2e-assets';
+} from './e2e-assets.js';
 
 describe('Suites Vitest / NestJS E2E Test Ctor', () => {
   let unit: NestJSTestClass;

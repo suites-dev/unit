@@ -1,4 +1,5 @@
-import { METADATA_KEY } from 'inversify';
+import { getClassMetadata } from '@inversifyjs/core';
+import { toInjectableMetadata } from './class-metadata.js';
 import type { Type } from '@suites/types.common';
 import type { ClassInjectable } from '@suites/types.di';
 import { UndefinedDependency, UndefinedDependencyError } from '@suites/types.di';
@@ -8,8 +9,6 @@ import type {
   MetadataReflector,
 } from './types.js';
 import type { IdentifierBuilder } from './identifier-builder.static.js';
-
-const { PARAM_TYPES, TAGGED } = METADATA_KEY;
 
 export type ClassCtorReflector = ReturnType<typeof ClassCtorReflector>;
 
@@ -55,11 +54,16 @@ please ensure that the circular dependency is resolved, or consider using 'LazyS
   }
 
   function reflectParamTokens(targetClass: Type): Record<number, InversifyInjectableMetadata[]> {
-    return reflector.getMetadata(TAGGED, targetClass) || {};
+    return Object.fromEntries(
+      getClassMetadata(targetClass).constructorArguments.map((metadata, index) => [
+        index,
+        toInjectableMetadata(metadata),
+      ])
+    );
   }
 
   function reflectParamTypes(targetClass: Type): Type[] {
-    return reflector.getMetadata(PARAM_TYPES, targetClass) || [];
+    return reflector.getMetadata('design:paramtypes', targetClass) || [];
   }
 
   function constructTokensArray(

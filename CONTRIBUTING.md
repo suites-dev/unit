@@ -28,21 +28,21 @@ involvement is key to driving this vision forward and improving Suites.
 
 ## Prerequisites
 
-- **Node.js**: The project requires Node.js version 16.0.0 or higher.
-- **pnpm**: Suites uses pnpm for dependency management. Ensure pnpm is installed on your system.
+- **Node.js**: Use Node 26 for development. The supported runtime range is `^22.22.2 || ^24.15.0 || ^26.0.0`. CI covers all three major versions.
+- **pnpm**: Install pnpm 12.16.1, matching the version pinned in `package.json`. Dependency overrides and approved install scripts live in `pnpm-workspace.yaml`.
 
 ## Getting Started
 
 ### Installation and Setup
 
 1. **Clone the Suites Repository**:
-    ```bash
-    git clone https://github.com/suites.dev/Suites.git
-    ```
+   ```bash
+   git clone https://github.com/suites-dev/unit.git
+   ```
 2. **Install Dependencies**:
-    ```bash
-    pnpm install --frozen-lockfile
-    ```
+   ```bash
+   pnpm install --frozen-lockfile
+   ```
 
 ### Running Tests
 
@@ -73,7 +73,7 @@ Contribute code that is clean, maintainable, and efficient, adhering to Suites's
 ### Tests and Quality Assurance
 
 - Accompany new code with relevant unit or integration tests.
-- Aim for high test coverage – verify with `pnpm run coverage`.
+- Aim for high test coverage – verify with `pnpm test`.
 - Pass all linting checks using `pnpm lint`.
 
 ### Documentation
@@ -91,18 +91,23 @@ All pull requests undergo CI checks for:
 
 ## Commit Guidelines
 
-Use clear and semantic PR title. Specify the package affected as a prefix in your PR title. Full list of packages and
-prefixes:
+Use conventional commit headers scoped to the affected package:
 
-- **common**: `packages/common` – General shared utilities and functions.
-- **core**: `packages/core` – Core functionalities of Suites.
-- **types**: `packages/types` – Type definitions and interfaces.
-- **jest**: `packages/testbeds/jest` – Jest-specific testing utilities and integrations.
-- **sinon**: `packages/testbeds/sinon` – Sinon.js related testing functionalities.
-- **adapters.nestjs**: `packages/adapters/nestjs` – Adapters for NestJS integration.
-- **adapters.inversify**: `packages/adapters/inversify` – Adapters for Inversify integration.
+| Scope            | Package directory         |
+| ---------------- | ------------------------- |
+| `unit`           | `packages/unit`           |
+| `core.unit`      | `packages/core`           |
+| `types.common`   | `packages/types/common`   |
+| `types.di`       | `packages/types/di`       |
+| `types.doubles`  | `packages/types/doubles`  |
+| `doubles.jest`   | `packages/doubles/jest`   |
+| `doubles.vitest` | `packages/doubles/vitest` |
+| `di.nestjs`      | `packages/di/nestjs`      |
+| `di.inversify`   | `packages/di/inversify`   |
 
-- For example: `feat(core): add new logging functionality`
+For example: `feat(unit): add a new TestBed option`. Mark breaking changes with an explicit `BREAKING CHANGE:` footer explaining the migration. The Angular changelog parser does not recognize `!` in headers.
+
+Keep each package's changes in its scoped commit. Merge multi-package releases with a merge commit or rebase merge, preserving the commits through `next` to `master`; squashing loses the package-specific release history.
 
 For detailed guidelines on semantic commits,
 visit [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary).
