@@ -1,4 +1,4 @@
-import { LazyServiceIdentifer } from 'inversify';
+import { LazyServiceIdentifier } from 'inversify';
 import type { Type } from '@suites/types.common';
 import type { IdentifierMetadata, InjectableIdentifier, WithMetadata } from '@suites/types.di';
 import type { InversifyInjectableMetadata } from './types.js';
@@ -21,7 +21,7 @@ export function IdentifierBuilder() {
         const { key: metadataKey, value: metadataValue } = metadataItem;
 
         if (INVERSIFY_PRESERVED_KEYS.includes(metadataKey)) {
-          if (metadataValue instanceof LazyServiceIdentifer) {
+          if (metadataValue instanceof LazyServiceIdentifier) {
             const unwrappedValue = metadataValue.unwrap();
 
             if (typeof unwrappedValue === 'undefined') {
@@ -34,7 +34,7 @@ export function IdentifierBuilder() {
           return { ...acc, identifier: metadataValue };
         }
 
-        return { ...acc, metadata: { [metadataKey]: metadataValue } };
+        return { ...acc, metadata: { ...acc.metadata, [metadataKey]: metadataValue } };
       },
       {} as IdentifierObject
     ) as IdentifierObject;

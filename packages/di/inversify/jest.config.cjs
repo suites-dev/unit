@@ -1,7 +1,6 @@
-import type { Config } from 'jest';
-import baseConfig from '../../../jest.base.config';
+const baseConfig = require('../../../jest.base.config.cjs');
 
-const config: Config = {
+const config = {
   ...baseConfig(process.env.COVERAGE_DIR),
   id: 'di.inversify',
   displayName: 'di.inversify',
@@ -9,4 +8,4 @@ const config: Config = {
   coveragePathIgnorePatterns: ['index.ts', '__test__/assets/integration.assets.ts'],
 };
 
-export default config;
+module.exports = config;

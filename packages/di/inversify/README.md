@@ -65,6 +65,10 @@ describe('UserService', () => {
 });
 ```
 
+## Requirements
+
+Suites 4 requires Node 22.22.2+, 24.15.0+, or 26.x, and Inversify 8.2.3 or later in the 8.x line. See the [Suites 4 migration guide](../../../docs/migration-v4.md) for decorator and metadata changes.
+
 ## Installation
 
 With Jest:
