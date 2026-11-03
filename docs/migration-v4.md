@@ -47,11 +47,16 @@ Suites 4 removes install scripts that edited neighboring packages. TypeScript no
 
 The Jest adapter requires matching Jest and `@jest/globals` 30.5.2 or later in the 30.x line. It imports the Jest runtime explicitly so both CommonJS and ESM tests can use it.
 
-### Migrate Inversify applications to version 8
+### Choose a supported DI framework version
 
-`@suites/di.inversify` 4 requires Inversify 8.2.3 or later in the 8.x line. It uses Inversify's public metadata API. Follow the [Inversify migration guide](https://inversify.io/docs/guides/migrating-from-v6/) for framework changes, including `LazyServiceIdentifier` and explicit inheritance with `@injectFromBase()`.
+| Framework | Supported versions                      |
+| --------- | --------------------------------------- |
+| NestJS    | 10.x, 11.x, and 12.x starting at 12.0.1 |
+| Inversify | 7.x and 8.x                             |
 
-Replace removed `@targetName('value')` decorators with `@named('value')`. Use `{ named: 'value' }` when selecting that mock through `TestBed.mock()` or `unitRef.get()`.
+NestJS 10/11 and Inversify 7 remain supported. You can upgrade Suites without changing those framework majors. The peer ranges exclude NestJS 8/9, Inversify 6, and future untested majors.
+
+The Inversify adapter reads the public metadata model shared by versions 7 and 8. When migrating from Inversify 6, use `LazyServiceIdentifier`, replace removed `@targetName('value')` decorators with `@named('value')`, and use `@injectFromBase()` for inherited injection metadata. Select named mocks with `{ named: 'value' }` in `TestBed.mock()` or `unitRef.get()`. See the [Inversify migration guide](https://inversify.io/docs/guides/migrating-from-v6/) for framework changes.
 
 The Node 26 type definitions used to develop Suites do not require consumers to run Node 26. Consumer tests also run on Node 22 and 24.
 
@@ -67,6 +72,8 @@ pnpm lint
 ```
 
 The root pnpm workspace includes E2E linting. Each E2E consumer fixture installs published packages in its own pnpm workspace; the fixtures deliberately do not link the source packages. Yarn lockfiles are removed.
+
+CI and the local Docker runner test the minimum and current release in every supported DI major. The cases live in `e2e/di-compatibility.json`; the runner verifies that the consumer and adapter resolve the same framework version before running each fixture. Installs use strict peer checks with lifecycle scripts disabled, and declarations are checked with `skipLibCheck: false`.
 
 The package manifests and internal workspace dependencies are staged at `4.0.0-next.0`. Release maintainers should publish prereleases with the `next` distribution tag. Use the existing Prepare Release workflow's graduate operation when promoting the tested prerelease to stable 4.0.0, then publish with `latest`. Do not publish the staged prerelease under `latest`.
 

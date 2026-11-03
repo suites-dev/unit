@@ -141,6 +141,15 @@ Before installing Suites, ensure your project meets these requirements:
 - **Dependency Injection Framework**: NestJS, InversifyJS, or plain TypeScript classes with constructor injection
 - **Testing Library**: Jest or Vitest
 
+Supported DI framework versions:
+
+| Framework | Version range                       |
+| --------- | ----------------------------------- |
+| NestJS    | `^10.0.0 \|\| ^11.0.0 \|\| ^12.0.1` |
+| Inversify | `^7.0.0 \|\| ^8.0.0`                |
+
+CI tests the minimum and current releases of each supported major on Node 22, 24, and 26.
+
 This branch prepares Suites 4. The published Suites 3.x releases retain their existing Node support. See [Upgrading to Suites 4](docs/migration-v4.md) before upgrading.
 
 ## Installation
