@@ -138,7 +138,7 @@ Before installing Suites, ensure your project meets these requirements:
 
 - **Node.js**: 22.22.2+, 24.15.0+, or 26.x. Node 16, 18, 20, and odd-numbered releases are not supported by Suites 4.
 
-- **Dependency Injection Framework**: NestJS, InversifyJS, or plain TypeScript classes with constructor injection
+- **Dependency Injection Framework**: NestJS, InversifyJS, or InjectionJS with constructor injection
 - **Testing Library**: Jest or Vitest
 
 Supported DI framework versions:
@@ -147,6 +147,7 @@ Supported DI framework versions:
 | --------- | ----------------------------------- |
 | NestJS    | `^10.0.0 \|\| ^11.0.0 \|\| ^12.0.1` |
 | Inversify | `^7.0.0 \|\| ^8.0.0`                |
+| InjectionJS | `^2.6.1` (constructor injection) |
 
 CI tests the minimum and current releases of each supported major on Node 22, 24, and 26.
 
@@ -170,6 +171,7 @@ Then, install **ONE** adapter for your DI framework and **ONE** adapter for your
 
 - **NestJS** - `@suites/di.nestjs`
 - **InversifyJS** - `@suites/di.inversify`
+- **InjectionJS** - [`@suites/di.injectionjs`](packages/di/injection-js/README.md), constructor injection only
 
 **Testing Library Adapters:**
 
@@ -186,7 +188,7 @@ pnpm add -D @suites/doubles.jest @suites/di.nestjs
 pnpm add -D @suites/doubles.jest @suites/di.nestjs
 ```
 
-> **Note:** If you're using NestJS or Inversify, you'll also need to install `reflect-metadata` as a runtime dependency (not a dev dependency):
+> **Note:** If you're using NestJS, Inversify, or InjectionJS, you'll also need to install `reflect-metadata` as a runtime dependency (not a dev dependency):
 >
 > ```bash
 > npm i reflect-metadata
@@ -205,9 +207,9 @@ Create a `suites.d.ts` file included by your test `tsconfig.json`:
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-Use `@suites/doubles.vitest/unit` for Vitest or `@suites/di.inversify/metadata` for Inversify. Include one test-double adapter and one DI adapter per test TypeScript project.
+Use `@suites/doubles.vitest/unit` for Vitest, `@suites/di.inversify/metadata` for Inversify, or `@suites/di.injectionjs/metadata` for InjectionJS. Include one test-double adapter and one DI adapter per test TypeScript project.
 
-The `/unit` reference supplies mock types and methods. The `/metadata` reference enforces the DI adapter's metadata rules: NestJS has no identifier metadata; Inversify supports named and tagged bindings. These are packaged type declarations, so no postinstall script or edits to `node_modules` are required.
+The `/unit` reference supplies mock types and methods. The `/metadata` reference enforces the DI adapter's metadata rules: NestJS and InjectionJS have no identifier metadata; Inversify supports named and tagged bindings. InjectionJS also registers `InjectionToken` identifiers. These are packaged type declarations, so no postinstall script or edits to `node_modules` are required.
 
 For detailed configuration instructions, see the [Installation Guide](https://suites.dev/docs/get-started/installation).
 
