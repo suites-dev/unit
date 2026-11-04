@@ -1,7 +1,7 @@
 {
   "name": "@suites/types.doubles",
   "private": false,
-  "version": "4.0.0-next.0",
+  "version": "4.0.0",
   "license": "Apache-2.0",
   "types": "index.d.ts",
   "exports": {
@@ -37,7 +37,7 @@
     "lint": "pnpm eslint 'index.ts'"
   },
   "dependencies": {
-    "@suites/types.common": "workspace:^4.0.0-next.0"
+    "@suites/types.common": "workspace:^4.0.0"
   },
   "files": [
     "index.d.ts"

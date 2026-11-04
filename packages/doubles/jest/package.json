@@ -1,6 +1,6 @@
 {
   "name": "@suites/doubles.jest",
-  "version": "4.0.0-next.0",
+  "version": "4.0.0",
   "license": "Apache-2.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -57,18 +57,18 @@
     "dist"
   ],
   "peerDependencies": {
-    "jest": "^30.5.2",
-    "@jest/globals": "^30.5.2"
+    "@jest/globals": "^30.5.2",
+    "jest": "^30.5.2"
   },
   "dependencies": {
-    "@suites/core.unit": "workspace:^4.0.0-next.0",
-    "@suites/types.common": "workspace:^4.0.0-next.0",
-    "@suites/types.di": "workspace:^4.0.0-next.0",
-    "@suites/types.doubles": "workspace:^4.0.0-next.0"
+    "@suites/core.unit": "workspace:^4.0.0",
+    "@suites/types.common": "workspace:^4.0.0",
+    "@suites/types.di": "workspace:^4.0.0",
+    "@suites/types.doubles": "workspace:^4.0.0"
   },
   "devDependencies": {
-    "jest": "^30.5.2",
-    "@jest/globals": "^30.5.2"
+    "@jest/globals": "^30.5.2",
+    "jest": "^30.5.2"
   },
   "publishConfig": {
     "access": "public",

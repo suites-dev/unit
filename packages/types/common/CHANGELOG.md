@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Ftypes.common%403.1.0...%40suites%2Ftypes.common%404.0.0) (2026-11-04)
+
+### Features
+
+* **types.common:** require maintained Node releases for shared types ([6d73a3b](https://github.com/suites-dev/unit/commit/6d73a3b908a7c33dc70efa5224fb955aef366162))
+
+### BREAKING CHANGES
+
+* **types.common:** Requires Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`. Node.js versions below 22 and majors outside this range are no longer supported. Upgrade installed Suites packages together to version 4.
+
+
 # [3.1.0](https://github.com/suites-dev/suites/compare/@suites/types.common@3.0.0...@suites/types.common@3.1.0) (2026-05-05)
 
 ### Bug Fixes
