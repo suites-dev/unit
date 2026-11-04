@@ -1,4 +1,4 @@
-import type { IdentifierMetadata } from '@suites/types.di';
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { DeepPartial, Type } from '@suites/types.common';
 import type { ArgsType, Stub, StubbedInstance } from '@suites/types.doubles';
 import type {
@@ -178,7 +178,7 @@ export interface UnitReference extends UnitReferenceCore {
    * @returns The mocked instance corresponding to the provided identifier and metadata.
    */
   get<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): StubbedInstance<TDependency>;
 
@@ -193,7 +193,7 @@ export interface UnitReference extends UnitReferenceCore {
    * @throws {@link DependencyResolutionError} If the dependency is not found.
    * @returns The mocked instance corresponding to the provided identifier.
    */
-  get<TDependency>(identifier: Type<TDependency> | string | symbol): StubbedInstance<TDependency>;
+  get<TDependency>(identifier: InjectableIdentifier<TDependency>): StubbedInstance<TDependency>;
 }
 
 /**
@@ -428,7 +428,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    * @returns An instance of MockOverride for further configuration.
    */
   mock<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): MockOverride<TDependency, TClass>;
   /**
