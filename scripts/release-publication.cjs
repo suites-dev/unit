@@ -103,6 +103,12 @@ function createPlan(packages, commit, io = {}) {
         latest: tags.latest ?? null,
       };
     }
+    if (tagCommit)
+      assert.equal(
+        tagCommit,
+        commit,
+        `${tag}: unpublished version is already tagged at another commit; rerun the original commit`
+      );
     return {
       name,
       version,
@@ -289,7 +295,7 @@ function ensureRelease(tag, notes, overall = false) {
   );
 }
 
-function finalize(plan, commit) {
+function createTags(plan, commit) {
   assert.equal(git('rev-parse', 'HEAD'), commit);
   git('diff', '--exit-code');
   git('diff', '--cached', '--exit-code');
@@ -299,19 +305,42 @@ function finalize(plan, commit) {
   const missing = plan.filter((item) => !hasTag(item.tag));
   for (const item of missing) assertSamePackage(item.gitHead, commit, item.packagePath);
   pushSignedTags(missing);
-  for (const item of plan.filter((entry) => entry.gitHead === commit || missing.includes(entry))) {
+  for (const item of plan) githubTag(item.tag, item.gitHead);
+  // The overall tag follows verified package tags, before any npm publication.
+  if (overall) {
+    if (!hasTag(overall.tag)) pushSignedTags([overall]);
+    githubTag(overall.tag, commit);
+  }
+  verifyTags(plan, commit);
+}
+
+function verifyTags(plan, commit) {
+  const overall = overallRelease(plan, commit);
+  for (const item of plan) {
+    assert(hasTag(item.tag), `${item.tag}: create verified tags before publishing`);
     githubTag(item.tag, item.gitHead);
   }
+  if (overall) {
+    assert(hasTag(overall.tag), `${overall.tag}: create verified tags before publishing`);
+    githubTag(overall.tag, commit);
+  }
+  return overall;
+}
+
+function finalize(plan, commit) {
+  assert.equal(git('rev-parse', 'HEAD'), commit);
+  git('diff', '--exit-code');
+  git('diff', '--cached', '--exit-code');
+  git('fetch', 'origin', '--tags');
+  const overall = verifyTags(plan, commit);
   for (const item of plan.filter((entry) => entry.gitHead === commit)) {
     ensureRelease(
       item.tag,
       releaseNotes(readFileSync(resolve(item.packagePath, 'CHANGELOG.md'), 'utf8'), item.version)
     );
   }
-  // The overall release is the final marker, after all package tags were verified.
+  // GitHub Releases are created only after npm publication has been verified.
   if (overall) {
-    if (!hasTag(overall.tag)) pushSignedTags([overall]);
-    githubTag(overall.tag, commit);
     const notes =
       `# Suites ${overall.version}\n\nSource: ${commit}\n\n` +
       plan
@@ -354,7 +383,9 @@ async function main() {
     const summary =
       `## Publication plan\n\nCommit: \`${commit}\`\n\n` +
       plan.map((item) => `- \`${item.tag}\`: ${item.disposition}`).join('\n') +
-      (overall ? `\n\nOverall release: \`${overall.tag}\` after verified package tags.\n` : '\n');
+      (overall
+        ? `\n\nOverall release: \`${overall.tag}\` after verified package tags, before npm publication.\n`
+        : '\n');
     console.log(summary);
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
     if (process.env.GITHUB_OUTPUT)
@@ -367,6 +398,8 @@ async function main() {
     assert(plan.length > 0);
     if (command === 'verify') await verifyPlan(plan);
     else if (command === 'check-tags') checkTags(plan, commit);
+    else if (command === 'tag') createTags(plan, commit);
+    else if (command === 'verify-tags') verifyTags(plan, commit);
     else if (command === 'finalize') finalize(plan, commit);
     else throw new Error(`Unknown release command: ${command}`);
   }

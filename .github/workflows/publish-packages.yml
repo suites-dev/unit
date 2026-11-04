@@ -60,7 +60,7 @@ jobs:
       commit: ${{ inputs.commit }}
 
   publish:
-    name: Publish reviewed packages and tags
+    name: Tag and publish reviewed packages
     needs: [plan, e2e]
     environment: release
     runs-on: ubuntu-latest
@@ -112,16 +112,20 @@ jobs:
           test -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
           test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
           node scripts/release-publication.cjs plan "$RUNNER_TEMP/publication.json"
-      - name: Check existing package and overall tag signatures
+      - name: Create and verify signed package tags and optional overall tag
         env:
           GH_TOKEN: ${{ steps.release-app.outputs.token }}
-        run: node scripts/release-publication.cjs check-tags "$RUNNER_TEMP/publication.json"
+        run: node scripts/release-publication.cjs tag "$RUNNER_TEMP/publication.json"
+      - name: Require verified tags before npm publication
+        env:
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
+        run: node scripts/release-publication.cjs verify-tags "$RUNNER_TEMP/publication.json"
       - name: Publish missing versions to latest with npm Trusted Publishing
         if: steps.publication.outputs.pending != '0'
         run: pnpm exec lerna publish from-package --yes --dist-tag latest --git-head "$APPROVED_COMMIT"
       - name: Verify published versions, source commits, latest tags and tarballs
         run: node scripts/release-publication.cjs verify "$RUNNER_TEMP/publication.json"
-      - name: Create verified package tags, optional overall tag and GitHub Releases
+      - name: Create GitHub Releases for the published and verified packages
         env:
           GH_TOKEN: ${{ steps.release-app.outputs.token }}
         run: |

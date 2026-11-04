@@ -95,10 +95,10 @@ if (args[0] === 'api') {
 `,
     { mode: 0o755 }
   );
-  const run = (extra = {}) =>
+  const run = (extra = {}, command = 'tag') =>
     execFileSync(
       process.execPath,
-      [resolve(__dirname, 'release-publication.cjs'), 'finalize', planFile],
+      [resolve(__dirname, 'release-publication.cjs'), command, planFile],
       {
         cwd: repo,
         stdio: 'pipe',
@@ -120,6 +120,8 @@ if (args[0] === 'api') {
 test('signed package tags precede the signed overall release, and partial releases resume without moving tags', (t) => {
   const f = fixture(t);
   f.run();
+  assert.equal(existsSync(f.state), false, 'Tag creation must not create GitHub Releases');
+  f.run({}, 'finalize');
   const tags = [...f.plan.map((p) => p.tag), 'v4.0.0'];
   const before = f.git('ls-remote', 'origin', 'refs/tags/*');
   for (const tag of tags) {
@@ -134,7 +136,8 @@ test('signed package tags precede the signed overall release, and partial releas
   delete releases['v4.0.0'];
   writeFileSync(f.state, JSON.stringify(releases));
   f.run();
-  f.run();
+  f.run({}, 'finalize');
+  f.run({}, 'finalize');
   assert.equal(f.git('ls-remote', 'origin', 'refs/tags/*'), before);
   assert(JSON.parse(readFileSync(f.state))['v4.0.0']);
 });
@@ -173,6 +176,7 @@ test('invalid overall versions and existing wrong-commit overall tags fail befor
 test('package-only release works without an overall tag', (t) => {
   const f = fixture(t);
   f.run({ OVERALL_RELEASE_TAG: '' });
+  f.run({ OVERALL_RELEASE_TAG: '' }, 'finalize');
   assert.equal(f.git('ls-remote', 'origin', 'refs/tags/v4.0.0'), '');
   assert.equal(Object.keys(JSON.parse(readFileSync(f.state))).length, 2);
 });
@@ -187,4 +191,30 @@ test('a changed package cannot reuse an existing release tag', (t) => {
   writeFileSync(f.planFile, JSON.stringify(f.plan.map((p) => ({ ...p, gitHead: commit }))));
   assert.throws(() => f.run({ APPROVED_COMMIT: commit, OVERALL_RELEASE_TAG: '' }));
   assert.equal(f.git('rev-parse', `${f.plan[0].tag}^{commit}`), f.commit);
+});
+
+test('release finalization refuses missing tags and never creates them implicitly', (t) => {
+  const f = fixture(t);
+  assert.throws(() => f.run({}, 'finalize'), /create verified tags before publishing/);
+  assert.equal(f.git('ls-remote', 'origin', 'refs/tags/*'), '');
+  assert.equal(existsSync(f.state), false);
+});
+
+test('publication workflow requires verified tags before npm and npm verification before releases', () => {
+  const workflow = readFileSync(
+    resolve(__dirname, '../.github/workflows/publish-packages.yml'),
+    'utf8'
+  );
+  const tag = workflow.indexOf('release-publication.cjs tag ');
+  const verifyTags = workflow.indexOf('release-publication.cjs verify-tags ');
+  const publish = workflow.indexOf('lerna publish from-package');
+  const verifyNpm = workflow.indexOf('release-publication.cjs verify ');
+  const release = workflow.indexOf('release-publication.cjs finalize ');
+  assert(
+    tag >= 0 &&
+      tag < verifyTags &&
+      verifyTags < publish &&
+      publish < verifyNpm &&
+      verifyNpm < release
+  );
 });

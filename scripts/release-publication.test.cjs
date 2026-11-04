@@ -233,3 +233,29 @@ test('GitHub release notes include only the requested package version and its br
   );
   assert.throws(() => releaseNotes(changelog, '4.1.0'), /Missing changelog/);
 });
+
+test('tags created before a failed npm upload pin retries to the original source commit', () => {
+  const existing = {
+    hasTag: () => true,
+    git: (...args) => (args[0] === 'rev-parse' ? commit : ''),
+  };
+  const [plan] = createPlan(
+    [pkg],
+    commit,
+    io(() => null, existing)
+  );
+  assert.equal(plan.disposition, 'publish');
+  assert.equal(plan.gitHead, commit);
+  assert.throws(
+    () =>
+      createPlan(
+        [pkg],
+        commit,
+        io(() => null, {
+          ...existing,
+          git: (...args) => (args[0] === 'rev-parse' ? older : ''),
+        })
+      ),
+    /unpublished version is already tagged at another commit/
+  );
+});

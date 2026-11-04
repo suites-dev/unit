@@ -8,8 +8,10 @@ flowchart LR
   B --> C[Merge into master]
   C --> D[Publish Packages with full commit SHA]
   D --> E[E2E tests and release approval]
-  E --> F[npm latest and verified package tags]
-  F --> G[Optional overall tag and GitHub Release]
+  E --> F[Signed package tags and optional overall tag]
+  F --> G[Verify GitHub signatures]
+  G --> H[Publish and verify npm packages]
+  H --> I[GitHub Releases]
 ```
 
 ## One-time setup
@@ -80,13 +82,13 @@ Preparation never pushes directly to `master`, publishes npm packages, or create
 
 The supplied commit must equal the workflow's dispatch commit. This keeps npm provenance, the tested source, and `gitHead` aligned. If `master` advanced before dispatch, review its new head and dispatch again with that SHA.
 
-The workflow builds, lints, and tests; rechecks existing versions and tags; publishes missing stable versions to `latest`; verifies npm metadata and downloadable tarballs; then signs and atomically pushes missing package tags. It verifies their signatures on GitHub and creates GitHub Releases using each package's changelog entry.
+The workflow builds, lints, and tests, then rechecks existing versions and tags. It signs and atomically pushes missing package tags and verifies their signatures on GitHub. If requested, it next creates and verifies the overall tag. Only after all required tags are verified does it publish missing stable versions to npm's `latest` tag. After npm metadata and downloadable tarballs are verified, it creates GitHub Releases using each package's changelog entry.
 
 Expected package tags look like `@suites/unit@4.0.0`. Packages retain independent versions, and existing tags are never moved.
 
-When `release_tag` is supplied, it must equal `v` plus the reviewed `@suites/unit` version, and that package must belong to this release commit. After all package tags are verified and package releases are complete, the workflow creates and verifies the signed overall tag at the same commit. It then creates the **Suites v4.0.0** GitHub Release as Latest with links and changelog entries for the packages. Package releases remain marked `latest=false`.
+When `release_tag` is supplied, it must equal `v` plus the reviewed `@suites/unit` version, and that package must belong to this release commit. After all package tags are verified, the workflow creates and verifies the signed overall tag at the same commit, before publishing to npm. Once npm publication is verified, it creates the **Suites v4.0.0** GitHub Release as Latest with links and changelog entries for the packages. Package releases remain marked `latest=false`.
 
-Merging a version PR does not create tags. Do not create the overall tag manually before this sequence completes.
+Merging a version PR does not create tags. The tag step runs before npm publication; GitHub Releases run afterward.
 
 ## Recover a failed release
 
@@ -96,10 +98,11 @@ Re-run the failed workflow using the same commit after fixing the cause. Do not 
 - **Signing setup:** confirm the public key is registered as a Signing Key on the configured account and matches the environment secret. Key setup failures stop before npm publication.
 - **Unverified tag:** inspect the tag object and GitHub verification reason. Do not overwrite it; rerun the same commit only after verification succeeds. An unsigned tag collision requires investigation because existing tags are immutable.
 - **npm authentication:** check all nine Trusted Publisher entries, especially the exact workflow filename and `release` environment. No long-lived npm token is needed.
+- **Tags created but npm publication failed:** the tags remain at their original source commit. Re-run the original workflow at that same commit; it verifies and reuses them before retrying missing uploads. Do not move tags or dispatch a newer commit for the same unpublished versions.
 - **Partial npm upload:** existing versions are checked against their source commit and package contents. Matching published packages are preserved, and Lerna publishes only missing versions.
 - **Registry propagation:** verification retries read-only checks for new versions for up to ten minutes. It never retries an upload itself.
 - **Wrong source, changed package contents, or tag collision:** stop and inspect. A changed package needs a new version; never overwrite or move an existing release tag.
 - **Published version with an unexpected `latest` tag:** inspect npm before proceeding. The workflow refuses to silently move an unexpected tag.
-- **Tags or GitHub Releases failed after npm succeeded:** rerun with the same commit. Matching versions and tags are preserved; missing tags and GitHub Releases are completed.
+- **GitHub Releases failed after npm succeeded:** rerun with the same commit. Matching versions and tags are preserved; missing GitHub Releases are completed.
 
 Unchanged independent packages may keep an earlier `gitHead`, tag, and `latest` value. The workflow accepts this only when the earlier source is an ancestor and that package's tracked contents are unchanged.
