@@ -7,6 +7,11 @@ on:
         required: true
         type: string
 
+      release_tag:
+        description: Optional overall tag matching the @suites/unit version (e.g. v4.0.0)
+        required: false
+        type: string
+
 permissions:
   contents: read
 
@@ -17,6 +22,7 @@ concurrency:
 env:
   CI: true
   APPROVED_COMMIT: ${{ inputs.commit }}
+  OVERALL_RELEASE_TAG: ${{ inputs.release_tag }}
   NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
 
 jobs:
@@ -93,24 +99,34 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
+      - name: Verify and configure release signing
+        env:
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
+          RELEASE_SIGNING_PRIVATE_KEY: ${{ secrets.SUITES_RELEASE_SIGNING_PRIVATE_KEY }}
+          RELEASE_SIGNING_PUBLIC_KEY: ${{ vars.SUITES_RELEASE_SIGNING_PUBLIC_KEY }}
+          RELEASE_SIGNING_LOGIN: ${{ vars.SUITES_RELEASE_SIGNING_LOGIN }}
+        run: node scripts/configure-release-signing.cjs
       - name: Recheck publication plan
         id: publication
         run: |
           test -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
           test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
           node scripts/release-publication.cjs plan "$RUNNER_TEMP/publication.json"
+      - name: Check existing package and overall tag signatures
+        env:
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
+        run: node scripts/release-publication.cjs check-tags "$RUNNER_TEMP/publication.json"
       - name: Publish missing versions to latest with npm Trusted Publishing
         if: steps.publication.outputs.pending != '0'
         run: pnpm exec lerna publish from-package --yes --dist-tag latest --git-head "$APPROVED_COMMIT"
       - name: Verify published versions, source commits, latest tags and tarballs
         run: node scripts/release-publication.cjs verify "$RUNNER_TEMP/publication.json"
-      - name: Create immutable package tags and GitHub Releases
+      - name: Create verified package tags, optional overall tag and GitHub Releases
         env:
           GH_TOKEN: ${{ steps.release-app.outputs.token }}
-          BOT_SLUG: ${{ steps.release-app.outputs.app-slug }}
         run: |
-          bot_id=$(gh api "users/${BOT_SLUG}[bot]" --jq .id)
-          git config user.name "${BOT_SLUG}[bot]"
-          git config user.email "${bot_id}+${BOT_SLUG}[bot]@users.noreply.github.com"
           node scripts/release-publication.cjs finalize "$RUNNER_TEMP/publication.json"
           echo 'Published versions, latest tags, tarballs, package tags and GitHub Releases verified.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/suites-release-signing"
