@@ -9,9 +9,19 @@ export const UndefinedDependency: unique symbol = Symbol('UndefinedDependency');
 export type UndefinedDependencySymbol = typeof UndefinedDependency;
 
 /**
- * @since 3.0.0
+ * Additional identifier types supplied by a DI adapter's /metadata entry point.
+ *
+ * @template T - The dependency represented by the identifier.
  */
-export type InjectableIdentifier<TClass = unknown> = Type<TClass> | string | symbol;
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unused-vars -- DI adapters populate this registry through module augmentation.
+export interface InjectableIdentifierRegistry<T = unknown> {}
+
+/** @since 3.0.0 */
+export type InjectableIdentifier<TClass = unknown> =
+  | Type<TClass>
+  | string
+  | symbol
+  | InjectableIdentifierRegistry<TClass>[keyof InjectableIdentifierRegistry<TClass>];
 
 /**
  * @since 3.0.0
