@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.0.0...%40suites%2Funit%404.1.0) (2026-11-04)
+
+### Features
+
+* **unit:** discover InjectionJS and expose registered token APIs ([81aefe3](https://github.com/suites-dev/unit/commit/81aefe387ea13e401e86c67c68e4e37572492184))
+
+
 # [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Funit%403.1.1...%40suites%2Funit%404.0.0) (2026-11-04)
 
 ### Bug Fixes

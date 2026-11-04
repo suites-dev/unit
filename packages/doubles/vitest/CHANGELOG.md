@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.0.0...%40suites%2Fdoubles.vitest%404.1.0) (2026-11-04)
+
+### Features
+
+* **doubles.vitest:** type lookups for adapter-registered tokens ([ad36afe](https://github.com/suites-dev/unit/commit/ad36afe2d6d49dfd7181164ab7017a891fdf8a73))
+
+
 # [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%403.1.0...%40suites%2Fdoubles.vitest%404.0.0) (2026-11-04)
 
 ### Bug Fixes
