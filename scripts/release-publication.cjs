@@ -178,37 +178,72 @@ function releaseNotes(changelog, version) {
   );
 }
 
-function finalize(plan, commit) {
-  assert.equal(git('rev-parse', 'HEAD'), commit);
-  git('diff', '--exit-code');
-  git('diff', '--cached', '--exit-code');
-  // Refresh remote tags before creating anything; a conflict is never force-updated.
-  git('fetch', 'origin', '--tags');
-  const missing = [];
+function overallRelease(plan, commit, tag = process.env.OVERALL_RELEASE_TAG || '') {
+  if (!tag) return null;
+  assert.match(
+    tag,
+    /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/,
+    'Overall tag must be a stable vX.Y.Z'
+  );
+  const unit = plan.find((item) => item.name === '@suites/unit');
+  assert(unit && tag === `v${unit.version}`, 'Overall tag must match @suites/unit version');
+  assert.equal(
+    unit.gitHead,
+    commit,
+    'Overall release requires @suites/unit from the reviewed commit'
+  );
+  if (hasTag(tag))
+    assert.equal(git('rev-parse', `refs/tags/${tag}^{commit}`), commit, 'Overall tag collision');
+  return { tag, gitHead: commit, version: unit.version };
+}
+
+function githubTag(tag, commit) {
+  const ref = JSON.parse(
+    execFileSync(
+      'gh',
+      ['api', `repos/${process.env.GITHUB_REPOSITORY}/git/ref/tags/${encodeURIComponent(tag)}`],
+      { encoding: 'utf8' }
+    )
+  );
+  assert.equal(ref.object.type, 'tag', `${tag}: expected an annotated signed tag`);
+  const object = JSON.parse(
+    execFileSync(
+      'gh',
+      ['api', `repos/${process.env.GITHUB_REPOSITORY}/git/tags/${ref.object.sha}`],
+      { encoding: 'utf8' }
+    )
+  );
+  assert.equal(object.tag, tag);
+  assert.equal(object.object.type, 'commit');
+  assert.equal(object.object.sha, commit, `${tag}: wrong source commit`);
+  assert.equal(
+    object.verification?.verified,
+    true,
+    `${tag}: GitHub signature is not verified (${object.verification?.reason}); inspect before retrying`
+  );
+  console.log(`${tag}: GitHub verified signature at ${commit}`);
+}
+
+function checkTags(plan, commit) {
+  const overall = overallRelease(plan, commit);
   for (const item of plan) {
     if (hasTag(item.tag)) {
-      assertSamePackage(
-        git('rev-parse', `refs/tags/${item.tag}^{commit}`),
-        commit,
-        item.packagePath
-      );
-    } else {
-      assertSamePackage(item.gitHead, commit, item.packagePath);
-      missing.push(item);
+      const target = git('rev-parse', `refs/tags/${item.tag}^{commit}`);
+      assertSamePackage(target, commit, item.packagePath);
+      // Preserve historical independent package tags; this release must be signed.
+      if (item.gitHead === commit) githubTag(item.tag, commit);
     }
   }
-  for (const item of missing)
-    git(
-      '-c',
-      'tag.gpgSign=false',
-      'tag',
-      '-a',
-      item.tag,
-      item.gitHead,
-      '-m',
-      `Release ${item.tag}`
-    );
-  if (missing.length)
+  if (overall && hasTag(overall.tag)) githubTag(overall.tag, commit);
+  return overall;
+}
+
+function pushSignedTags(items) {
+  for (const item of items) {
+    git('tag', '-s', item.tag, item.gitHead, '-m', `Release ${item.tag}`);
+    git('verify-tag', item.tag);
+  }
+  if (items.length)
     git(
       '-c',
       'push.followTags=false',
@@ -219,48 +254,81 @@ function finalize(plan, commit) {
       'push',
       '--atomic',
       'origin',
-      ...missing.map((item) => `refs/tags/${item.tag}`)
+      ...items.map((item) => `refs/tags/${item.tag}`)
     );
+}
+
+function ensureRelease(tag, notes, overall = false) {
+  const result = spawnSync(
+    'gh',
+    ['api', `repos/${process.env.GITHUB_REPOSITORY}/releases/tags/${encodeURIComponent(tag)}`],
+    { encoding: 'utf8' }
+  );
+  if (result.status === 0) {
+    const release = JSON.parse(result.stdout);
+    assert.equal(release.tag_name, tag);
+    assert.equal(release.draft, false);
+    assert.equal(release.prerelease, false);
+    return;
+  }
+  assert.match(result.stderr, /HTTP 404/, 'Cannot determine whether GitHub Release already exists');
+  execFileSync(
+    'gh',
+    [
+      'release',
+      'create',
+      tag,
+      '--verify-tag',
+      '--title',
+      overall ? `Suites ${tag}` : tag,
+      '--notes-file',
+      '-',
+      `--latest=${overall}`,
+    ],
+    { input: notes, stdio: ['pipe', 'inherit', 'inherit'] }
+  );
+}
+
+function finalize(plan, commit) {
+  assert.equal(git('rev-parse', 'HEAD'), commit);
+  git('diff', '--exit-code');
+  git('diff', '--cached', '--exit-code');
+  // Refresh remote tags before creating anything; a conflict is never force-updated.
+  git('fetch', 'origin', '--tags');
+  const overall = checkTags(plan, commit);
+  const missing = plan.filter((item) => !hasTag(item.tag));
+  for (const item of missing) assertSamePackage(item.gitHead, commit, item.packagePath);
+  pushSignedTags(missing);
+  for (const item of plan.filter((entry) => entry.gitHead === commit || missing.includes(entry))) {
+    githubTag(item.tag, item.gitHead);
+  }
   for (const item of plan.filter((entry) => entry.gitHead === commit)) {
-    const result = spawnSync(
-      'gh',
-      [
-        'api',
-        `repos/${process.env.GITHUB_REPOSITORY}/releases/tags/${encodeURIComponent(item.tag)}`,
-      ],
-      { encoding: 'utf8' }
+    ensureRelease(
+      item.tag,
+      releaseNotes(readFileSync(resolve(item.packagePath, 'CHANGELOG.md'), 'utf8'), item.version)
     );
-    if (result.status === 0) {
-      const release = JSON.parse(result.stdout);
-      assert.equal(release.tag_name, item.tag);
-      assert.equal(release.draft, false);
-      assert.equal(release.prerelease, false);
-      continue;
-    }
-    assert.match(
-      result.stderr,
-      /HTTP 404/,
-      'Cannot determine whether GitHub Release already exists'
-    );
-    const notes = releaseNotes(
-      readFileSync(resolve(item.packagePath, 'CHANGELOG.md'), 'utf8'),
-      item.version
-    );
-    execFileSync(
-      'gh',
-      [
-        'release',
-        'create',
-        item.tag,
-        '--verify-tag',
-        '--title',
-        item.tag,
-        '--notes-file',
-        '-',
-        '--latest=false',
-      ],
-      { input: notes, stdio: ['pipe', 'inherit', 'inherit'] }
-    );
+  }
+  // The overall release is the final marker, after all package tags were verified.
+  if (overall) {
+    if (!hasTag(overall.tag)) pushSignedTags([overall]);
+    githubTag(overall.tag, commit);
+    const notes =
+      `# Suites ${overall.version}\n\nSource: ${commit}\n\n` +
+      plan
+        .map(
+          (item) =>
+            `- [${item.tag}](https://github.com/${process.env.GITHUB_REPOSITORY}/releases/tag/${encodeURIComponent(item.tag)})`
+        )
+        .join('\n') +
+      '\n\n' +
+      plan
+        .filter((item) => item.gitHead === commit)
+        .map(
+          (item) =>
+            `## ${item.name}\n\n${releaseNotes(readFileSync(resolve(item.packagePath, 'CHANGELOG.md'), 'utf8'), item.version)}`
+        )
+        .join('\n');
+    ensureRelease(overall.tag, notes, true);
   }
 }
 
@@ -276,6 +344,7 @@ async function main() {
       })
     );
     const plan = createPlan(packages, commit);
+    const overall = overallRelease(plan, commit);
     git('diff', '--exit-code');
     git('diff', '--cached', '--exit-code');
     for (const item of plan.filter((entry) => entry.gitHead === commit)) {
@@ -285,7 +354,7 @@ async function main() {
     const summary =
       `## Publication plan\n\nCommit: \`${commit}\`\n\n` +
       plan.map((item) => `- \`${item.tag}\`: ${item.disposition}`).join('\n') +
-      '\n';
+      (overall ? `\n\nOverall release: \`${overall.tag}\` after verified package tags.\n` : '\n');
     console.log(summary);
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
     if (process.env.GITHUB_OUTPUT)
@@ -297,6 +366,7 @@ async function main() {
     const plan = JSON.parse(readFileSync(file));
     assert(plan.length > 0);
     if (command === 'verify') await verifyPlan(plan);
+    else if (command === 'check-tags') checkTags(plan, commit);
     else if (command === 'finalize') finalize(plan, commit);
     else throw new Error(`Unknown release command: ${command}`);
   }
@@ -306,4 +376,11 @@ if (require.main === module)
     console.error(error.message);
     process.exitCode = 1;
   });
-module.exports = { assertSamePackage, createPlan, npmJson, verifyPlan, releaseNotes };
+module.exports = {
+  assertSamePackage,
+  createPlan,
+  npmJson,
+  verifyPlan,
+  releaseNotes,
+  overallRelease,
+};

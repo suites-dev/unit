@@ -69,7 +69,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Check release changelogs
+      - name: Check release changelogs and signed tag lifecycle
         run: pnpm test:release
 
       - name: Check links
@@ -82,14 +82,7 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          [
-            'doubles.jest',
-            'core.unit',
-            'doubles.vitest',
-            'di.nestjs',
-            'di.inversify',
-            'unit',
-          ]
+          ['doubles.jest', 'core.unit', 'doubles.vitest', 'di.nestjs', 'di.inversify', 'unit']
     steps:
       - name: Checkout
         uses: actions/checkout@v7
