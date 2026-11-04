@@ -1,105 +1,116 @@
 name: Publish Packages
-env:
-  CI: true
-
-permissions:
-  id-token: write
-  contents: write
-
 on:
   workflow_dispatch:
     inputs:
-      dist_tag:
-        description: 'Distribution Tag'
-        type: choice
-        options:
-          - 'next'
-          - 'latest'
-          - 'rc'
-          - 'dev'
-          - 'alpha'
-          - 'beta'
+      commit:
+        description: Full reviewed master HEAD commit SHA (must match the workflow run)
         required: true
-        default: 'next'
-      target_branch:
-        description: 'Target branch to release from'
-        type: choice
-        options:
-          - 'next'
-          - 'master'
-        required: true
-        default: 'next'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  CI: true
+  APPROVED_COMMIT: ${{ inputs.commit }}
+  NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
 
 jobs:
-  publish:
-    name: Publish to NPM
+  plan:
+    name: Review publication plan
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.target_branch }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
+          persist-credentials: false
+      - name: Select the reviewed master commit
+        run: |
+          [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$APPROVED_COMMIT" = "$GITHUB_SHA" # npm provenance identifies the workflow commit
+          git switch --detach "$APPROVED_COMMIT"
+      - uses: actions/setup-node@v7
         with:
           node-version: '26.x'
-          registry-url: https://registry.npmjs.org/
-          scope: '@suites'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
         with:
           version: 12.16.1
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node scripts/release-publication.cjs plan "$RUNNER_TEMP/publication.json"
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+  e2e:
+    name: Test reviewed commit
+    needs: plan
+    uses: ./.github/workflows/e2e-release.yml
+    with:
+      target_branch: master
+      commit: ${{ inputs.commit }}
 
-      - name: Build
-        run: pnpm lerna run build
-
-      - name: Capture Versions for Report
+  publish:
+    name: Publish reviewed packages and tags
+    needs: [plan, e2e]
+    environment: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select the reviewed master commit
         run: |
-          echo "## 📦 Publishing to NPM" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Registry:** \`https://registry.npmjs.org/\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Dist Tag:** \`${{ github.event.inputs.dist_tag }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`${{ github.event.inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Packages:" >> $GITHUB_STEP_SUMMARY
-          pnpm exec lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
-
-      - name: Publish Packages
+          [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$APPROVED_COMMIT" = "$GITHUB_SHA" # npm provenance identifies the workflow commit
+          git switch --detach "$APPROVED_COMMIT"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26.x'
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.16.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm test:release
+      - name: Mint release bot token
+        id: release-app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.SUITES_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SUITES_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+      - name: Recheck publication plan
+        id: publication
         run: |
-          pnpm exec lerna publish from-package --yes \
-            --dist-tag ${{ github.event.inputs.dist_tag }} \
-            --no-git-reset
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
+          node scripts/release-publication.cjs plan "$RUNNER_TEMP/publication.json"
+      - name: Publish missing versions to latest with npm Trusted Publishing
+        if: steps.publication.outputs.pending != '0'
+        run: pnpm exec lerna publish from-package --yes --dist-tag latest --git-head "$APPROVED_COMMIT"
+      - name: Verify published versions, source commits, latest tags and tarballs
+        run: node scripts/release-publication.cjs verify "$RUNNER_TEMP/publication.json"
+      - name: Create immutable package tags and GitHub Releases
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Generate Success Summary
-        if: success()
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
+          BOT_SLUG: ${{ steps.release-app.outputs.app-slug }}
         run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ✅ Publish Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All packages have been successfully published to npm!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Installation command:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "npm install @suites/unit@${{ github.event.inputs.dist_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-      - name: Generate Failure Summary
-        if: failure()
-        run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ❌ Publish Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The publish step failed. Check the logs above for details." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Version already exists in npm registry" >> $GITHUB_STEP_SUMMARY
-          echo "- Authentication token is invalid or expired" >> $GITHUB_STEP_SUMMARY
-          echo "- Network connectivity issues" >> $GITHUB_STEP_SUMMARY
+          bot_id=$(gh api "users/${BOT_SLUG}[bot]" --jq .id)
+          git config user.name "${BOT_SLUG}[bot]"
+          git config user.email "${bot_id}+${BOT_SLUG}[bot]@users.noreply.github.com"
+          node scripts/release-publication.cjs finalize "$RUNNER_TEMP/publication.json"
+          echo 'Published versions, latest tags, tarballs, package tags and GitHub Releases verified.' >> "$GITHUB_STEP_SUMMARY"

@@ -21,12 +21,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/suites-dev/suites.git",
+    "url": "https://github.com/suites-dev/unit.git",
     "directory": "packages/core"
   },
   "homepage": "https://suites.dev",
   "bugs": {
-    "url": "https://github.com/suites-dev/suites/issues"
+    "url": "https://github.com/suites-dev/unit/issues"
   },
   "contributors": [
     {
