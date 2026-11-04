@@ -302,6 +302,22 @@ importers:
         specifier: workspace:^4.0.0
         version: link:../types/doubles
 
+  packages/di/injection-js:
+    dependencies:
+      '@suites/types.common':
+        specifier: workspace:^4.0.0
+        version: link:../../types/common
+      '@suites/types.di':
+        specifier: workspace:^4.0.0
+        version: link:../../types/di
+    devDependencies:
+      injection-js:
+        specifier: 2.6.1
+        version: 2.6.1
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+
   packages/di/inversify:
     dependencies:
       '@inversifyjs/core':
@@ -2597,6 +2613,9 @@ packages:
   init-package-json@9.0.0:
     resolution: {integrity: sha512-aYDqz4jgX1plB2GDCFYStlOh67QXVpAIeNgDq8rRGVDYMvLE39yYlf8+CjYY2chVOVfqLsSIycFYznHWozZ9CA==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
+
+  injection-js@2.6.1:
+    resolution: {integrity: sha512-dbR5bdhi7TWDoCye9cByZqeg/gAfamm8Vu3G1KZOTYkOif8WkuM8CD0oeDPtZYMzT5YH76JAFB7bkmyY9OJi2A==}
 
   inquirer@14.2.2:
     resolution: {integrity: sha512-WGerZIIb7mTtaFFskkD/P0europ8xBWf1OXACMiugzKPSmVzoqhcPSuSUzbzMch/t3rf1ncBT3v/0WU73cLqJQ==}
@@ -6246,6 +6265,10 @@ snapshots:
       read: 6.0.0
       semver: 7.8.5
       validate-npm-package-name: 8.0.0
+
+  injection-js@2.6.1:
+    dependencies:
+      tslib: 2.9.1
 
   inquirer@14.2.2(@types/node@26.6.6):
     dependencies:
