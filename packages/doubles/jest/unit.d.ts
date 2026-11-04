@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import type { DeepPartial, Type } from '@suites/types.common';
-import type { IdentifierMetadata } from '@suites/types.di';
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { TestBedBuilder } from '@suites/core.unit';
 import type { Mocked as JestMocked, Stub as JestStub } from '.';
 import type { ArgsType } from '@suites/types.doubles';
@@ -166,7 +166,7 @@ declare module '@suites/core.unit' {
      * @returns The mocked instance corresponding to the provided identifier and metadata.
      */
     get<TDependency>(
-      identifier: Type<TDependency> | string | symbol,
+      identifier: InjectableIdentifier<TDependency>,
       identifierMetadata?: IdentifierMetadata
     ): JestMocked<TDependency>;
   }
