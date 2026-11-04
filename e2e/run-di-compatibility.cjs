@@ -4,6 +4,16 @@ const { existsSync, readFileSync, writeFileSync } = require('node:fs');
 const { createRequire } = require('node:module');
 const path = require('node:path');
 const cases = require('./di-compatibility.json');
+const dependenciesByFramework = {
+  nestjs: '@nestjs/common',
+  inversify: 'inversify',
+  'injection-js': 'injection-js',
+};
+const adaptersByFramework = {
+  nestjs: 'nestjs',
+  inversify: 'inversify',
+  'injection-js': 'injectionjs',
+};
 
 function installedVersion(requireFrom, name) {
   let directory = path.dirname(requireFrom.resolve(name));
@@ -21,8 +31,8 @@ function installedVersion(requireFrom, name) {
 
 function verify(framework, expected, directory) {
   const consumer = createRequire(path.join(directory, 'package.json'));
-  const adapter = createRequire(consumer.resolve(`@suites/di.${framework}`));
-  const dependency = framework === 'nestjs' ? '@nestjs/common' : 'inversify';
+  const adapter = createRequire(consumer.resolve(`@suites/di.${adaptersByFramework[framework]}`));
+  const dependency = dependenciesByFramework[framework];
   const actual = installedVersion(consumer, dependency);
   assert.equal(
     installedVersion(adapter, dependency),
@@ -38,7 +48,7 @@ function verify(framework, expected, directory) {
 
 function resolveVersion(framework, version, directory) {
   if (version.includes('.')) return version;
-  const dependency = framework === 'nestjs' ? '@nestjs/common' : 'inversify';
+  const dependency = dependenciesByFramework[framework];
   const published = JSON.parse(
     execFileSync('pnpm', ['view', `${dependency}@${version}`, 'version', '--json'], {
       cwd: directory,
@@ -60,7 +70,10 @@ function resolveVersion(framework, version, directory) {
 }
 
 function run(project) {
-  assert.match(project || '', /^(?:(?:esm\/)?(?:jest|vitest)\/nestjs|(?:jest|vitest)\/inversify)$/);
+  assert.match(
+    project || '',
+    /^(?:(?:esm\/)?(?:jest|vitest)\/(?:nestjs|injection-js)|(?:jest|vitest)\/inversify)$/
+  );
   const framework = project.split('/').at(-1);
   const directory = path.join(__dirname, project);
   const manifestPath = path.join(directory, 'package.json');
@@ -79,7 +92,7 @@ function run(project) {
       const dependencies =
         framework === 'nestjs'
           ? [`@nestjs/common@${resolved}`, `@nestjs/core@${resolved}`]
-          : [`inversify@${resolved}`];
+          : [`${dependenciesByFramework[framework]}@${resolved}`];
       pnpm(...install, '--save-exact', ...dependencies, `reflect-metadata@${reflectMetadata}`);
 
       // A fresh process avoids cached resolution paths after pnpm changes the

@@ -34,6 +34,10 @@ jobs:
             'vitest/nestjs',
             'jest/inversify',
             'vitest/inversify',
+            'jest/injection-js',
+            'vitest/injection-js',
+            'esm/jest/injection-js',
+            'esm/vitest/injection-js',
             'esm/jest/nestjs',
             'esm/vitest/nestjs',
           ]
