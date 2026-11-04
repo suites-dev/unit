@@ -244,26 +244,6 @@ function checkTags(plan, commit) {
   return overall;
 }
 
-function pushSignedTags(items) {
-  for (const item of items) {
-    git('tag', '-s', item.tag, item.gitHead, '-m', `Release ${item.tag}`);
-    git('verify-tag', item.tag);
-  }
-  if (items.length)
-    git(
-      '-c',
-      'push.followTags=false',
-      '-c',
-      'credential.helper=',
-      '-c',
-      'credential.helper=!gh auth git-credential',
-      'push',
-      '--atomic',
-      'origin',
-      ...items.map((item) => `refs/tags/${item.tag}`)
-    );
-}
-
 function ensureRelease(tag, notes, overall = false) {
   const result = spawnSync(
     'gh',
@@ -293,25 +273,6 @@ function ensureRelease(tag, notes, overall = false) {
     ],
     { input: notes, stdio: ['pipe', 'inherit', 'inherit'] }
   );
-}
-
-function createTags(plan, commit) {
-  assert.equal(git('rev-parse', 'HEAD'), commit);
-  git('diff', '--exit-code');
-  git('diff', '--cached', '--exit-code');
-  // Refresh remote tags before creating anything; a conflict is never force-updated.
-  git('fetch', 'origin', '--tags');
-  const overall = checkTags(plan, commit);
-  const missing = plan.filter((item) => !hasTag(item.tag));
-  for (const item of missing) assertSamePackage(item.gitHead, commit, item.packagePath);
-  pushSignedTags(missing);
-  for (const item of plan) githubTag(item.tag, item.gitHead);
-  // The overall tag follows verified package tags, before any npm publication.
-  if (overall) {
-    if (!hasTag(overall.tag)) pushSignedTags([overall]);
-    githubTag(overall.tag, commit);
-  }
-  verifyTags(plan, commit);
 }
 
 function verifyTags(plan, commit) {
@@ -398,7 +359,6 @@ async function main() {
     assert(plan.length > 0);
     if (command === 'verify') await verifyPlan(plan);
     else if (command === 'check-tags') checkTags(plan, commit);
-    else if (command === 'tag') createTags(plan, commit);
     else if (command === 'verify-tags') verifyTags(plan, commit);
     else if (command === 'finalize') finalize(plan, commit);
     else throw new Error(`Unknown release command: ${command}`);
@@ -416,4 +376,7 @@ module.exports = {
   verifyPlan,
   releaseNotes,
   overallRelease,
+  githubTag,
+  checkTags,
+  verifyTags,
 };

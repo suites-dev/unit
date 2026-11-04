@@ -98,7 +98,11 @@ if (args[0] === 'api') {
   const run = (extra = {}, command = 'tag') =>
     execFileSync(
       process.execPath,
-      [resolve(__dirname, 'release-publication.cjs'), command, planFile],
+      [
+        resolve(__dirname, command === 'tag' ? 'release-tagging.cjs' : 'release-publication.cjs'),
+        command,
+        planFile,
+      ],
       {
         cwd: repo,
         stdio: 'pipe',
@@ -200,21 +204,26 @@ test('release finalization refuses missing tags and never creates them implicitl
   assert.equal(existsSync(f.state), false);
 });
 
-test('publication workflow requires verified tags before npm and npm verification before releases', () => {
-  const workflow = readFileSync(
+test('tagging and publishing are separate workflows with no tag creation or signer secret in publishing', () => {
+  const publish = readFileSync(
     resolve(__dirname, '../.github/workflows/publish-packages.yml'),
     'utf8'
   );
-  const tag = workflow.indexOf('release-publication.cjs tag ');
-  const verifyTags = workflow.indexOf('release-publication.cjs verify-tags ');
-  const publish = workflow.indexOf('lerna publish from-package');
-  const verifyNpm = workflow.indexOf('release-publication.cjs verify ');
-  const release = workflow.indexOf('release-publication.cjs finalize ');
+  const tagging = readFileSync(resolve(__dirname, '../.github/workflows/tag-release.yml'), 'utf8');
+  assert(!publish.includes('release-tagging.cjs'));
+  assert(!publish.includes('configure-release-signing.cjs'));
+  assert(!publish.includes('SIGNING_PRIVATE_KEY'));
   assert(
-    tag >= 0 &&
-      tag < verifyTags &&
-      verifyTags < publish &&
-      publish < verifyNpm &&
-      verifyNpm < release
+    publish.indexOf('release-publication.cjs verify-tags ') <
+      publish.indexOf('lerna publish from-package')
   );
+  assert(
+    publish.indexOf('release-publication.cjs verify ') <
+      publish.indexOf('release-publication.cjs finalize ')
+  );
+  assert(tagging.includes('types: [closed]'));
+  assert(tagging.includes("startsWith(github.event.pull_request.head.ref, 'chore/release-')"));
+  assert(tagging.includes('release-tagging.cjs tag '));
+  assert(!tagging.includes('lerna publish'));
+  assert(!tagging.includes('id-token: write'));
 });

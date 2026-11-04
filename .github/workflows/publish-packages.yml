@@ -50,6 +50,10 @@ jobs:
           version: 12.16.1
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: node scripts/release-publication.cjs plan "$RUNNER_TEMP/publication.json"
+      - name: Require existing verified release tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-publication.cjs verify-tags "$RUNNER_TEMP/publication.json"
 
   e2e:
     name: Test reviewed commit
@@ -60,7 +64,7 @@ jobs:
       commit: ${{ inputs.commit }}
 
   publish:
-    name: Tag and publish reviewed packages
+    name: Publish reviewed tagged packages
     needs: [plan, e2e]
     environment: release
     runs-on: ubuntu-latest
@@ -99,23 +103,12 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
-      - name: Verify and configure release signing
-        env:
-          GH_TOKEN: ${{ steps.release-app.outputs.token }}
-          RELEASE_SIGNING_PRIVATE_KEY: ${{ secrets.SUITES_RELEASE_SIGNING_PRIVATE_KEY }}
-          RELEASE_SIGNING_PUBLIC_KEY: ${{ vars.SUITES_RELEASE_SIGNING_PUBLIC_KEY }}
-          RELEASE_SIGNING_LOGIN: ${{ vars.SUITES_RELEASE_SIGNING_LOGIN }}
-        run: node scripts/configure-release-signing.cjs
       - name: Recheck publication plan
         id: publication
         run: |
           test -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
           test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
           node scripts/release-publication.cjs plan "$RUNNER_TEMP/publication.json"
-      - name: Create and verify signed package tags and optional overall tag
-        env:
-          GH_TOKEN: ${{ steps.release-app.outputs.token }}
-        run: node scripts/release-publication.cjs tag "$RUNNER_TEMP/publication.json"
       - name: Require verified tags before npm publication
         env:
           GH_TOKEN: ${{ steps.release-app.outputs.token }}
@@ -131,6 +124,3 @@ jobs:
         run: |
           node scripts/release-publication.cjs finalize "$RUNNER_TEMP/publication.json"
           echo 'Published versions, latest tags, tarballs, package tags and GitHub Releases verified.' >> "$GITHUB_STEP_SUMMARY"
-      - name: Remove temporary signing key
-        if: always()
-        run: rm -rf -- "$RUNNER_TEMP/suites-release-signing"

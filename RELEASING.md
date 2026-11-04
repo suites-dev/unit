@@ -4,14 +4,13 @@ Releases use `master` and npm's `latest` tag. Lerna calculates independent packa
 
 ```mermaid
 flowchart LR
-  A[Prepare Release] --> B[Review version and changelog PR]
-  B --> C[Merge into master]
-  C --> D[Publish Packages with full commit SHA]
-  D --> E[E2E tests and release approval]
-  E --> F[Signed package tags and optional overall tag]
-  F --> G[Verify GitHub signatures]
-  G --> H[Publish and verify npm packages]
-  H --> I[GitHub Releases]
+  A[Prepare Release: Lerna versions and changelogs] --> B[Review and merge release PR]
+  B --> C[Tag Release starts automatically]
+  C --> D[Approve tagging deployment]
+  D --> E[Signed package tags and overall tag verified]
+  E --> F[Run Publish Packages]
+  F --> G[E2E and publication approval]
+  G --> H[npm packages and GitHub Releases]
 ```
 
 ## One-time setup
@@ -37,7 +36,7 @@ Register a dedicated Ed25519 public key as a **Signing Key** on the release sign
 | Variable `SUITES_RELEASE_SIGNING_PUBLIC_KEY` | Matching `ssh-ed25519` public key                            |
 | Variable `SUITES_RELEASE_SIGNING_LOGIN`      | GitHub account owning the signing key, currently `omermorad` |
 
-Tags are signed under this account's name and GitHub noreply email. The Release Bot still authenticates the push and creates the GitHub Releases. Before npm publication, the workflow checks that the public key is registered and proves the runner can sign and verify. The private key is removed from the runner in an `always()` cleanup step.
+Tags are signed under this account's name and GitHub noreply email. The Release Bot still authenticates the push and creates the GitHub Releases. **Tag Release** checks that the public key is registered and proves the runner can sign and verify. Its private key is removed from the runner in an `always()` cleanup step. **Publish Packages** does not load the signing key or create Git tags.
 
 GitHub's **Verified** badge is checked on each new annotated tag object through the API. `gh release create --verify-tag` only checks that a tag exists; it does not verify signatures. See [GitHub signing keys](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-tags).
 
@@ -69,35 +68,40 @@ The package repository URL must be `https://github.com/suites-dev/unit.git`. See
 1. Run **Prepare Release** from `master`.
 2. Choose `graduate` for the first stable release from the staged prereleases, or `stable` for subsequent conventional-commit releases.
 3. Wait for the E2E matrix. The bot then opens a PR containing package versions, dependency ranges, the lockfile, and changelogs.
-4. Review each changed package's version and release notes, including its `BREAKING CHANGE:` entries. Merge after CI passes and human review is complete.
+4. Review each changed package's version and release notes, including its `BREAKING CHANGE:` entries. Merge after CI passes and human review is complete. Merging a `chore/release-*` PR from this repository into `master` automatically starts **Tag Release**.
 
 Preparation never pushes directly to `master`, publishes npm packages, or creates tags. Keep feature commits and their scopes and breaking-change footers in Git history so Lerna can generate meaningful package changelogs.
 
-## Publish the reviewed commit
+## Create the release tags
 
-1. Copy the full 40-character merge commit SHA at the head of `master`.
-2. Run **Publish Packages** from `master`, supplying that SHA as `commit`. For the overall Suites 4 release, also set `release_tag` to `v4.0.0`. Leave it empty for a package-only release.
-3. Read the publication plan and wait for E2E tests on that exact commit.
-4. Approve the `release` environment deployment.
+**Tag Release** is a separate workflow. It starts when a release PR is merged into `master`; other merged PRs do not trigger tagging. Approve its existing `release` environment deployment. For an already-merged release or a same-commit retry, run it manually from `master` or re-run the original run, respectively.
 
-The supplied commit must equal the workflow's dispatch commit. This keeps npm provenance, the tested source, and `gitHead` aligned. If `master` advanced before dispatch, review its new head and dispatch again with that SHA.
+The action reads public package names and versions with `pnpm exec lerna list --json --no-private`. Lerna has already calculated these versions in **Prepare Release**. Tagging does not run `lerna version` again, bump versions, or change changelogs. It checks stable versions and changelog entries, signs the corresponding `@suites/package@version` tags, pushes them through the Release Bot, and verifies GitHub's signature status.
 
-The workflow builds, lints, and tests, then rechecks existing versions and tags. It signs and atomically pushes missing package tags and verifies their signatures on GitHub. If requested, it next creates and verifies the overall tag. Only after all required tags are verified does it publish missing stable versions to npm's `latest` tag. After npm metadata and downloadable tarballs are verified, it creates GitHub Releases using each package's changelog entry.
+When `@suites/unit` belongs to this release commit, the action then signs and verifies the matching overall tag, such as `v4.0.0`. Existing tags are never moved. Unchanged independently versioned packages retain their previous source tags. The action creates neither npm publications nor GitHub Releases.
 
-Expected package tags look like `@suites/unit@4.0.0`. Packages retain independent versions, and existing tags are never moved.
+The run summary lists the tags and source commit. For Suites 4, expect nine package tags plus `v4.0.0` to appear on the repository Tags page before publishing.
 
-When `release_tag` is supplied, it must equal `v` plus the reviewed `@suites/unit` version, and that package must belong to this release commit. After all package tags are verified, the workflow creates and verifies the signed overall tag at the same commit, before publishing to npm. Once npm publication is verified, it creates the **Suites v4.0.0** GitHub Release as Latest with links and changelog entries for the packages. Package releases remain marked `latest=false`.
+## Publish an already-tagged commit
 
-Merging a version PR does not create tags. The tag step runs before npm publication; GitHub Releases run afterward.
+1. Wait for **Tag Release** to complete and copy its full source commit SHA.
+2. Run **Publish Packages** from `master`, supplying that SHA as `commit` and, for Suites 4, `v4.0.0` as `release_tag`.
+3. The plan requires existing verified package tags and the requested overall tag before E2E begins. Missing tags fail here; publishing cannot create them.
+4. Wait for E2E tests on that exact commit, then approve the publication deployment in the `release` environment.
+
+The supplied commit must equal the workflow's dispatch commit. This keeps npm provenance, the tested source, and `gitHead` aligned. Tag and publish the same reviewed master head before advancing it. If a workflow fails, re-run that original run at its original commit.
+
+Publishing rechecks existing tags, publishes missing stable package versions to npm's `latest` tag, and verifies npm metadata and downloadable tarballs. Only then does it create package GitHub Releases from their changelogs and the overall **Suites v4.0.0** GitHub Release as Latest. Package releases remain marked `latest=false`.
 
 ## Recover a failed release
 
 Re-run the failed workflow using the same commit after fixing the cause. Do not bump versions merely because a network request failed.
 
 - **Checkout or bot authentication:** verify the app installation includes `unit`, and the organization variable and secret are accessible to it.
-- **Signing setup:** confirm the public key is registered as a Signing Key on the configured account and matches the environment secret. Key setup failures stop before npm publication.
+- **Tag Release signing setup:** confirm the public key is registered as a Signing Key on the configured account and matches the environment secret. This workflow never publishes npm packages.
 - **Unverified tag:** inspect the tag object and GitHub verification reason. Do not overwrite it; rerun the same commit only after verification succeeds. An unsigned tag collision requires investigation because existing tags are immutable.
 - **npm authentication:** check all nine Trusted Publisher entries, especially the exact workflow filename and `release` environment. No long-lived npm token is needed.
+- **Missing package or overall tags:** complete **Tag Release** for the reviewed commit first. **Publish Packages** only verifies and consumes existing tags.
 - **Tags created but npm publication failed:** the tags remain at their original source commit. Re-run the original workflow at that same commit; it verifies and reuses them before retrying missing uploads. Do not move tags or dispatch a newer commit for the same unpublished versions.
 - **Partial npm upload:** existing versions are checked against their source commit and package contents. Matching published packages are preserved, and Lerna publishes only missing versions.
 - **Registry propagation:** verification retries read-only checks for new versions for up to ten minutes. It never retries an upload itself.

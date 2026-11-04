@@ -94,7 +94,7 @@ jobs:
           {
             echo 'Review the package versions and generated changelogs, then merge this PR into master.'
             echo
-            echo 'After merging, run **Publish Packages** on master with the full merge commit SHA. Approve the release environment after reviewing the publication plan.'
+            echo 'Merging starts **Tag Release** automatically. Approve its release environment deployment and wait for verified package and overall tags. Then run **Publish Packages** on master with the tagged commit SHA and overall tag.'
             echo
             echo 'This PR does not publish packages or create tags.'
             echo
