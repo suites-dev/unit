@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%403.1.0...%40suites%2Fcore.unit%404.0.0) (2026-11-04)
+
+### Features
+
+* **core.unit:** move the core runtime to Suites 4 ([95b6631](https://github.com/suites-dev/unit/commit/95b6631b02ce6dfa154867665078c9ce90488471))
+
+### BREAKING CHANGES
+
+* **core.unit:** Requires Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`. Node.js versions below 22 and majors outside this range are no longer supported. Upgrade installed Suites packages together to version 4.
+
+
 # [3.1.0](https://github.com/suites-dev/suites/compare/@suites/core.unit@3.0.1...@suites/core.unit@3.1.0) (2026-05-05)
 
 ### Bug Fixes

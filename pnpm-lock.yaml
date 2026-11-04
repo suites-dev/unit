@@ -293,13 +293,13 @@ importers:
   packages/core:
     dependencies:
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../types/di
       '@suites/types.doubles':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../types/doubles
 
   packages/di/inversify:
@@ -308,10 +308,10 @@ importers:
         specifier: ^15.0.1
         version: 15.0.1(reflect-metadata@0.2.2)
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/di
     devDependencies:
       inversify:
@@ -324,10 +324,10 @@ importers:
   packages/di/nestjs:
     dependencies:
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/di
     devDependencies:
       '@nestjs/common':
@@ -343,16 +343,16 @@ importers:
   packages/doubles/jest:
     dependencies:
       '@suites/core.unit':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../core
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/di
       '@suites/types.doubles':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/doubles
     devDependencies:
       '@jest/globals':
@@ -365,16 +365,16 @@ importers:
   packages/doubles/vitest:
     dependencies:
       '@suites/core.unit':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../core
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/di
       '@suites/types.doubles':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../../types/doubles
     devDependencies:
       '@vitest/coverage-v8':
@@ -392,28 +392,28 @@ importers:
   packages/types/di:
     dependencies:
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../common
 
   packages/types/doubles:
     dependencies:
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../common
 
   packages/unit:
     dependencies:
       '@suites/core.unit':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../core
       '@suites/types.common':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../types/di
       '@suites/types.doubles':
-        specifier: workspace:^4.0.0-next.0
+        specifier: workspace:^4.0.0
         version: link:../types/doubles
 
 packages:
