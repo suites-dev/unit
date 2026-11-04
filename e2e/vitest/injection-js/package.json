@@ -1,0 +1,31 @@
+{
+  "name": "suites-vitest-injectionjs",
+  "type": "module",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "@suites/doubles.vitest": "e2e",
+    "@suites/unit": "e2e",
+    "reflect-metadata": "^0.2.2",
+    "injection-js": "2.6.1",
+    "@suites/di.injectionjs": "e2e"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.16.2",
+    "@vitest/coverage-v8": "5.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~6.0.3",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "5.1.0",
+    "@vitest/spy": "5.1.0",
+    "@types/node": "^26.6.6"
+  },
+  "scripts": {
+    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && vitest --run",
+    "lint": "eslint '**/*.ts'"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
+  },
+  "packageManager": "pnpm@12.16.1"
+}

@@ -27,6 +27,7 @@ const config = (coverageDir) => ({
     '^@suites/types.di(.*)$': path.join(packagesDir, 'types/di/src$1'),
     '^@suites/types.doubles(.*)$': path.join(packagesDir, 'types/doubles/src$1'),
     '^@suites/di.nestjs(.*)$': path.join(packagesDir, 'di/nestjs/src$1'),
+    '^@suites/di.injectionjs(.*)$': path.join(packagesDir, 'di/injection-js/src$1'),
     '^@suites/di.inversify(.*)$': path.join(packagesDir, 'di/inversify/src$1'),
     '^@suites/doubles.jest(.*)$': path.join(packagesDir, 'doubles/jest/src$1'),
     '^@suites/doubles.vitest(.*)$': path.join(packagesDir, 'doubles/vitest/src$1'),

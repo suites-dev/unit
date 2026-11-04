@@ -4,10 +4,7 @@ export function stringifyIdentifier(
   identifier: InjectableIdentifier,
   metadata: IdentifierMetadata | undefined
 ): string {
-  const identifierName =
-    typeof identifier === 'string' || typeof identifier === 'symbol'
-      ? String(identifier)
-      : identifier.name;
+  const identifierName = typeof identifier === 'function' ? identifier.name : String(identifier);
 
   const metadataMsg = metadata ? `, with metadata ${JSON.stringify(metadata)}` : '';
   return `'${identifierName}'${metadataMsg}`;

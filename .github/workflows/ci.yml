@@ -82,7 +82,15 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          ['doubles.jest', 'core.unit', 'doubles.vitest', 'di.nestjs', 'di.inversify', 'unit']
+          [
+            'doubles.jest',
+            'core.unit',
+            'doubles.vitest',
+            'di.nestjs',
+            'di.inversify',
+            'di.injectionjs',
+            'unit',
+          ]
     steps:
       - name: Checkout
         uses: actions/checkout@v7

@@ -71,10 +71,10 @@ jobs:
           pnpm exec lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🧪 Testing Matrix" >> $GITHUB_STEP_SUMMARY
-          echo "- **Projects**: 6 (jest/nestjs, vitest/nestjs, esm/jest/nestjs, esm/vitest/nestjs, jest/inversify, vitest/inversify)" >> $GITHUB_STEP_SUMMARY
-          echo "- **DI versions**: NestJS 10/11/12 and Inversify 7/8, minimum and current releases" >> $GITHUB_STEP_SUMMARY
+          echo "- **Projects**: 10 (jest/nestjs, vitest/nestjs, esm/jest/nestjs, esm/vitest/nestjs, jest/inversify, vitest/inversify, jest/injection-js, vitest/injection-js, esm/jest/injection-js, esm/vitest/injection-js)" >> $GITHUB_STEP_SUMMARY
+          echo "- **DI versions**: NestJS 10/11/12, Inversify 7/8 and InjectionJS 2, minimum and current releases" >> $GITHUB_STEP_SUMMARY
           echo "- **Node versions**: 3 (22.x, 24.x, 26.x)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Total jobs**: 18 (6 projects x 3 Node versions)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total jobs**: 30 (10 projects x 3 Node versions)" >> $GITHUB_STEP_SUMMARY
 
           # Save versions for artifacts
           pnpm exec lerna ls --json > versions.json
@@ -101,6 +101,10 @@ jobs:
             # Inversify
             'jest/inversify',
             'vitest/inversify',
+            'jest/injection-js',
+            'vitest/injection-js',
+            'esm/jest/injection-js',
+            'esm/vitest/injection-js',
           ]
         node-version: [22.x, 24.x, 26.x]
     steps:

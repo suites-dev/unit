@@ -42,5 +42,15 @@
       "version": "8",
       "reflectMetadata": "0.2.2"
     }
+  ],
+  "injection-js": [
+    {
+      "version": "2.6.1",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "2",
+      "reflectMetadata": "0.2.2"
+    }
   ]
 }

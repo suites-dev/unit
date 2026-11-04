@@ -91,3 +91,18 @@ describe('Unit Reference Unit Spec', () => {
     );
   });
 });
+
+describe('object token identity', () => {
+  it('does not treat a different token with the same properties as finalized', () => {
+    const finalized = { description: 'repository' } as unknown as InjectableIdentifier;
+    const mocked = { description: 'repository' } as unknown as InjectableIdentifier;
+    const mock = { find: jest.fn() };
+    const reference = new UnitReference(
+      new DependencyContainer([[{ identifier: mocked }, mock]]),
+      [],
+      [[{ identifier: finalized }, { find: () => 'final' }]]
+    );
+    expect(reference.get(mocked)).toBe(mock);
+    expect(() => reference.get(finalized)).toThrow(/faked dependency/);
+  });
+});

@@ -7,6 +7,7 @@ const config = {
     '<rootDir>/packages/core',
     '<rootDir>/packages/di/nestjs',
     '<rootDir>/packages/di/inversify',
+    '<rootDir>/packages/di/injection-js',
     '<rootDir>/packages/doubles/jest',
   ],
 };

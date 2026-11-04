@@ -50,6 +50,7 @@ export const SuitesDoublesAdapters = {
 export const SuitesDIAdapters = {
   nestjs: '@suites/di.nestjs',
   inversify: '@suites/di.inversify',
+  injectionjs: '@suites/di.injectionjs',
   tsyringe: '@suites/di.tsyringe',
 } as const;
 
