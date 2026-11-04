@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.0.0...%40suites%2Fcore.unit%404.1.0) (2026-11-04)
+
+### Features
+
+* **core.unit:** preserve object token identity in overrides and lookups ([b7a7971](https://github.com/suites-dev/unit/commit/b7a797114970260842da8231a89f158712e8ff35))
+
+
 # [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%403.1.0...%40suites%2Fcore.unit%404.0.0) (2026-11-04)
 
 ### Features

@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Ftypes.di%404.0.0...%40suites%2Ftypes.di%404.1.0) (2026-11-04)
+
+### Features
+
+* **types.di:** allow adapters to register dependency token types ([76ea267](https://github.com/suites-dev/unit/commit/76ea2673de1cf637db3631d4c48348fc4a53fa23))
+
+
 # [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Ftypes.di%403.1.0...%40suites%2Ftypes.di%404.0.0) (2026-11-04)
 
 ### Features

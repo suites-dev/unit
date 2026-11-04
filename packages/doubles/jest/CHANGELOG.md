@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%404.0.0...%40suites%2Fdoubles.jest%404.1.0) (2026-11-04)
+
+### Features
+
+* **doubles.jest:** type lookups for adapter-registered tokens ([cc0f1de](https://github.com/suites-dev/unit/commit/cc0f1de02cda40f6ce3f4de01c63682cdddddc58))
+
+
 # [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%403.1.0...%40suites%2Fdoubles.jest%404.0.0) (2026-11-04)
 
 ### Features

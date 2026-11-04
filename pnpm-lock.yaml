@@ -296,7 +296,7 @@ importers:
         specifier: workspace:^4.0.0
         version: link:../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../types/di
       '@suites/types.doubles':
         specifier: workspace:^4.0.0
@@ -308,7 +308,7 @@ importers:
         specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../../types/di
     devDependencies:
       injection-js:
@@ -327,7 +327,7 @@ importers:
         specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../../types/di
     devDependencies:
       inversify:
@@ -343,7 +343,7 @@ importers:
         specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../../types/di
     devDependencies:
       '@nestjs/common':
@@ -359,13 +359,13 @@ importers:
   packages/doubles/jest:
     dependencies:
       '@suites/core.unit':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../../core
       '@suites/types.common':
         specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../../types/di
       '@suites/types.doubles':
         specifier: workspace:^4.0.0
@@ -381,13 +381,13 @@ importers:
   packages/doubles/vitest:
     dependencies:
       '@suites/core.unit':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../../core
       '@suites/types.common':
         specifier: workspace:^4.0.0
         version: link:../../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../../types/di
       '@suites/types.doubles':
         specifier: workspace:^4.0.0
@@ -420,13 +420,13 @@ importers:
   packages/unit:
     dependencies:
       '@suites/core.unit':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../core
       '@suites/types.common':
         specifier: workspace:^4.0.0
         version: link:../types/common
       '@suites/types.di':
-        specifier: workspace:^4.0.0
+        specifier: workspace:^4.1.0
         version: link:../types/di
       '@suites/types.doubles':
         specifier: workspace:^4.0.0

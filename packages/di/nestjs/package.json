@@ -1,7 +1,7 @@
 {
   "name": "@suites/di.nestjs",
   "private": false,
-  "version": "4.0.0",
+  "version": "4.0.1",
   "license": "Apache-2.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -52,7 +52,7 @@
   ],
   "dependencies": {
     "@suites/types.common": "workspace:^4.0.0",
-    "@suites/types.di": "workspace:^4.0.0"
+    "@suites/types.di": "workspace:^4.1.0"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0 || ^12.0.1",
