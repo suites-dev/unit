@@ -215,6 +215,8 @@ For detailed configuration instructions, see the [Installation Guide](https://su
 
 We welcome contributions to Suites! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.
 
+Maintainers: follow the [release guide](RELEASING.md) to prepare, review, and publish packages.
+
 ## Share Your Suites Experience!
 
 **Are you using Suites in your projects?** We've created a [community discussion](https://github.com/suites-dev/suites/discussions/categories/q-a) where teams and companies can share how they're using Suites in production.

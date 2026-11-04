@@ -4,11 +4,11 @@
   "private": true,
   "homepage": "https://suites.dev",
   "bugs": {
-    "url": "https://github.com/suites-dev/suites.git"
+    "url": "https://github.com/suites-dev/unit.git"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/suites-dev/suites.git"
+    "url": "https://github.com/suites-dev/unit.git"
   },
   "license": "Apache-2.0",
   "contributors": [
@@ -24,7 +24,7 @@
     "test": "pnpm lerna exec pnpm test",
     "e2e": "ts-node local-e2e.ts",
     "validate-tsdoc-links": "ts-node scripts/validate-tsdoc-links.ts",
-    "test:release": "node --test scripts/changelog-preset.test.cjs"
+    "test:release": "node --test scripts/*.test.cjs"
   },
   "lint-staged": {
     "*.ts": [
