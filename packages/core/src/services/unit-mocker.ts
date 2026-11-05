@@ -2,7 +2,7 @@ import type { MockFunction } from '@suites/types.doubles';
 import type { DependencyInjectionAdapter } from '@suites/types.di';
 import type { IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyContainer } from './dependency-container.js';
-import type { Type } from '@suites/types.common';
+import type { Type, AbstractType } from '@suites/types.common';
 import { DependencyResolver } from './dependency-resolver.js';
 
 export interface MockedUnit<TClass> {
@@ -10,7 +10,7 @@ export interface MockedUnit<TClass> {
   instance: TClass;
   resolution: {
     notFound: IdentifierToMockOrFinal[];
-    mocks: { metadata?: unknown; identifier: Type }[];
+    mocks: { metadata?: unknown; identifier: AbstractType }[];
     exposes: Type[];
   };
 }

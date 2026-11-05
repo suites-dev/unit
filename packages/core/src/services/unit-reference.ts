@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
-import type { Type } from '@suites/types.common';
+import type { AbstractType } from '@suites/types.common';
 import { DependencyResolutionError } from '@suites/types.common';
 import type { DependencyContainer, IdentifierToFinal } from './dependency-container.js';
 import { referenceDependencyNotFoundError, stringifyIdentifier } from './functions.static.js';
@@ -36,23 +36,23 @@ export interface UnitReference {
    * Retrieves a mocked dependency by its class type.
    *
    * @template TDependency The type of the dependency being retrieved.
-   * @param type - The class constructor representing the dependency.
+   * @param type - The abstract or concrete class representing the dependency.
    * @returns The mocked instance of the dependency.
    * @throws {@link DependencyResolutionError} If the dependency is not found or is exposed/final.
    */
-  get<TDependency>(type: Type<TDependency>): StubbedInstance<TDependency>;
+  get<TDependency>(type: AbstractType<TDependency>): StubbedInstance<TDependency>;
 
   /**
    * Retrieves a mocked dependency by its class type with additional metadata.
    *
    * @template TDependency The type of the dependency being retrieved.
-   * @param type - The class constructor representing the dependency.
+   * @param type - The abstract or concrete class representing the dependency.
    * @param identifierMetadata - Additional metadata for identifying the dependency.
    * @returns The mocked instance of the dependency.
    * @throws {@link DependencyResolutionError} If the dependency is not found or is exposed/final.
    */
   get<TDependency>(
-    type: Type<TDependency>,
+    type: AbstractType<TDependency>,
     identifierMetadata: IdentifierMetadata
   ): StubbedInstance<TDependency>;
 
@@ -146,9 +146,9 @@ export class UnitReference {
     private readonly fakedDependencies: IdentifierToFinal[]
   ) {}
 
-  public get<TDependency>(type: Type<TDependency>): StubbedInstance<TDependency>;
+  public get<TDependency>(type: AbstractType<TDependency>): StubbedInstance<TDependency>;
   public get<TDependency>(
-    type: Type<TDependency>,
+    type: AbstractType<TDependency>,
     identifierMetadata: IdentifierMetadata
   ): StubbedInstance<TDependency>;
   public get<TDependency>(token: string): StubbedInstance<TDependency>;
