@@ -1,5 +1,5 @@
 /// <reference types="@vitest/spy" />
-import type { DeepPartial, Type } from '@suites/types.common';
+import type { DeepPartial, AbstractType } from '@suites/types.common';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { TestBedBuilder } from '@suites/core.unit';
 import type { Mocked as VitestMocked, Stub as VitestStub } from '.';
@@ -79,7 +79,7 @@ declare module '@suites/core.unit' {
      * @throws {@link DependencyResolutionError} If the dependency is not found.
      * @returns The mocked object corresponding to the provided type identifier.
      */
-    get<TDependency>(type: Type<TDependency>): VitestMocked<TDependency>;
+    get<TDependency>(type: AbstractType<TDependency>): VitestMocked<TDependency>;
 
     /**
      * Retrieves a reference to the mocked object of a dependency corresponding to its type identifier
@@ -94,7 +94,7 @@ declare module '@suites/core.unit' {
      * symbol-based token.
      */
     get<TDependency>(
-      type: Type<TDependency>,
+      type: AbstractType<TDependency>,
       identifierMetadata: IdentifierMetadata
     ): VitestMocked<TDependency>;
 
@@ -160,7 +160,7 @@ declare module '@suites/core.unit' {
      *
      * @since 3.0.0
      * @template TDependency The type of the dependency being retrieved.
-     * @param identifier - The token representing the dependency. It can be of type `Type<TDependency>`, `string`, or `symbol`.
+     * @param identifier - The token representing the dependency. It can be of type `AbstractType<TDependency>`, `string`, or `symbol`.
      * @param identifierMetadata - A corresponding metadata object for the token identifier.
      * @throws {@link DependencyResolutionError} If the dependency is not found.
      * @returns The mocked instance corresponding to the provided identifier and metadata.

@@ -1,4 +1,4 @@
-import type { Type, ConstantValue } from '@suites/types.common';
+import type { Type, AbstractType, ConstantValue } from '@suites/types.common';
 
 export * from './errors.js';
 
@@ -18,7 +18,7 @@ export interface InjectableIdentifierRegistry<T = unknown> {}
 
 /** @since 3.0.0 */
 export type InjectableIdentifier<TClass = unknown> =
-  | Type<TClass>
+  | AbstractType<TClass>
   | string
   | symbol
   | InjectableIdentifierRegistry<TClass>[keyof InjectableIdentifierRegistry<TClass>];
@@ -60,7 +60,7 @@ export type WithMetadata<Metadata extends IdentifierMetadata> = {
 export type ClassInjectable<
   Metadata extends IdentifierMetadata = never,
   TIdentifier extends InjectableIdentifier = InjectableIdentifier,
-> = TIdentifier extends Type ? WithoutMetadata : WithMetadata<Metadata>;
+> = TIdentifier extends AbstractType ? WithoutMetadata : WithMetadata<Metadata>;
 
 /**
  * @since 3.0.0

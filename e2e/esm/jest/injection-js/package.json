@@ -17,7 +17,8 @@
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3",
     "@jest/globals": "^30.5.2",
-    "@types/node": "^26.6.6"
+    "@types/node": "^26.6.6",
+    "@suites/types.common": "e2e"
   },
   "scripts": {
     "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" NODE_NO_WARNINGS=1 jest",

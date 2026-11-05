@@ -78,6 +78,27 @@ npm i -D @suites/doubles.jest @suites/di.nestjs
 
 [**Complete installation and setup guide**](https://suites.dev/docs/get-started/installation)
 
+## Abstract class dependency tokens
+
+Use abstract classes as dependency tokens in `unitRef.get()` and `.mock()` without casts. Suites infers the dependency's instance type:
+
+```typescript
+abstract class Host {
+  abstract region(): string;
+}
+
+// Repository injects Host through its DI framework.
+const { unit, unitRef } = await TestBed.solitary(Repository).compile();
+const host = unitRef.get(Host);
+host.region.mockReturnValue('singapore');
+```
+
+You can also supply a concrete implementation with `.mock(Host).final(new MockHost())`, or configure a mock with `.mock(Host).impl(...)`. Inversify named/tagged metadata works with abstract tokens as it does with concrete class tokens.
+
+The class passed to `TestBed.solitary()` or `TestBed.sociable()`, and classes selected with `.expose()`, must still be concrete because Suites instantiates them. TypeScript interfaces have no runtime identity and need an explicit token.
+
+For custom adapters, `AbstractType<T>` from `@suites/types.common` represents abstract or concrete dependency tokens. `Type<T>` continues to represent concrete constructors.
+
 ## Community
 
 Join the Suites community on [GitHub Discussions](https://github.com/suites-dev/suites/discussions).
