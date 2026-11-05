@@ -10,6 +10,14 @@ export interface Type<T = any> {
 }
 
 /**
+ * Represents an abstract or concrete class used as a dependency token.
+ * Unlike {@link Type}, this constructor must not be instantiated directly.
+ *
+ * @template T The instance type represented by the dependency token
+ */
+export type AbstractType<T = any> = abstract new (...args: any[]) => T;
+
+/**
  * Represents primitive or simple constant values that can be injected as dependencies.
  *
  * @since 3.0.0
