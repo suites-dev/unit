@@ -1,6 +1,6 @@
 {
   "name": "@suites/doubles.jest",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "license": "Apache-2.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -61,10 +61,10 @@
     "jest": "^30.5.2"
   },
   "dependencies": {
-    "@suites/core.unit": "workspace:^4.1.1",
-    "@suites/types.common": "workspace:^4.0.1",
-    "@suites/types.di": "workspace:^4.1.1",
-    "@suites/types.doubles": "workspace:^4.0.1"
+    "@suites/core.unit": "workspace:^4.1.2",
+    "@suites/types.common": "workspace:^4.0.2",
+    "@suites/types.di": "workspace:^4.1.2",
+    "@suites/types.doubles": "workspace:^4.0.2"
   },
   "devDependencies": {
     "@jest/globals": "^30.5.2",
