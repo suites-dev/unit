@@ -106,3 +106,84 @@ describe('object token identity', () => {
     expect(() => reference.get(finalized)).toThrow(/faked dependency/);
   });
 });
+
+describe('metadata-qualified final dependencies', () => {
+  const metadata = { named: 'primary' } as never;
+  const identifiers: InjectableIdentifier[] = [
+    'QUALIFIED',
+    Symbol('QUALIFIED'),
+    class Qualified {},
+    { description: 'QUALIFIED' } as unknown as InjectableIdentifier,
+  ];
+
+  it.each(identifiers)('rejects a final selected by bare-token fallback (%s)', (identifier) => {
+    const value = { endpoint: 'fixed' };
+    const key = { identifier, metadata };
+    const reference = new UnitReference(
+      new DependencyContainer([[key, value]]),
+      [],
+      [[key, value]]
+    );
+
+    expect(() => reference.get(identifier)).toThrow(/faked dependency/);
+    expect(() => reference.get(identifier, metadata)).toThrow(/faked dependency/);
+  });
+
+  it.each([false, 0, null, undefined])(
+    'rejects a final value of %s before value lookup',
+    (value) => {
+      const key = { identifier: 'QUALIFIED', metadata };
+      const reference = new UnitReference(
+        new DependencyContainer([[key, value as never]]),
+        [],
+        [[key, value as never]]
+      );
+
+      expect(() => reference.get('QUALIFIED')).toThrow(/faked dependency/);
+    }
+  );
+
+  it('preserves bare-token fallback for a unique qualified mock', () => {
+    const mock = { find: jest.fn() };
+    const reference = new UnitReference(
+      new DependencyContainer([[{ identifier: 'QUALIFIED', metadata }, mock]]),
+      [],
+      []
+    );
+
+    expect(reference.get('QUALIFIED')).toBe(mock);
+  });
+
+  it('does not block an unqualified mock sharing a token and value with a qualified final', () => {
+    const sharedValue = { find: jest.fn() };
+    const finalKey = { identifier: 'QUALIFIED', metadata };
+    const reference = new UnitReference(
+      new DependencyContainer([
+        [finalKey, sharedValue],
+        [{ identifier: 'QUALIFIED' }, sharedValue],
+      ]),
+      [],
+      [[finalKey, sharedValue]]
+    );
+
+    expect(reference.get('QUALIFIED')).toBe(sharedValue);
+    expect(() => reference.get('QUALIFIED', metadata)).toThrow(/faked dependency/);
+  });
+
+  it('preserves ambiguity and mismatched-metadata failures', () => {
+    const finalKey = { identifier: 'QUALIFIED', metadata };
+    const reference = new UnitReference(
+      new DependencyContainer([
+        [finalKey, { endpoint: 'fixed' }],
+        [{ identifier: 'QUALIFIED', metadata: { named: 'secondary' } }, { find: jest.fn() }],
+      ]),
+      [],
+      [[finalKey, { endpoint: 'fixed' }]]
+    );
+
+    expect(() => reference.get('QUALIFIED')).toThrow(/could not be located/);
+    expect(() => reference.get('QUALIFIED', { named: 'missing' } as never)).toThrow(
+      /could not be located/
+    );
+  });
+});

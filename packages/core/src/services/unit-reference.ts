@@ -169,11 +169,17 @@ export class UnitReference {
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): StubbedInstance<TDependency> {
+    const selectedDependency = this.mocksContainer.resolveEntry(identifier, identifierMetadata);
+
     if (
       this.fakedDependencies
         .map(([identifier]) => identifier)
         .some(
-          (id) => id.identifier === identifier && isDeepStrictEqual(id.metadata, identifierMetadata)
+          (id) =>
+            id.identifier === identifier &&
+            (isDeepStrictEqual(id.metadata, identifierMetadata) ||
+              (selectedDependency !== undefined &&
+                isDeepStrictEqual(id.metadata, selectedDependency[0].metadata)))
         )
     ) {
       const identifierString = stringifyIdentifier(identifier, identifierMetadata);
@@ -191,7 +197,7 @@ Exposed dependencies are not intended for direct retrieval and should be accesse
 testing context or container. Refer to the docs for further information: https://suites.dev/docs`);
     }
 
-    const dependency = this.mocksContainer.resolve<TDependency>(identifier, identifierMetadata);
+    const dependency = selectedDependency?.[1];
 
     if (!dependency) {
       const message = referenceDependencyNotFoundError(identifier, identifierMetadata);
