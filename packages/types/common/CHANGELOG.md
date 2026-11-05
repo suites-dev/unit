@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.1](https://github.com/suites-dev/unit/compare/%40suites%2Ftypes.common%404.0.0...%40suites%2Ftypes.common%404.0.1) (2026-11-05)
+
+### Bug Fixes
+
+* **types.common:** distinguish abstract tokens from concrete constructors ([184da26](https://github.com/suites-dev/unit/commit/184da26c8c9857632e6de8c417aa786165e36db8))
+
+
 # [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Ftypes.common%403.1.0...%40suites%2Ftypes.common%404.0.0) (2026-11-04)
 
 ### Features
