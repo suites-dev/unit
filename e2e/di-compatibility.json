@@ -1,0 +1,56 @@
+{
+  "nestjs": [
+    {
+      "version": "10.0.0",
+      "reflectMetadata": "0.1.14"
+    },
+    {
+      "version": "10",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "11.0.0",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "11",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "12.0.1",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "12",
+      "reflectMetadata": "0.2.2"
+    }
+  ],
+  "inversify": [
+    {
+      "version": "7.0.0",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "7",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "8.0.0",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "8",
+      "reflectMetadata": "0.2.2"
+    }
+  ],
+  "injection-js": [
+    {
+      "version": "2.6.1",
+      "reflectMetadata": "0.2.2"
+    },
+    {
+      "version": "2",
+      "reflectMetadata": "0.2.2"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "name": "@suites/types.doubles",
   "private": false,
-  "version": "3.1.0",
+  "version": "4.0.0",
   "license": "Apache-2.0",
   "types": "index.d.ts",
   "exports": {
@@ -17,11 +17,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/suites-dev/suites.git",
+    "url": "https://github.com/suites-dev/unit.git",
     "directory": "packages/types/doubles"
   },
   "bugs": {
-    "url": "https://github.com/suites-dev/suites/issues"
+    "url": "https://github.com/suites-dev/unit/issues"
   },
   "homepage": "https://suites.dev",
   "contributors": [
@@ -37,7 +37,7 @@
     "lint": "pnpm eslint 'index.ts'"
   },
   "dependencies": {
-    "@suites/types.common": "workspace:^3.1.0"
+    "@suites/types.common": "workspace:^4.0.0"
   },
   "files": [
     "index.d.ts"
@@ -46,6 +46,8 @@
     "access": "public",
     "provenance": true
   },
-  "packageManager": "pnpm@8.15.9",
-  "gitHead": "62e9e59e0a68b670ec5578400ce28c9f0f9f0eac"
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
+  }
 }

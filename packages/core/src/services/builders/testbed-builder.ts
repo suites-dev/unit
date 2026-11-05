@@ -25,7 +25,7 @@ export abstract class TestBedBuilder<TClass> implements TestBedBuilder<TClass> {
     identifierMetadata: IdentifierMetadata
   ): MockOverride<TDependency, TClass>;
   public mock<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): MockOverride<TDependency, TClass>;
   public mock<TDependency>(
@@ -207,7 +207,7 @@ export interface TestBedBuilder<TClass> {
    * ```
    */
   mock<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): MockOverride<TDependency, TClass>;
 }

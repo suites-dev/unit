@@ -1,4 +1,5 @@
 /// <reference types="jest" />
+import { jest as jestGlobals } from '@jest/globals';
 import { mock } from './mock.static.js';
 export { Mocked, Stub } from './types.js';
 /**
@@ -13,7 +14,7 @@ export { Mocked, Stub } from './types.js';
  * const mockedService = adapter.mock<MyService>();
  * ```
  */
-export const adapter = { mock, stub: (): jest.Mock => jest.fn() };
+export const adapter = { mock, stub: (): jest.Mock => jestGlobals.fn() as jest.Mock };
 
 export { mock } from './mock.static.js';
 
@@ -50,4 +51,4 @@ export { mock } from './mock.static.js';
  * @see {@link https://suites.dev/docs/api-reference/mock | Stub API Reference}
  * @see {@link mock} for mocking entire objects
  */
-export const stub = jest.fn;
+export const stub: typeof jest.fn = jestGlobals.fn as typeof jest.fn;

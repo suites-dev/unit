@@ -13,69 +13,64 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [16.x, 18.x, 20.x, 22.x]
+        node-version: [22.x, 24.x, 26.x]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Use Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      - name: Remove Vitest If Needed
-        if: ${{ matrix.node-version == '16.x'  }}
-        run: rm -rf packages/doubles/vitest
-
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        if: ${{ matrix.node-version != '16.x' }}
         run: pnpm build
-
-      - name: Build (Node 16.x)
-        if: ${{ matrix.node-version == '16.x' }}
-        run: pnpm lerna run build --stream --ignore @suites/doubles.vitest
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
+          node-version: '26.x'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm lint
+
+      - name: Check release changelogs and signed tag lifecycle
+        run: pnpm test:release
 
       - name: Check links
         run: pnpm validate-tsdoc-links
@@ -84,24 +79,36 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        project: ['doubles.jest', 'doubles.sinon', 'core.unit', 'doubles.vitest', 'di.nestjs', 'di.inversify', 'unit']
+        project:
+          [
+            'doubles.jest',
+            'core.unit',
+            'doubles.vitest',
+            'di.nestjs',
+            'di.inversify',
+            'di.injectionjs',
+            'unit',
+          ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
+        with:
+          node-version: '26.x'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -120,7 +127,7 @@ jobs:
           COVERAGE_FILE: coverage-${{ matrix.project }}.xml
 
       - name: Tests Results
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: always()
         with:
           name: Tests Results (${{ matrix.project }})
@@ -129,7 +136,7 @@ jobs:
           fail-on-error: false
 
       - name: Upload Report to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           name: codecov-umbrella
           flags: ${{ matrix.project }}

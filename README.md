@@ -1,21 +1,17 @@
 <p align="center">
-  <img width="150" src="https://raw.githubusercontent.com/suites-dev/suites/master/logo.png" alt="Logo" />
+  <img width="90" src="https://raw.githubusercontent.com/suites-dev/suites/master/logo.png" alt="Logo" />
 </p>
 
-<h1 align="center">Suites</h1>
+<h1 align="center">Suites (Unit)</h1>
 
 <p align="center">
 A unit testing framework for TypeScript backends working with inversion of control and dependency injection
-<br />
-by <a href="https://github.com/omermorad"><strong>@omermorad</strong></a>
 </p>
 
 <div align="center">
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
   <a href="https://github.com/suites-dev/suites/blob/master/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" /></a>
   <a href="https://npmjs.org/package/@suites/unit"><img src="https://img.shields.io/npm/dm/@suites/unit.svg?label=%40suites%2Funit" alt="npm downloads" /></a>
-  <a href="https://npmjs.org/package/@automock/jest"><img src="https://img.shields.io/npm/dm/@automock/jest.svg?label=%40automock%2Fjest" alt="npm downloads" /></a>
-  <a href="https://buymeacoffee.com/omermoradd"><img src="https://img.shields.io/badge/-buy_me_a%C2%A0coffee-gray?logo=buy-me-a-coffee" alt="Buy Me A Coffee" /></a>
 </div>
 
 <h3 align="center">
@@ -28,10 +24,6 @@ by <a href="https://github.com/omermorad"><strong>@omermorad</strong></a>
   <a href="https://suites.dev/docs/guides">Guides</a>
 </h3>
 
-<p align="center">
-<strong>Dependency Injection Frameworks:</strong> <a href="https://nestjs.com">NestJS</a> (<a href="https://docs.nestjs.com/recipes/suites">official</a>), <a href="https://inversify.io/">InversifyJS</a> (<a href="https://inversify.io/docs/ecosystem/suites/">official</a>)</a><br/>
-<strong>Testing Libraries:</strong> <a href="https://jestjs.io">Jest</a>, <a href="https://vitest.dev">Vitest</a>, <a href="https://sinonjs.org">Sinon</a>
-</p>
 <p align="center">
 Using Suites? <a href="https://github.com/suites-dev/suites/discussions/655">Share your experience</a>, and help us shape the future of Suites
 </p>
@@ -107,8 +99,8 @@ When using `TestBed.solitary()`, all dependencies are automatically mocked. Each
 
 ```typescript
 // These stubs start with no return values
-userApi.getRandom  // Returns undefined by default
-database.saveUser  // Returns undefined by default
+userApi.getRandom; // Returns undefined by default
+database.saveUser; // Returns undefined by default
 
 // Configure them in your tests
 userApi.getRandom.mockResolvedValue({ id: 1, name: 'John' });
@@ -150,8 +142,22 @@ describe('User Service', () => {
 
 Before installing Suites, ensure your project meets these requirements:
 
-- **Dependency Injection Framework**: NestJS, InversifyJS, or plain TypeScript classes with constructor injection
-- **Testing Library**: Jest, Vitest, or Sinon
+- **Node.js**: 22.22.2+, 24.15.0+, or 26.x. Node 16, 18, 20, and odd-numbered releases are not supported by Suites 4.
+
+- **Dependency Injection Framework**: NestJS, InversifyJS, or InjectionJS with constructor injection
+- **Testing Library**: Jest or Vitest
+
+Supported DI framework versions:
+
+| Framework | Version range                       |
+| --------- | ----------------------------------- |
+| NestJS    | `^10.0.0 \|\| ^11.0.0 \|\| ^12.0.1` |
+| Inversify | `^7.0.0 \|\| ^8.0.0`                |
+| InjectionJS | `^2.6.1` (constructor injection) |
+
+CI tests the minimum and current releases of each supported major on Node 22, 24, and 26.
+
+Suites 3.x releases retain their existing Node support. See [Upgrading to Suites 4](docs/migration-v4.md) before upgrading.
 
 ## Installation
 
@@ -160,7 +166,7 @@ First, install Suites' unit package:
 ```bash
 npm i -D @suites/unit
 # or
-yarn add -D @suites/unit
+pnpm add -D @suites/unit
 # or
 pnpm add -D @suites/unit
 ```
@@ -168,24 +174,28 @@ pnpm add -D @suites/unit
 Then, install **ONE** adapter for your DI framework and **ONE** adapter for your testing library:
 
 **DI Framework Adapters:**
+
 - **NestJS** - `@suites/di.nestjs`
 - **InversifyJS** - `@suites/di.inversify`
+- **InjectionJS** - [`@suites/di.injectionjs`](packages/di/injection-js/README.md), constructor injection only
 
 **Testing Library Adapters:**
+
 - **Jest** - `@suites/doubles.jest`
 - **Vitest** - `@suites/doubles.vitest`
-- **Sinon** - `@suites/doubles.sinon`
 
 **Example for NestJS + Jest:**
+
 ```bash
 npm i -D @suites/doubles.jest @suites/di.nestjs
 # or
-yarn add -D @suites/doubles.jest @suites/di.nestjs
+pnpm add -D @suites/doubles.jest @suites/di.nestjs
 # or
 pnpm add -D @suites/doubles.jest @suites/di.nestjs
 ```
 
-> **Note:** If you're using NestJS or Inversify, you'll also need to install `reflect-metadata` as a runtime dependency (not a dev dependency):
+> **Note:** If you're using NestJS, Inversify, or InjectionJS, you'll also need to install `reflect-metadata` as a runtime dependency (not a dev dependency):
+>
 > ```bash
 > npm i reflect-metadata
 > ```
@@ -196,20 +206,24 @@ For complete installation instructions, see the [Installation Guide](https://sui
 
 ### Type Definitions
 
-Create a `global.d.ts` file in your project root (or in your test directory) to enable proper TypeScript support:
+Create a `suites.d.ts` file included by your test `tsconfig.json`:
 
 ```typescript
-/// <reference types='@suites/doubles.jest/unit' />
-/// <reference types='@suites/di.nestjs/metadata' />
+/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-Replace `@suites/doubles.jest` and `@suites/di.nestjs` with your chosen adapters.
+Use `@suites/doubles.vitest/unit` for Vitest, `@suites/di.inversify/metadata` for Inversify, or `@suites/di.injectionjs/metadata` for InjectionJS. Include one test-double adapter and one DI adapter per test TypeScript project.
+
+The `/unit` reference supplies mock types and methods. The `/metadata` reference enforces the DI adapter's metadata rules: NestJS and InjectionJS have no identifier metadata; Inversify supports named and tagged bindings. InjectionJS also registers `InjectionToken` identifiers. These are packaged type declarations, so no postinstall script or edits to `node_modules` are required.
 
 For detailed configuration instructions, see the [Installation Guide](https://suites.dev/docs/get-started/installation).
 
 ### Contributing
 
 We welcome contributions to Suites! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.
+
+Maintainers: follow the [release guide](RELEASING.md) to prepare, review, and publish packages.
 
 ## Share Your Suites Experience!
 
@@ -226,12 +240,6 @@ guide covers all the changes and improvements, making the upgrade process smooth
 
 [↗️ Migrating from Automock Guide](https://suites.dev/docs/migration-guides/from-automock)
 
-Your support helps us continue improving Suites and developing new features!
-
-## Support the Project
-
-<a href="https://buymeacoffee.com/omermoradd" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
-
-## 📜 License
+## License
 
 Suites is licensed under the [Apache License, Version 2.0](LICENSE).

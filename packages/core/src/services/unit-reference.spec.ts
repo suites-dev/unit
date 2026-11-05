@@ -46,16 +46,16 @@ describe('Unit Reference Unit Spec', () => {
   });
 
   it('should throw an error indicating the dependency cannot be retrieved because it is faked', () => {
-    expect(() => unitReference.get(RealDependencyThree)).toThrowError(
+    expect(() => unitReference.get(RealDependencyThree)).toThrow(
       /as it is marked as a faked dependency/
     );
-    expect(() => unitReference.get(RealDependencyFour)).toThrowError(
+    expect(() => unitReference.get(RealDependencyFour)).toThrow(
       /as it is marked as a faked dependency/
     );
   });
 
   it('should throw an error indicating the dependency cannot be retrieved because it is exposed', () => {
-    expect(() => unitReference.get(RealDependencyOne)).toThrowError(
+    expect(() => unitReference.get(RealDependencyOne)).toThrow(
       /as it is marked as an exposed dependency/
     );
   });
@@ -86,8 +86,23 @@ describe('Unit Reference Unit Spec', () => {
   });
 
   it('should throw an error indicating the dependency not found in case the identifier is missing', () => {
-    expect(() => unitReference.get('does-not-exist')).toThrowError(
+    expect(() => unitReference.get('does-not-exist')).toThrow(
       /is correctly mocked or explicitly exposed in the/
     );
+  });
+});
+
+describe('object token identity', () => {
+  it('does not treat a different token with the same properties as finalized', () => {
+    const finalized = { description: 'repository' } as unknown as InjectableIdentifier;
+    const mocked = { description: 'repository' } as unknown as InjectableIdentifier;
+    const mock = { find: jest.fn() };
+    const reference = new UnitReference(
+      new DependencyContainer([[{ identifier: mocked }, mock]]),
+      [],
+      [[{ identifier: finalized }, { find: () => 'final' }]]
+    );
+    expect(reference.get(mocked)).toBe(mock);
+    expect(() => reference.get(finalized)).toThrow(/faked dependency/);
   });
 });

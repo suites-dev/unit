@@ -5,10 +5,10 @@ uplinks:
     url: https://registry.npmjs.org/
 
 packages:
+  # Suites packages must come from this test run, never from the public registry.
   '@suites/*':
     access: $all
     publish: $all
-    proxy: npmjs
 
   '**':
     access: $all

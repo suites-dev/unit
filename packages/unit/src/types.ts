@@ -1,4 +1,4 @@
-import type { IdentifierMetadata } from '@suites/types.di';
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { DeepPartial, Type } from '@suites/types.common';
 import type { ArgsType, Stub, StubbedInstance } from '@suites/types.doubles';
 import type {
@@ -12,7 +12,7 @@ import type {
  * Represents a test double instance where all methods and properties are stubbed.
  *
  * This abstract type provides the foundation for creating test doubles in unit tests.
- * When a testing adapter is installed, this type is automatically augmented with
+ * When the testing adapter's `/unit` declaration is referenced, this type gains
  * framework-specific capabilities through TypeScript module augmentation.
  *
  * @template T The type of the object being transformed into a test double
@@ -61,7 +61,7 @@ export interface SolitaryTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
  *
  * The return type of `.get()` is augmented by adapter packages to provide
  * framework-specific mock types. Configure augmentation by referencing the
- * adapter's unit.d.ts in your global.d.ts.
+ * adapter's unit.d.ts in your suites.d.ts.
  *
  * @since 3.0.0
  * @see {@link https://suites.dev/docs/api-reference/unit-reference | UnitReference API Reference}
@@ -178,7 +178,7 @@ export interface UnitReference extends UnitReferenceCore {
    * @returns The mocked instance corresponding to the provided identifier and metadata.
    */
   get<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): StubbedInstance<TDependency>;
 
@@ -193,7 +193,7 @@ export interface UnitReference extends UnitReferenceCore {
    * @throws {@link DependencyResolutionError} If the dependency is not found.
    * @returns The mocked instance corresponding to the provided identifier.
    */
-  get<TDependency>(identifier: Type<TDependency> | string | symbol): StubbedInstance<TDependency>;
+  get<TDependency>(identifier: InjectableIdentifier<TDependency>): StubbedInstance<TDependency>;
 }
 
 /**
@@ -428,7 +428,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    * @returns An instance of MockOverride for further configuration.
    */
   mock<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): MockOverride<TDependency, TClass>;
   /**

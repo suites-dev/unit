@@ -1,3 +1,4 @@
+import { inject, injectable, injectFromBase, named, tagged } from 'inversify';
 import 'reflect-metadata';
 import {
   ConstructorBasedInjectionClass,
@@ -39,7 +40,7 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
         expect(injectablesRegistry.list()).toStrictEqual<InversifyInjectableIdentifierMetadata[]>([
           {
             identifier: 'Interface',
-            metadata: { name: 'dependencyOne' } as never,
+            metadata: { named: 'dependencyOne' } as never,
             value: DependencyOne,
             type: 'PARAM',
           },
@@ -52,7 +53,7 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
           {
             identifier: 'Interface',
             value: DependencyFive,
-            metadata: { name: 'dependencyFive' } as never,
+            metadata: { named: 'dependencyFive' } as never,
             type: 'PARAM',
           },
           {
@@ -125,9 +126,9 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
 
     describe('resolving dependencies from the container by identifiers and metadata keys and values', () => {
       it.each([
-        ['Interface', { name: 'dependencyOne' } as never],
+        ['Interface', { named: 'dependencyOne' } as never],
         [DependencyTwo, undefined],
-        ['Interface', { name: 'dependencyFive' } as never],
+        ['Interface', { named: 'dependencyFive' } as never],
         ['CUSTOM_TOKEN', { canThrow: true } as never],
         [DependencySix, { tagged: 'withValue' } as never],
         [DependencySeven, undefined],
@@ -278,5 +279,48 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
         },
       ]);
     });
+  });
+});
+
+describe('Inversify 8 metadata', () => {
+  it('preserves a name and multiple tags on the same dependency', () => {
+    @injectable()
+    class Service {
+      constructor(
+        @inject('dependency')
+        @named('primary')
+        @tagged('region', 'eu')
+        @tagged('enabled', true)
+        readonly dependency: unknown
+      ) {}
+    }
+
+    const metadata = { named: 'primary', region: 'eu', enabled: true };
+    const dependency = adapter.inspect(Service).resolve('dependency', metadata);
+    expect(dependency?.metadata).toEqual(metadata);
+  });
+
+  it('reflects symbol-keyed properties', () => {
+    const property = Symbol('dependency');
+    @injectable()
+    class Service {
+      @inject('dependency')
+      readonly [property]: unknown;
+    }
+
+    expect(adapter.inspect(Service).resolve('dependency')?.property).toEqual({ key: property });
+  });
+
+  it('reflects dependencies inherited with injectFromBase', () => {
+    @injectable()
+    class Base {
+      constructor(@inject('dependency') readonly dependency: unknown) {}
+    }
+
+    @injectable()
+    @injectFromBase()
+    class Derived extends Base {}
+
+    expect(adapter.inspect(Derived).list()).toEqual(adapter.inspect(Base).list());
   });
 });

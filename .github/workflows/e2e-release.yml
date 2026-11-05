@@ -6,24 +6,24 @@ on:
   workflow_call:
     inputs:
       target_branch:
-        description: 'Branch to test release from'
+        description: 'Must match the branch selected for the calling workflow'
         required: true
+        type: string
+      commit:
+        description: Exact source commit to simulate
+        required: false
         type: string
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: 'Branch to test release from'
-        required: true
-        type: string
-        default: 'next'
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   e2e-full:
     name: Full E2E (${{ matrix.e2e-project }}, Node ${{ matrix.node-version }})
+    env:
+      REQUESTED_BRANCH: ${{ inputs.target_branch }}
+      RUN_BRANCH: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,33 +34,43 @@ jobs:
             'vitest/nestjs',
             'jest/inversify',
             'vitest/inversify',
+            'jest/injection-js',
+            'vitest/injection-js',
+            'esm/jest/injection-js',
+            'esm/vitest/injection-js',
             'esm/jest/nestjs',
             'esm/vitest/nestjs',
           ]
-        node-version: [18.x, 20.x]
-        exclude:
-          - e2e-project: 'vitest/nestjs'
-            node-version: 18.x
-          - e2e-project: 'esm/vitest/nestjs'
-            node-version: 18.x
-          - e2e-project: 'vitest/inversify'
-            node-version: 18.x
+        node-version: [22.x, 24.x, 26.x]
     steps:
+      - name: Verify release branch
+        run: |
+          if [ -n "$REQUESTED_BRANCH" ] && [ "$REQUESTED_BRANCH" != "$RUN_BRANCH" ]; then
+            echo "Select the release target in the calling workflow's branch selector." >&2
+            exit 1
+          fi
+
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.target_branch }}
+          ref: ${{ inputs.commit || github.sha }}
+          persist-credentials: false
           fetch-depth: 0
 
-      - name: Setup Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+      - name: Create local simulation branch
+        run: git switch -c e2e-release-simulation
+
+      # Build and publish with the supported development toolchain.
+      - name: Setup Node for build tools
+        uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '26.x'
+          package-manager-cache: false
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -75,21 +85,20 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Setup Registry
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node-version }}
-          registry-url: http://localhost:4873
-          scope: '@suites'
-          always-auth: false
+      - name: Configure local test registry
+        env:
+          TEST_NPMRC: ${{ runner.temp }}/verdaccio.npmrc
+        run: |
+          printf '%s\n' 'registry=http://localhost:4873/' '@suites:registry=http://localhost:4873/' > "$TEST_NPMRC"
+          echo "NPM_CONFIG_USERCONFIG=$TEST_NPMRC" >> "$GITHUB_ENV"
 
       - name: Install jq
         run: sudo apt-get install jq
 
-      - name: Remove provenance from package.json files
+      - name: Restrict package publishing to the local test registry
         run: |
           find packages -name 'package.json' | while read filename; do
-            jq 'del(.publishConfig.provenance)' "$filename" > temp.json && mv temp.json "$filename"
+            jq 'del(.publishConfig.provenance) | .publishConfig.registry = "http://localhost:4873"' "$filename" > temp.json && mv temp.json "$filename"
           done
 
       - name: Config Git
@@ -104,12 +113,12 @@ jobs:
 
       - name: Version Packages
         run: |
-          npx lerna version --yes \
+          pnpm exec lerna version --yes \
           --conventional-commits \
           --conventional-prerelease \
           --preid e2e \
           --no-changelog \
-          --allow-branch ${{ inputs.target_branch }} \
+          --allow-branch e2e-release-simulation \
           --no-git-tag-version \
           --no-push \
           --force-publish \
@@ -127,48 +136,34 @@ jobs:
           echo "**Project:** ${{ matrix.e2e-project }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Simulated Versions:" >> $GITHUB_STEP_SUMMARY
-          lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
+          pnpm exec lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
 
       - name: Publish Packages to Verdaccio
         run: |
           pnpm lerna publish from-package --yes \
+          --registry http://localhost:4873 \
           --no-git-tag-version \
           --no-push \
           --no-git-reset \
           --exact \
           --dist-tag e2e
 
-      - name: Parse E2E Project
-        run: |
-          project="${{ matrix.e2e-project }}"
-          if [[ "$project" == esm/* ]]; then
-            IFS='/' read -r _ library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=esm/$library" >> $GITHUB_ENV
-          else
-            IFS='/' read -r library framework <<< "$project"
-            echo "FRAMEWORK=$framework" >> $GITHUB_ENV
-            echo "LIBRARY=$library" >> $GITHUB_ENV
-          fi
-
       - name: Clean Source
         run: |
           rm -rf packages
           rm -rf node_modules
-          rm pnpm-lock.yaml
+          rm pnpm-lock.yaml pnpm-workspace.yaml
           rm package.json
           rm -f .npmrc
 
-      - name: Install Dependencies from Verdaccio
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          npm install --no-cache --no-package-lock
-          npm install --dev --no-package-lock @types/node@${{ matrix.node-version }}
+      # Exercise the published packages on every consumer runtime in the matrix.
+      - name: Setup Node ${{ matrix.node-version }} for tests
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
 
-      - name: Execute Test
-        run: |
-          cd "$PWD/e2e/$LIBRARY/$FRAMEWORK"
-          npm test
+      - name: Test supported DI versions from Verdaccio
+        run: node e2e/run-di-compatibility.cjs "${{ matrix.e2e-project }}"
 
       - name: Test Success Summary
         if: success()

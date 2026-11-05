@@ -3,14 +3,6 @@ name: Release Preview
 on:
   workflow_dispatch:
     inputs:
-      target_branch:
-        description: 'Branch to preview release from'
-        type: choice
-        options:
-          - 'next'
-          - 'master'
-        required: true
-        default: 'next'
       release_type:
         description: 'Release Type'
         type: choice
@@ -38,29 +30,45 @@ permissions:
 jobs:
   preview:
     name: Preview Release
+    # Select master or next using the workflow dispatch branch selector.
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/next'
+    env:
+      TARGET_BRANCH: ${{ github.ref_name }}
+      RELEASE_TYPE: ${{ inputs.release_type }}
+      PREID: ${{ inputs.preid }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.target_branch }}
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
+          node-version: '26.x'
+          package-manager-cache: false
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 8.15.9
+          version: 12.16.1
+
+      - name: Validate release options
+        run: |
+          case "$RELEASE_TYPE" in
+            prerelease|graduate|auto) ;;
+            *) echo "Invalid release type" >&2; exit 1 ;;
+          esac
+          case "$PREID" in
+            next|rc|alpha|beta|dev) ;;
+            *) echo "Invalid prerelease ID" >&2; exit 1 ;;
+          esac
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Install conventional-changelog-cli
-        run: npm install -g conventional-changelog-cli
 
       - name: Config Git
         run: |
@@ -73,46 +81,48 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Packages that have changed since last release:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          npx lerna changed --json 2>/dev/null | jq -r '.[] | "- **\(.name)** (current: `v\(.version)`)"' >> $GITHUB_STEP_SUMMARY || echo "No changed packages" >> $GITHUB_STEP_SUMMARY
+          pnpm exec lerna changed --json 2>/dev/null | jq -r '.[] | "- **\(.name)** (current: `v\(.version)`)"' >> $GITHUB_STEP_SUMMARY || echo "No changed packages" >> $GITHUB_STEP_SUMMARY
 
       - name: Preview Versions (Prerelease)
         if: ${{ inputs.release_type == 'prerelease' }}
         run: |
-          npx lerna version prerelease --yes \
-            --preid ${{ inputs.preid }} \
+          pnpm exec lerna version --yes \
+            --conventional-commits \
+            --conventional-prerelease \
+            --preid "$PREID" \
             --no-git-tag-version \
             --no-push \
-            --allow-branch ${{ inputs.target_branch }}
+            --allow-branch "$TARGET_BRANCH"
 
       - name: Preview Versions (Graduate)
         if: ${{ inputs.release_type == 'graduate' }}
         run: |
-          npx lerna version --yes \
+          pnpm exec lerna version --yes \
             --conventional-graduate \
             --no-git-tag-version \
             --no-push \
-            --allow-branch ${{ inputs.target_branch }}
+            --allow-branch "$TARGET_BRANCH"
 
       - name: Preview Versions (Auto - Conventional Commits)
         if: ${{ inputs.release_type == 'auto' }}
         run: |
-          npx lerna version --yes \
+          pnpm exec lerna version --yes \
             --conventional-commits \
             --no-git-tag-version \
             --no-push \
-            --allow-branch ${{ inputs.target_branch }}
+            --allow-branch "$TARGET_BRANCH"
 
       - name: Generate Version Summary
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🎯 Proposed Versions" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Release Type:** \`${{ inputs.release_type }}\`" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.release_type }}" = "prerelease" ]; then
-            echo "**Prerelease ID:** \`${{ inputs.preid }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Type:** \`${RELEASE_TYPE}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "$RELEASE_TYPE" = "prerelease" ]; then
+            echo "**Prerelease ID:** \`${PREID}\`" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          npx lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
+          pnpm exec lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
 
       - name: Show Git Diff
         run: |
@@ -123,38 +133,16 @@ jobs:
           git diff packages/*/package.json packages/*/*/package.json | head -100 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Generate Changelog Preview
+      - name: Show Generated Changelogs
         run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 📰 Changelog Preview" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Generate changelog using conventional-changelog-cli via lerna exec
-          # Process output to remove lerna stream prefixes and format as markdown
-          npx lerna exec --concurrency 1 --stream -- \
-            'conventional-changelog --preset angular --release-count 1 \
-            --commit-path $PWD --pkg $PWD/package.json' 2>/dev/null | \
-            sed 's/^[^:]*: //' >> $GITHUB_STEP_SUMMARY || echo "No changelog entries generated" >> $GITHUB_STEP_SUMMARY
-
-      - name: Show Conventional Commit Analysis
-        run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🔍 Commit Analysis" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Count commit types
-          breaking=$(git log --oneline --no-merges $(git describe --tags --abbrev=0)..HEAD 2>/dev/null | grep -c "!" || echo "0")
-          features=$(git log --oneline --no-merges $(git describe --tags --abbrev=0)..HEAD 2>/dev/null | grep -c "^[a-z0-9]* feat" || echo "0")
-          fixes=$(git log --oneline --no-merges $(git describe --tags --abbrev=0)..HEAD 2>/dev/null | grep -c "^[a-z0-9]* fix" || echo "0")
-
-          echo "- **Breaking Changes**: $breaking" >> $GITHUB_STEP_SUMMARY
-          echo "- **Features**: $features" >> $GITHUB_STEP_SUMMARY
-          echo "- **Fixes**: $fixes" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "$breaking" -gt 0 ]; then
-            echo "⚠️ **This release contains breaking changes!**" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📰 Generated Package Changelogs" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo 'These are the changelog changes written by the version command above.' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```diff' >> "$GITHUB_STEP_SUMMARY"
+          git diff -- 'packages/**/CHANGELOG.md' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cleanup
         if: always()

@@ -5,7 +5,6 @@ import type { Type } from '@suites/types.common';
 import { DependencyResolutionError } from '@suites/types.common';
 import type { DependencyContainer, IdentifierToFinal } from './dependency-container.js';
 import { referenceDependencyNotFoundError, stringifyIdentifier } from './functions.static.js';
-import { normalizeIdentifier } from '../normalize-identifier.static.js';
 
 /**
  * Provides access to mocked dependencies within a test environment.
@@ -115,7 +114,7 @@ export interface UnitReference {
    * @throws {@link DependencyResolutionError} If the dependency is not found or is exposed/final.
    */
   get<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): StubbedInstance<TDependency>;
 
@@ -163,19 +162,19 @@ export class UnitReference {
     identifierMetadata: IdentifierMetadata
   ): StubbedInstance<TDependency>;
   public get<TDependency>(
-    identifier: Type<TDependency> | string | symbol,
+    identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): StubbedInstance<TDependency>;
   public get<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): StubbedInstance<TDependency> {
-    const injectableIdentifier = normalizeIdentifier(identifier, identifierMetadata as never);
-
     if (
       this.fakedDependencies
         .map(([identifier]) => identifier)
-        .some((id) => isDeepStrictEqual(id, injectableIdentifier))
+        .some(
+          (id) => id.identifier === identifier && isDeepStrictEqual(id.metadata, identifierMetadata)
+        )
     ) {
       const identifierString = stringifyIdentifier(identifier, identifierMetadata);
 

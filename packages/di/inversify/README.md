@@ -65,6 +65,10 @@ describe('UserService', () => {
 });
 ```
 
+## Requirements
+
+Suites 4 requires Node 22.22.2+, 24.15.0+, or 26.x, and Inversify 7.x or 8.x. See the [Suites 4 migration guide](../../../docs/migration-v4.md) for decorator and metadata changes.
+
 ## Installation
 
 With Jest:
@@ -79,9 +83,20 @@ Or with Vitest:
 npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.vitest
 ```
 
-**Peer dependencies:** Requires `inversify` (>= 6.0) and `reflect-metadata`.
+**Peer dependencies:** Requires `inversify` in `^7.0.0 || ^8.0.0` and `reflect-metadata`. Inversify 7 remains supported; upgrading to 8 is optional.
 
 👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
+
+## TypeScript setup
+
+Add a `suites.d.ts` file included by your test `tsconfig.json`:
+
+```ts
+/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/di.inversify/metadata" />
+```
+
+For Vitest, use `@suites/doubles.vitest/unit` instead. The Inversify metadata reference enables named and tagged metadata objects in `TestBed.mock()` and `unitRef.get()`. These references load module augmentations directly from the packages, including when install scripts are disabled.
 
 ## Key Features
 
@@ -90,7 +105,7 @@ npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.vitest
 - **Multi-Injection** - Supports `@multiInject()` for array dependencies
 - **LazyServiceIdentifier Compatible** - Supports lazy service resolution patterns
 - **Type-Safe Mocks** - Full TypeScript support with proper type inference
-- **Zero Configuration** - No changes required to existing InversifyJS applications
+- **Automatic Runtime Detection** - No changes required to existing InversifyJS applications
 
 ## Supported InversifyJS Patterns
 

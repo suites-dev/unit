@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.0.0...%40suites%2Fdoubles.vitest%404.1.0) (2026-11-04)
+
+### Features
+
+* **doubles.vitest:** type lookups for adapter-registered tokens ([ad36afe](https://github.com/suites-dev/unit/commit/ad36afe2d6d49dfd7181164ab7017a891fdf8a73))
+
+
+# [4.0.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%403.1.0...%40suites%2Fdoubles.vitest%404.0.0) (2026-11-04)
+
+### Bug Fixes
+
+* **security:** harden release preview and update vulnerable tooling [skip ci] ([#1084](https://github.com/suites-dev/unit/issues/1084)) ([d7b287f](https://github.com/suites-dev/unit/commit/d7b287f080ea4ed11372865e738798c09e5c37f5))
+
+### Features
+
+* **doubles.vitest:** make Vitest type integration explicit ([b098029](https://github.com/suites-dev/unit/commit/b09802951ff0cb27686f01981a8198b4c6fd8967))
+
+### BREAKING CHANGES
+
+* **doubles.vitest:** Requires Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`. Node.js versions below 22 and majors outside this range are no longer supported. Upgrade installed Suites packages together to version 4.
+  Add `/// <reference types="@suites/doubles.vitest/unit" />` to a `suites.d.ts` file included by your test tsconfig; installation no longer injects these types automatically.
+  In the same file, also add `/// <reference types="@suites/di.nestjs/metadata" />` or `/// <reference types="@suites/di.inversify/metadata" />` for your selected DI adapter. Include one test-double reference and one DI reference per test TypeScript project.
+
+
 # [3.1.0](https://github.com/suites-dev/suites/compare/@suites/doubles.vitest@3.0.1...@suites/doubles.vitest@3.1.0) (2026-05-05)
 
 ### Bug Fixes

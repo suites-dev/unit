@@ -1,0 +1,73 @@
+name: Tag Release
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag reviewed Lerna versions
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       startsWith(github.event.pull_request.head.ref, 'chore/release-'))
+    environment: release
+    runs-on: ubuntu-latest
+    env:
+      APPROVED_COMMIT: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.APPROVED_COMMIT }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed source
+        run: |
+          [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$APPROVED_COMMIT"
+          git merge-base --is-ancestor "$APPROVED_COMMIT" origin/master
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26.x'
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.16.1
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm test:release
+      - name: Read reviewed package versions from Lerna
+        id: plan
+        run: node scripts/release-tagging.cjs plan "$RUNNER_TEMP/tags.json"
+      - name: Mint release bot token
+        id: release-app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.SUITES_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SUITES_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+      - name: Verify and configure release signing
+        env:
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
+          RELEASE_SIGNING_PRIVATE_KEY: ${{ secrets.SUITES_RELEASE_SIGNING_PRIVATE_KEY }}
+          RELEASE_SIGNING_PUBLIC_KEY: ${{ vars.SUITES_RELEASE_SIGNING_PUBLIC_KEY }}
+          RELEASE_SIGNING_LOGIN: ${{ vars.SUITES_RELEASE_SIGNING_LOGIN }}
+        run: node scripts/configure-release-signing.cjs
+      - name: Sign and verify package tags, then the overall tag
+        env:
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
+          OVERALL_RELEASE_TAG: ${{ steps.plan.outputs.release_tag }}
+        run: node scripts/release-tagging.cjs tag "$RUNNER_TEMP/tags.json"
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/suites-release-signing"

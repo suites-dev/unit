@@ -1,3 +1,4 @@
+import { jest as jestGlobals } from '@jest/globals';
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { DeepPartial } from '@suites/types.common';
 import type { Mocked } from './types.js';
@@ -51,7 +52,7 @@ const handler = <T>() => ({
 
       if (property !== 'calls') {
         // @ts-ignore
-        obj[property] = new Proxy<jest.Mock<T>>(jest.fn(), handler());
+        obj[property] = new Proxy<jest.Mock<T>>(jestGlobals.fn(), handler());
         // @ts-ignore private property
         obj[property as never]._isMockObject = true;
       }

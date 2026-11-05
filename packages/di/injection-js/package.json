@@ -1,0 +1,71 @@
+{
+  "name": "@suites/di.injectionjs",
+  "private": false,
+  "version": "4.1.0",
+  "license": "Apache-2.0",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./metadata": {
+      "types": "./metadata.d.ts"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suites-dev/unit.git",
+    "directory": "packages/di/injection-js"
+  },
+  "homepage": "https://suites.dev",
+  "bugs": {
+    "url": "https://github.com/suites-dev/unit/issues"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
+  },
+  "contributors": [
+    {
+      "name": "Omer Morad",
+      "email": "omer.moradd@gmail.com"
+    }
+  ],
+  "scripts": {
+    "prebuild": "pnpm rimraf dist",
+    "build": "sh ./build.sh",
+    "test": "jest --coverage --verbose",
+    "lint": "pnpm eslint '{src,test}/**/*.ts'"
+  },
+  "files": [
+    "dist",
+    "metadata.d.ts"
+  ],
+  "dependencies": {
+    "@suites/types.common": "workspace:^4.0.0",
+    "@suites/types.di": "workspace:^4.1.0"
+  },
+  "peerDependencies": {
+    "injection-js": "^2.6.1",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "injection-js": "2.6.1",
+    "reflect-metadata": "^0.2.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "packageManager": "pnpm@12.16.1",
+  "description": "Constructor injection adapter for testing InjectionJS services with Suites"
+}

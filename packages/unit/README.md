@@ -29,7 +29,7 @@ Suites is a **unit testing framework** that provides:
 - **Framework Agnostic** - Write tests once, use the same pattern across NestJS services, InversifyJS modules, or plain TypeScript classes
 - **AI Ready** - The consistent pattern makes it trivial for coding agents to generate correct tests without extensive context
 
-Works with [NestJS](https://nestjs.com) (official), [InversifyJS](https://inversify.io) (official), [Jest](https://jestjs.io), [Vitest](https://vitest.dev), and [Sinon](https://sinonjs.org).
+Works with [NestJS](https://nestjs.com) (official), [InversifyJS](https://inversify.io) (official), [InjectionJS](https://github.com/mgechev/injection-js) constructor injection, [Jest](https://jestjs.io), and [Vitest](https://vitest.dev).
 
 ```typescript
 import { TestBed, type Mocked } from '@suites/unit';
@@ -67,6 +67,8 @@ describe('UserService', () => {
 ```bash
 npm i -D @suites/unit
 ```
+
+For InjectionJS, use `@suites/di.injectionjs` and follow its [setup and constructor-injection limitations](https://github.com/suites-dev/unit/tree/master/packages/di/injection-js#readme).
 
 You'll also need to install adapters for your DI framework and testing library. For example, NestJS with Jest:
 
