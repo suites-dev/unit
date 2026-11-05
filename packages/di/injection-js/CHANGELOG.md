@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.1.1](https://github.com/suites-dev/unit/compare/%40suites%2Fdi.injectionjs%404.1.0...%40suites%2Fdi.injectionjs%404.1.1) (2026-11-05)
+
+**Note:** Version bump only for package @suites/di.injectionjs
+
+
+
+
+
 # 4.1.0 (2026-11-04)
 
 ### Features

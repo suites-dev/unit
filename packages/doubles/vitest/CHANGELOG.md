@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.1.1](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.0...%40suites%2Fdoubles.vitest%404.1.1) (2026-11-05)
+
+### Bug Fixes
+
+* **doubles.vitest:** infer typed mocks from abstract dependency tokens ([8d9300a](https://github.com/suites-dev/unit/commit/8d9300a10c44d99eb8c2053db5e736020a615c75))
+
+
 # [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.0.0...%40suites%2Fdoubles.vitest%404.1.0) (2026-11-04)
 
 ### Features
