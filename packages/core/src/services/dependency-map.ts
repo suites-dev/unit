@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { FinalValue, Type } from '@suites/types.common';
 import type { StubbedInstance } from '@suites/types.doubles';
@@ -6,10 +7,10 @@ import type { IdentifierToMockOrFinal } from './dependency-container.js';
 export class DependencyMap {
   private readonly resolvedDependencies: IdentifierToMockOrFinal[] = [];
 
-  public has(identifier: InjectableIdentifier): boolean {
-    return this.resolvedDependencies.some(([{ identifier: resolvedId }]) => {
-      return identifier === resolvedId;
-    });
+  public has(identifier: InjectableIdentifier, metadata?: IdentifierMetadata): boolean {
+    return this.resolvedDependencies.some(
+      ([key]) => key.identifier === identifier && isDeepStrictEqual(key.metadata, metadata)
+    );
   }
 
   public set(
@@ -21,11 +22,12 @@ export class DependencyMap {
   }
 
   public get(
-    identifier: InjectableIdentifier
+    identifier: InjectableIdentifier,
+    metadata?: IdentifierMetadata
   ): Type | StubbedInstance<unknown> | FinalValue | undefined {
-    return this.resolvedDependencies.find(([{ identifier: resolvedId }]) => {
-      return identifier === resolvedId;
-    })?.[1];
+    return this.resolvedDependencies.find(
+      ([key]) => key.identifier === identifier && isDeepStrictEqual(key.metadata, metadata)
+    )?.[1];
   }
 
   public entries(): IdentifierToMockOrFinal[] {
