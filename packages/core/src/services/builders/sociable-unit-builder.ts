@@ -1,4 +1,6 @@
 import type { DoublesAdapter } from '@suites/types.doubles';
+import { resolveAdapter } from '../../adapter-provider.js';
+import type { AdapterProvider } from '../../adapter-provider.js';
 import type { Type } from '@suites/types.common';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
@@ -15,7 +17,7 @@ export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   private readonly classesToExpose: Type[] = [];
 
   public constructor(
-    private readonly doublesAdapter: Promise<DoublesAdapter>,
+    private readonly doublesAdapter: AdapterProvider<DoublesAdapter>,
     private readonly unitMocker: UnitMocker,
     private readonly targetClass: Type<TClass>,
     private readonly logger: Console
@@ -29,8 +31,9 @@ export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   }
 
   public async compile(): Promise<UnitTestBed<TClass>> {
-    const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
-    const stubCb = await this.doublesAdapter.then((adapter) => adapter.stub);
+    const doublesAdapter = await resolveAdapter(this.doublesAdapter);
+    const mockFn = doublesAdapter.mock;
+    const stubCb = doublesAdapter.stub;
 
     const identifiersToMocks: IdentifierToMockOrFinal[] = this.identifiersToBeMocked.map(
       ([identifier, mockImplCallback]) => {
