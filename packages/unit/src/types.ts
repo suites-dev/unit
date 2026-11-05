@@ -50,6 +50,8 @@ export interface SociableTestBedBuilder<TClass> extends SociableTestBedBuilderCo
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
 }
 
+export type { ComposedTestBedBuilder } from '@suites/core.unit';
+
 export interface SolitaryTestBedBuilder<TClass> extends TestBedBuilder<TClass> {}
 
 /**
@@ -289,7 +291,11 @@ export interface UnitTestBed<TClass> {
  * @template TDependency The type of the dependency to be mocked.
  * @template TClass The type of the class under test.
  */
-export interface MockOverride<TDependency, TClass> extends MockOverrideCore<TDependency, TClass> {
+export interface MockOverride<
+  TDependency,
+  TClass,
+  TBuilder = TestBedBuilder<TClass>,
+> extends MockOverrideCore<TDependency, TClass, TBuilder> {
   /**
    * Provides a mock implementation using stub functions for methods.
    *
@@ -311,7 +317,7 @@ export interface MockOverride<TDependency, TClass> extends MockOverrideCore<TDep
    */
   impl(
     mockImplementation: (stubFn: Stub<any, ArgsType<TDependency>>) => DeepPartial<TDependency>
-  ): TestBedBuilder<TClass>;
+  ): TBuilder;
 
   /**
    * Provides a final implementation with concrete values or functions.
@@ -332,7 +338,7 @@ export interface MockOverride<TDependency, TClass> extends MockOverrideCore<TDep
    *   .compile();
    * ```
    */
-  final(finalImplementation: DeepPartial<TDependency>): TestBedBuilder<TClass>;
+  final(finalImplementation: DeepPartial<TDependency>): TBuilder;
 }
 
 /**
@@ -351,7 +357,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    * @template TDependency The type of the dependency being mocked.
    * @returns An instance of MockOverride for further configuration.
    */
-  mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass>;
+  mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass, this>;
 
   /**
    * Declares a dependency to be mocked using its type along with a corresponding metadata object.
@@ -365,7 +371,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
   mock<TDependency>(
     type: AbstractType<TDependency>,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass>;
+  ): MockOverride<TDependency, TClass, this>;
 
   /**
    * Declares a dependency to be mocked using a string-based token.
@@ -375,7 +381,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    * @template TDependency The type of the dependency being mocked.
    * @returns An instance of MockOverride for further configuration.
    */
-  mock<TDependency>(token: string): MockOverride<TDependency, TClass>;
+  mock<TDependency>(token: string): MockOverride<TDependency, TClass, this>;
 
   /**
    * Declares a dependency to be mocked using a string-based token along with a corresponding
@@ -390,7 +396,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
   mock<TDependency>(
     token: string,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass>;
+  ): MockOverride<TDependency, TClass, this>;
 
   /**
    * Declares a dependency to be mocked using a symbol-based token.
@@ -400,7 +406,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    * @template TDependency The type of the dependency being mocked.
    * @returns An instance of MockOverride for further configuration.
    */
-  mock<TDependency>(token: symbol): MockOverride<TDependency, TClass>;
+  mock<TDependency>(token: symbol): MockOverride<TDependency, TClass, this>;
 
   /**
    * Declares a dependency to be mocked using a symbol-based token along with a corresponding
@@ -415,7 +421,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
   mock<TDependency>(
     token: symbol,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass>;
+  ): MockOverride<TDependency, TClass, this>;
 
   /**
    * Declares a dependency to be mocked using a flexible identifier.
@@ -430,7 +436,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass>;
+  ): MockOverride<TDependency, TClass, this>;
   /**
    * Finalizes the test environment configuration and builds the test instance.
    *
