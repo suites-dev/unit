@@ -3,7 +3,11 @@ import type { StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { AbstractType } from '@suites/types.common';
 import { DependencyResolutionError } from '@suites/types.common';
-import type { DependencyContainer, IdentifierToFinal } from './dependency-container.js';
+import type {
+  DependencyContainer,
+  IdentifierToFinal,
+  IdentifierToMockOrFinal,
+} from './dependency-container.js';
 import { referenceDependencyNotFoundError, stringifyIdentifier } from './functions.static.js';
 
 /**
@@ -143,7 +147,8 @@ export class UnitReference {
   public constructor(
     private readonly mocksContainer: DependencyContainer,
     private readonly exposedInstances: InjectableIdentifier[],
-    private readonly fakedDependencies: IdentifierToFinal[]
+    private readonly fakedDependencies: IdentifierToFinal[],
+    private readonly composedDependencies: readonly IdentifierToMockOrFinal[0][] = []
   ) {}
 
   public get<TDependency>(type: AbstractType<TDependency>): StubbedInstance<TDependency>;
@@ -190,7 +195,15 @@ Faked dependencies are not intended for direct retrieval and should be accessed 
 testing context or container. Refer to the docs for further information: https://suites.dev/docs`);
     }
 
-    if (typeof identifier === 'function' && this.exposedInstances.includes(identifier)) {
+    if (
+      typeof identifier === 'function' &&
+      (this.exposedInstances.includes(identifier) ||
+        this.composedDependencies.some(
+          (entry) =>
+            entry.identifier === identifier &&
+            isDeepStrictEqual(entry.metadata, selectedDependency?.[0].metadata)
+        ))
+    ) {
       throw new DependencyResolutionError(`The dependency associated with the specified identifier '${identifier.name}' could not be retrieved from the
 current testing context, as it is marked as an exposed dependency.
 Exposed dependencies are not intended for direct retrieval and should be accessed through the appropriate

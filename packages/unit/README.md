@@ -142,6 +142,23 @@ Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
+## Compose a dependency graph
+
+Composition is opt-in. It recursively constructs discovered class dependencies while keeping your selected boundaries mocked:
+
+```typescript
+const { unit, unitRef } = await TestBed.sociable(OrderService)
+  .compose()
+  .exclude([DatabaseService, HttpClient])
+  .compile();
+```
+
+Exclusions match token identity across metadata-qualified occurrences. Specific `.mock(token, metadata).impl(...)` or `.final(...)` overrides take precedence. You can continue composing configuration after either override. A boundary stops traversal; excluded constructors are not executed to discover their dependencies. Real composed instances are accessed through the unit rather than `unitRef.get()`.
+
+String, symbol, and adapter-registered object tokens stay mocked unless overridden. TypeScript erases abstractness at runtime: explicitly exclude or override abstract class tokens and classes that perform I/O. Suites Unit does not infer safe construction from a class name. Composition requires adapter-discoverable dependencies; it cannot discover undecorated graphs or erased interface types without explicit construction information. Constructor cycles require an excluded or mocked boundary; shared dependencies retain their token and metadata identity.
+
+Existing `.expose(Class)` tests retain their selective behavior. Choose either `.expose(Class)` or `.compose()` for a test.
+
 ## Migration
 
 - [Upgrade from Suites 3 to 4](https://github.com/suites-dev/unit/blob/master/docs/migration-v4.md)

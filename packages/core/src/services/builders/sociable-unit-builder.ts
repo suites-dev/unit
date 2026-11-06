@@ -1,4 +1,7 @@
 import type { DoublesAdapter } from '@suites/types.doubles';
+import { resolveAdapter } from '../../adapter-provider.js';
+import type { AdapterProvider } from '../../adapter-provider.js';
+import type { InjectableIdentifier } from '@suites/types.di';
 import type { Type } from '@suites/types.common';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
@@ -11,11 +14,18 @@ export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
 }
 
+/** A sociable graph with explicitly selected mocked boundaries. */
+export interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
+  exclude(identifiers: readonly [InjectableIdentifier, ...InjectableIdentifier[]]): this;
+}
+
 export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   private readonly classesToExpose: Type[] = [];
+  private composeEnabled = false;
+  private readonly excludedIdentifiers: InjectableIdentifier[] = [];
 
   public constructor(
-    private readonly doublesAdapter: Promise<DoublesAdapter>,
+    private readonly doublesAdapter: AdapterProvider<DoublesAdapter>,
     private readonly unitMocker: UnitMocker,
     private readonly targetClass: Type<TClass>,
     private readonly logger: Console
@@ -24,13 +34,46 @@ export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   }
 
   public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
+    if (this.composeEnabled) {
+      throw new Error('Cannot combine .expose() with .compose(); choose one sociable strategy.');
+    }
     this.classesToExpose.push(dependency);
     return this;
   }
 
+  /** Recursively constructs discovered classes. Exclude abstract tokens and I/O explicitly. */
+  public compose(): ComposedTestBedBuilder<TClass> {
+    if (this.classesToExpose.length > 0) {
+      throw new Error('Cannot combine .compose() with .expose(); choose one sociable strategy.');
+    }
+    this.composeEnabled = true;
+    // Add the mode-specific surface to this builder without widening the legacy
+    // sociable builder type or losing configured overrides.
+    const composed = this as unknown as ComposedTestBedBuilder<TClass>;
+    Object.assign(this, {
+      exclude: (identifiers: readonly [InjectableIdentifier, ...InjectableIdentifier[]]) => {
+        this.excludeDependencies(identifiers);
+        return composed;
+      },
+    });
+    return composed;
+  }
+
+  private excludeDependencies(
+    identifiers: readonly [InjectableIdentifier, ...InjectableIdentifier[]]
+  ): this {
+    if (!this.composeEnabled) throw new Error('.exclude() requires .compose().');
+    if (!Array.isArray(identifiers) || identifiers.length === 0) {
+      throw new Error('.exclude() requires at least one dependency identifier.');
+    }
+    this.excludedIdentifiers.push(...identifiers);
+    return this;
+  }
+
   public async compile(): Promise<UnitTestBed<TClass>> {
-    const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
-    const stubCb = await this.doublesAdapter.then((adapter) => adapter.stub);
+    const doublesAdapter = await resolveAdapter(this.doublesAdapter);
+    const mockFn = doublesAdapter.mock;
+    const stubCb = doublesAdapter.stub;
 
     const identifiersToMocks: IdentifierToMockOrFinal[] = this.identifiersToBeMocked.map(
       ([identifier, mockImplCallback]) => {
@@ -44,11 +87,18 @@ export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
       }
     );
 
-    const { container, instance, resolution } = await this.unitMocker.constructUnit<TClass>(
-      this.targetClass,
-      this.classesToExpose,
-      new DependencyContainer([...identifiersToMocks, ...identifiersToFinal])
-    );
+    const { container, instance, resolution, composedDependencies } =
+      await this.unitMocker.constructUnit<TClass>(
+        this.targetClass,
+        this.classesToExpose,
+        new DependencyContainer([...identifiersToMocks, ...identifiersToFinal]),
+        {
+          resolution: {
+            compose: this.composeEnabled,
+            excludedIdentifiers: this.excludedIdentifiers,
+          },
+        }
+      );
 
     if (resolution.mocks.length > 0) {
       resolution.mocks.forEach((identifier) => {
@@ -76,7 +126,12 @@ For detailed instructions and best practices, refer to our documentation: https:
 
     return {
       unit: instance as TClass,
-      unitRef: new UnitReference(container, this.classesToExpose, this.identifiersToBeFinalized),
+      unitRef: new UnitReference(
+        container,
+        this.classesToExpose,
+        this.identifiersToBeFinalized,
+        composedDependencies
+      ),
     };
   }
 }
