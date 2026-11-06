@@ -51,11 +51,6 @@ export class DependencyResolver {
     }
 
     if (this.isLeafOrPrimitive(identifier)) {
-      if (this.dependencyMap.has(identifier, metadata)) {
-        return this.dependencyMap.get(identifier, metadata) as
-          Type | FinalValue | StubbedInstance<unknown>;
-      }
-
       if (this.isExposedClass(identifier)) {
         return this.instantiateClass(identifier, metadata);
       }

@@ -80,6 +80,34 @@ describe('qualified dependency resolution', () => {
     ]);
   });
 
+  it('reuses constructed providers only for equivalent metadata without rerunning constructors', () => {
+    let constructions = 0;
+    class RealProvider {
+      constructor() {
+        constructions += 1;
+      }
+    }
+    const resolver = new DependencyResolver(
+      [RealProvider],
+      new DependencyContainer([]),
+      adapterFor(RealProvider, []),
+      jest.fn()
+    );
+
+    const first = resolver.instantiateClass(RealProvider, primary);
+    const second = resolver.instantiateClass(RealProvider, secondary);
+    const unqualified = resolver.instantiateClass(RealProvider);
+
+    expect(first).toBeInstanceOf(RealProvider);
+    expect(second).not.toBe(first);
+    expect(unqualified).not.toBe(first);
+    expect(unqualified).not.toBe(second);
+    expect(resolver.instantiateClass(RealProvider, { named: 'primary' } as never)).toBe(first);
+    expect(resolver.instantiateClass(RealProvider, { named: 'secondary' } as never)).toBe(second);
+    expect(resolver.instantiateClass(RealProvider)).toBe(unqualified);
+    expect(constructions).toBe(3);
+  });
+
   it('keeps real instance qualification separate from injected property qualification', () => {
     class Leaf {}
     class RealProvider {
