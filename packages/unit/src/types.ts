@@ -1,5 +1,5 @@
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
-import type { DeepPartial, Type } from '@suites/types.common';
+import type { DeepPartial, Type, AbstractType } from '@suites/types.common';
 import type { ArgsType, Stub, StubbedInstance } from '@suites/types.doubles';
 import type {
   SociableTestBedBuilder as SociableTestBedBuilderCore,
@@ -91,7 +91,7 @@ export interface UnitReference extends UnitReferenceCore {
    * @throws {@link DependencyResolutionError} If the dependency is not found.
    * @returns The mocked object corresponding to the provided type identifier.
    */
-  get<TDependency>(type: Type<TDependency>): StubbedInstance<TDependency>;
+  get<TDependency>(type: AbstractType<TDependency>): StubbedInstance<TDependency>;
 
   /**
    * Retrieves a reference to the mocked object of a dependency corresponding to its type identifier
@@ -106,7 +106,7 @@ export interface UnitReference extends UnitReferenceCore {
    * symbol-based token.
    */
   get<TDependency>(
-    type: Type<TDependency>,
+    type: AbstractType<TDependency>,
     identifierMetadata: IdentifierMetadata
   ): StubbedInstance<TDependency>;
 
@@ -172,7 +172,7 @@ export interface UnitReference extends UnitReferenceCore {
    *
    * @since 3.0.0
    * @template TDependency The type of the dependency being retrieved.
-   * @param identifier - The token representing the dependency. It can be of type `Type<TDependency>`, `string`, or `symbol`.
+   * @param identifier - The token representing the dependency. It can be of type `AbstractType<TDependency>`, `string`, or `symbol`.
    * @param identifierMetadata - A corresponding metadata object for the token identifier.
    * @throws {@link DependencyResolutionError} If the dependency is not found.
    * @returns The mocked instance corresponding to the provided identifier and metadata.
@@ -189,7 +189,7 @@ export interface UnitReference extends UnitReferenceCore {
    *
    * @since 3.0.0
    * @template TDependency The type of the dependency being retrieved.
-   * @param identifier - The token representing the dependency. It can be of type `Type<TDependency>`, `string`, or `symbol`.
+   * @param identifier - The token representing the dependency. It can be of type `AbstractType<TDependency>`, `string`, or `symbol`.
    * @throws {@link DependencyResolutionError} If the dependency is not found.
    * @returns The mocked instance corresponding to the provided identifier.
    */
@@ -351,7 +351,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    * @template TDependency The type of the dependency being mocked.
    * @returns An instance of MockOverride for further configuration.
    */
-  mock<TDependency>(type: Type<TDependency>): MockOverride<TDependency, TClass>;
+  mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using its type along with a corresponding metadata object.
@@ -363,7 +363,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    * @returns An instance of MockOverride for further configuration.
    */
   mock<TDependency>(
-    type: Type<TDependency>,
+    type: AbstractType<TDependency>,
     identifierMetadata: IdentifierMetadata
   ): MockOverride<TDependency, TClass>;
 
@@ -422,7 +422,7 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
    *
    * @since 3.0.0
    * @param identifier - The identifier representing the dependency. It can be of type
-   * `Type<TDependency>`, `string`, or `symbol`.
+   * `AbstractType<TDependency>`, `string`, or `symbol`.
    * @param identifierMetadata - the identifier metadata if exists.
    * @template TDependency The type of the dependency being mocked.
    * @returns An instance of MockOverride for further configuration.

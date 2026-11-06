@@ -1,4 +1,4 @@
-import type { FinalValue, Type } from '@suites/types.common';
+import type { FinalValue, Type, AbstractType } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
 import type {
   ClassInjectable,
@@ -12,7 +12,7 @@ import { DependencyMap } from './dependency-map.js';
 
 export class DependencyResolver {
   private readonly dependencyMap = new DependencyMap();
-  private readonly availableClassesToExpose = new Set<Type>();
+  private readonly availableClassesToExpose = new Set<AbstractType>();
 
   constructor(
     private readonly classesToExpose: Type[],
@@ -20,6 +20,13 @@ export class DependencyResolver {
     private readonly adapter: DependencyInjectionAdapter,
     private readonly mockFunction: MockFunction
   ) {}
+
+  private isExposedClass(identifier: InjectableIdentifier): identifier is Type {
+    // Only explicitly exposed, concrete constructors may be instantiated.
+    return (
+      typeof identifier === 'function' && this.classesToExpose.some((type) => type === identifier)
+    );
+  }
 
   public isLeafOrPrimitive(identifier: InjectableIdentifier): boolean {
     return (
@@ -48,7 +55,7 @@ export class DependencyResolver {
         return this.dependencyMap.get(identifier) as Type | FinalValue | StubbedInstance<unknown>;
       }
 
-      if (typeof identifier === 'function' && this.classesToExpose.includes(identifier)) {
+      if (this.isExposedClass(identifier)) {
         return this.instantiateClass(identifier, metadata);
       }
 
@@ -58,7 +65,7 @@ export class DependencyResolver {
     }
 
     // Non-leaf classes that are not exposed should also be mocked
-    if (typeof identifier === 'function' && !this.classesToExpose.includes(identifier)) {
+    if (typeof identifier === 'function' && !this.isExposedClass(identifier)) {
       const mock = this.mockFunction();
       this.dependencyMap.set(identifier, mock, metadata as never);
 
@@ -115,7 +122,7 @@ export class DependencyResolver {
   }
 
   public getResolutionSummary(): {
-    mocks: { metadata?: unknown; identifier: Type }[];
+    mocks: { metadata?: unknown; identifier: AbstractType }[];
     exposes: Type[];
     notFound: IdentifierToMockOrFinal[];
   } {
@@ -124,7 +131,9 @@ export class DependencyResolver {
     const mocks = this.mockedFromBeforeContainer
       .list()
       .filter(([injectable]) => typeof injectable.identifier === 'function')
-      .filter(([injectable]) => !this.availableClassesToExpose.has(injectable.identifier as Type));
+      .filter(
+        ([injectable]) => !this.availableClassesToExpose.has(injectable.identifier as AbstractType)
+      );
 
     const notFound = this.mockedFromBeforeContainer.list().filter(([injectable]) => {
       return !this.dependencyMap.has(injectable.identifier);
@@ -132,7 +141,10 @@ export class DependencyResolver {
 
     return {
       notFound,
-      mocks: mocks.map(([injectable]) => injectable) as { metadata?: unknown; identifier: Type }[],
+      mocks: mocks.map(([injectable]) => injectable) as {
+        metadata?: unknown;
+        identifier: AbstractType;
+      }[],
       exposes,
     };
   }

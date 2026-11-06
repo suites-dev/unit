@@ -1,157 +1,115 @@
 <p align="center">
-  <img width="150" src="https://raw.githubusercontent.com/suites-dev/suites/master/logo.png" alt="Logo" />
-  <img width="150" src="https://vitest.dev/logo.svg" alt="Vitest Logo" />
+  <img width="90" src="https://raw.githubusercontent.com/suites-dev/unit/master/logo.png" alt="Suites logo" />
 </p>
 
-# @suites/doubles.vitest
+<h1 align="center">@suites/doubles.vitest</h1>
 
-[Suites](https://suites.dev) mocking adapter for [Vitest](https://vitest.dev).
+<p align="center">
+Vitest test doubles adapter for Suites
+</p>
 
-[![npm version](https://badge.fury.io/js/%40suites%2Fdoubles.vitest.svg)](https://badge.fury.io/js/%40suites%2Fdoubles.vitest)
-[![npm downloads](https://img.shields.io/npm/dm/%40suites%2Fdoubles.vitest.svg?style=flat-square)](https://www.npmjs.com/package/@suites/doubles.vitest)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<div align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
+  <a href="https://github.com/suites-dev/unit/blob/master/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome" /></a>
+  <a href="https://www.npmjs.com/package/@suites/doubles.vitest"><img src="https://img.shields.io/npm/dm/@suites/doubles.vitest.svg?label=%40suites%2Fdoubles.vitest" alt="npm downloads" /></a>
+</div>
 
-If you are new to Suites: Suites is a unit testing framework for TypeScript backends using inversion of control and dependency injection. Check out our [getting started guide](https://suites.dev/docs/get-started/quickstart).
+<h3 align="center">
+  <a href="https://suites.dev/docs/">Docs</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://suites.dev/docs/get-started/quickstart/">Getting Started</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://suites.dev/docs/get-started/installation/">Installation</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://github.com/suites-dev/suites-unit-examples">Examples</a>
+</h3>
 
-## What is @suites/doubles.vitest?
-
-The Vitest doubles adapter integrates [Suites](https://suites.dev) with Vitest's mocking capabilities. It provides automatic mock generation using `vi.fn()` and `@vitest/spy`, delivering type-safe mocked instances for all dependencies in your unit tests.
-
-Uses Vitest's built-in mocking API for familiar patterns like `mockResolvedValue`, `mockReturnValue`, and `toHaveBeenCalledWith`.
-
-## Mocking with Vitest
-
-Manual mock setup in Vitest tests requires boilerplate for each dependency. This adapter auto-generates properly typed mocks that integrate seamlessly with Vitest's assertion API.
-
-## Quick Start
-
-```typescript
-import { Injectable } from '@nestjs/common';
-import { TestBed, type Mocked } from '@suites/unit';
-
-@Injectable()
-export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly logger: Logger
-  ) {}
-
-  async getUser(id: string) {
-    this.logger.info(`Fetching user ${id}`);
-    return this.userRepository.findById(id);
-  }
-}
-
-describe('UserService', () => {
-  let userService: UserService;
-  let userRepository: Mocked<UserRepository>;
-  let logger: Mocked<Logger>;
-
-  beforeAll(async () => {
-    const { unit, unitRef } = await TestBed.solitary(UserService).compile();
-    userService = unit;
-    userRepository = unitRef.get(UserRepository);
-    logger = unitRef.get(Logger);
-  });
-
-  it('should fetch user from repository', async () => {
-    userRepository.findById.mockResolvedValue({ id: '1', name: 'John' });
-
-    const user = await userService.getUser('1');
-
-    expect(user.name).toBe('John');
-    expect(logger.info).toHaveBeenCalledWith('Fetching user 1');
-  });
-});
-```
+Generate typed dependency mocks backed by Vitest's mock functions. Configure responses with `mockReturnValue`, `mockResolvedValue`, and `mockImplementation`, then verify calls with your runner's assertions.
 
 ## Installation
 
-With NestJS:
+For NestJS with Vitest:
 
-```bash
-npm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.vitest
+```sh
+pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.vitest
 ```
 
-Or with InversifyJS:
+Replace `@suites/di.nestjs` with `@suites/di.inversify` or `@suites/di.injectionjs` for your DI framework. Install one doubles adapter per test project.
 
-```bash
-npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.vitest
-```
+Declares `vitest` and `@vitest/spy` peer dependencies at `>=1.0`. Use matching versions of those two packages. Suites 4 supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and ESM package entry points.
 
-**Peer dependencies:** Requires `vitest` (>= 1.0) and `@vitest/spy` (>= 1.0).
+## Configuration
 
-👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
+Create `suites.d.ts` and include it in your test `tsconfig.json`:
 
-## TypeScript setup
-
-Add a `suites.d.ts` file included by your test TypeScript configuration:
-
-```ts
+```typescript
 /// <reference types="@suites/doubles.vitest/unit" />
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-For Inversify, replace `@suites/di.nestjs/metadata` with `@suites/di.inversify/metadata`. Suites 4 loads these module augmentations directly instead of modifying installed package files.
+Use one doubles adapter reference and one DI adapter reference per test TypeScript project. These declarations load module augmentations directly; no postinstall script is needed.
 
-## Key Features
+For Inversify or InjectionJS, replace the DI reference with `@suites/di.inversify/metadata` or `@suites/di.injectionjs/metadata`. Load `reflect-metadata` and configure your transformer to emit decorator metadata using the [installation guide](https://suites.dev/docs/get-started/installation/). InjectionJS with Vitest also requires externalizing `injection-js`; see its [adapter README](https://github.com/suites-dev/unit/tree/master/packages/di/injection-js#readme).
 
-- **Automatic Mock Generation** - Creates `vi.fn()` mocks for all methods and properties
-- **Type-Safe Mocks** - Full TypeScript support with `Mocked<T>` type inference
-- **Vitest API Integration** - Use familiar patterns like `mockResolvedValue`, `mockImplementation`
-- **Deep Mocking** - Nested objects are automatically mocked
-- **Stub Functions** - Access raw `Mock` stubs via the `Stub` type
-- **Automatic Runtime Detection** - Works out of the box with Vitest projects
+## Write a test
 
-## Mock API
-
-The `Mocked<T>` type provides Vitest mock functions for all methods:
+Given a decorated `UserService` that injects `UserRepository`, as in the [NestJS example](https://github.com/suites-dev/unit/tree/master/packages/di/nestjs#write-a-test):
 
 ```typescript
-// Return values
-mock.method.mockReturnValue(value);
-mock.method.mockReturnValueOnce(value);
+import { expect, it } from 'vitest';
+import { TestBed } from '@suites/unit';
+import { UserRepository, UserService } from './user.service.js';
 
-// Async return values
-mock.method.mockResolvedValue(value);
-mock.method.mockRejectedValue(error);
+it('returns the repository result', async () => {
+  const { unit, unitRef } = await TestBed.solitary(UserService).compile();
+  const users = unitRef.get(UserRepository);
+  users.findName.mockResolvedValue('Alice');
 
-// Custom implementations
-mock.method.mockImplementation((args) => result);
-
-// Assertions
-expect(mock.method).toHaveBeenCalled();
-expect(mock.method).toHaveBeenCalledWith(arg1, arg2);
-expect(mock.method).toHaveBeenCalledTimes(3);
+  await expect(unit.findName('1')).resolves.toBe('Alice');
+  expect(users.findName).toHaveBeenCalledWith('1');
+});
 ```
 
-## Documentation
+`unitRef.get()` infers mocks from concrete or abstract class tokens. For string, symbol, and InjectionJS `InjectionToken` identifiers, pass the dependency type explicitly.
 
-- [Suites Documentation](https://suites.dev/docs) - Complete unit testing guide and patterns
-- [Vitest Mock Functions](https://vitest.dev/api/mock.html) - Vitest mocking API reference
-- [Getting Started](https://suites.dev/docs/get-started/quickstart) - 5-minute quickstart guide
-- [Adapter Architecture](https://suites.dev/docs/fundamentals/adapters) - How adapters work
+## Standalone mocks
 
-## Other Doubles Adapters
+Use `mock<T>()` for an object and `stub()` for a callback:
 
-Suites supports multiple mocking libraries:
+```typescript
+import { expect, it } from 'vitest';
+import { mock, stub } from '@suites/doubles.vitest';
 
-- **@suites/doubles.vitest** - Mocking adapter for Vitest (this package)
-- **[@suites/doubles.jest](https://www.npmjs.com/package/@suites/doubles.jest)** - Mocking adapter for Jest
+interface UserRepository {
+  findName(id: string): Promise<string>;
+}
 
-All adapters provide the same consistent `Mocked<T>` and `Stub` types while using framework-specific mocking implementations.
+it('creates standalone doubles', async () => {
+  const users = mock<UserRepository>();
+  users.findName.mockResolvedValue('Alice');
 
-## Support & Community
+  const callback = stub();
+  callback.mockReturnValue('saved');
 
-- [GitHub Discussions](https://github.com/suites-dev/suites/discussions) - Ask questions and share ideas
-- [Issue Tracker](https://github.com/suites-dev/suites/issues) - Report bugs or request features
-- [Documentation](https://suites.dev/docs) - Comprehensive guides and examples
-- [Examples](https://github.com/suites-dev/suites/tree/master/examples) - Real-world usage examples
+  await expect(users.findName('1')).resolves.toBe('Alice');
+  expect(callback()).toBe('saved');
+  expect(callback).toHaveBeenCalledTimes(1);
+});
+```
 
-## Contributing
+Import `Mocked<T>` and `Stub` from `@suites/unit` when declaring your test variables. The `/unit` declaration reference supplies the Vitest mock APIs to those types. Create a fresh test bed per test to keep mock state isolated.
 
-We welcome contributions! See our [contribution guidelines](https://github.com/suites-dev/suites/blob/master/CONTRIBUTING.md) and [Code of Conduct](https://github.com/suites-dev/suites/blob/master/CODE_OF_CONDUCT.md).
+The examples use `.js` import paths for TypeScript ESM compatibility. When Jest transforms TypeScript source directly, configure its [relative import mapping](https://github.com/suites-dev/unit/tree/master/packages/doubles/jest#typescript-import-paths).
+
+## Next steps
+
+- [Configure mock implementations](https://suites.dev/docs/api-reference/mock-configuration/)
+- [Installation and runner configuration](https://suites.dev/docs/get-started/installation/)
+
+## Community and contributing
+
+Ask questions in [GitHub Discussions](https://github.com/suites-dev/unit/discussions), [report an issue](https://github.com/suites-dev/unit/issues), or read the [contribution guidelines](https://github.com/suites-dev/unit/blob/master/CONTRIBUTING.md).
 
 ## License
 
-Apache-2.0 © [Suites](https://suites.dev)
+Suites is licensed under the [Apache License, Version 2.0](https://github.com/suites-dev/unit/blob/master/LICENSE).

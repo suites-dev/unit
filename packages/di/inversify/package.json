@@ -1,7 +1,7 @@
 {
   "name": "@suites/di.inversify",
   "private": false,
-  "version": "4.0.1",
+  "version": "4.0.3",
   "license": "Apache-2.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -52,8 +52,8 @@
   ],
   "dependencies": {
     "@inversifyjs/core": "^15.0.1",
-    "@suites/types.common": "workspace:^4.0.0",
-    "@suites/types.di": "workspace:^4.1.0"
+    "@suites/types.common": "workspace:^4.0.2",
+    "@suites/types.di": "workspace:^4.1.2"
   },
   "peerDependencies": {
     "inversify": "^7.0.0 || ^8.0.0",

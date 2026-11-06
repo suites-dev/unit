@@ -1,128 +1,67 @@
 <p align="center">
-  <img width="150" src="https://raw.githubusercontent.com/suites-dev/suites/master/logo.png" alt="Logo" />
-  <img width="150" src="https://inversify.io/img/logo.svg" alt="InversifyJS Logo" />
+  <img width="90" src="https://raw.githubusercontent.com/suites-dev/unit/master/logo.png" alt="Suites logo" />
 </p>
 
-# @suites/di.inversify
+<h1 align="center">@suites/di.inversify</h1>
 
-[Suites](https://suites.dev) unit testing adapter for [InversifyJS](https://inversify.io). See official documentation [here](https://inversify.io/docs/ecosystem/suites/).
+<p align="center">
+Inversify dependency injection adapter for Suites
+</p>
 
-[![npm version](https://badge.fury.io/js/%40suites%2Fdi.inversify.svg)](https://badge.fury.io/js/%40suites%2Fdi.inversify)
-[![npm downloads](https://img.shields.io/npm/dm/%40suites%2Fdi.inversify.svg?style=flat-square)](https://www.npmjs.com/package/@suites/di.inversify)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<p align="center">
+  <a href="https://inversify.io/docs/ecosystem/suites/">Suites in the official Inversify documentation</a>
+</p>
 
-If you are new to Suites: Suites is a unit testing framework for TypeScript backends using inversion of control and dependency injection. Check out our [getting started guide](https://suites.dev/docs/get-started/quickstart).
+<div align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
+  <a href="https://github.com/suites-dev/unit/blob/master/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome" /></a>
+  <a href="https://www.npmjs.com/package/@suites/di.inversify"><img src="https://img.shields.io/npm/dm/@suites/di.inversify.svg?label=%40suites%2Fdi.inversify" alt="npm downloads" /></a>
+</div>
 
-## What is @suites/di.inversify?
+<h3 align="center">
+  <a href="https://suites.dev/docs/">Docs</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://suites.dev/docs/get-started/quickstart/">Getting Started</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://suites.dev/docs/get-started/installation/">Installation</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://github.com/suites-dev/suites-unit-examples">Examples</a>
+</h3>
 
-The InversifyJS adapter integrates [Suites](https://suites.dev) unit testing with InversifyJS dependency injection. TestBed analyzes classes decorated with `@injectable()` and `@inject()`, auto-generates mocks for all dependencies, and provides isolated unit tests for TypeScript applications using InversifyJS.
-
-Supports InversifyJS patterns including bindings, identifiers, tagged dependencies, named dependencies, and multi-injection patterns.
-
-## Unit Testing InversifyJS Services
-
-Unit testing InversifyJS applications typically requires manual mock creation and container setup. This adapter automates mock generation and container configuration for isolated testing.
-
-## Quick Start
-
-```typescript
-import { injectable, inject } from 'inversify';
-import { TestBed, type Mocked } from '@suites/unit';
-
-@injectable()
-export class UserService {
-  constructor(
-    @inject('UserRepository') private repository: UserRepository,
-    @inject('Logger') private logger: Logger
-  ) {}
-
-  async getUser(id: string) {
-    this.logger.info(`Fetching user ${id}`);
-    return this.repository.findById(id);
-  }
-}
-
-describe('UserService', () => {
-  let userService: UserService;
-  let repository: Mocked<UserRepository>;
-  let logger: Mocked<Logger>;
-
-  beforeAll(async () => {
-    const { unit, unitRef } = await TestBed.solitary(UserService).compile();
-    userService = unit;
-    repository = unitRef.get<UserRepository>('UserRepository');
-    logger = unitRef.get<Logger>('Logger');
-  });
-
-  it('should fetch user from repository', async () => {
-    repository.findById.mockResolvedValue({ id: '1', name: 'Alice' });
-
-    const user = await userService.getUser('1');
-
-    expect(user.name).toBe('Alice');
-    expect(logger.info).toHaveBeenCalledWith('Fetching user 1');
-  });
-});
-```
-
-## Requirements
-
-Suites 4 requires Node 22.22.2+, 24.15.0+, or 26.x, and Inversify 7.x or 8.x. See the [Suites 4 migration guide](../../../docs/migration-v4.md) for decorator and metadata changes.
+Test Inversify services with Suites. The adapter reads dependency metadata so `TestBed` can supply typed mocks without creating your production container.
 
 ## Installation
 
-With Jest:
+For Jest:
 
-```bash
-npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.jest
+```sh
+pnpm add -D @suites/unit @suites/di.inversify @suites/doubles.jest
 ```
 
-Or with Vitest:
+For Vitest:
 
-```bash
-npm install --save-dev @suites/unit @suites/di.inversify @suites/doubles.vitest
+```sh
+pnpm add -D @suites/unit @suites/di.inversify @suites/doubles.vitest
 ```
 
-**Peer dependencies:** Requires `inversify` in `^7.0.0 || ^8.0.0` and `reflect-metadata`. Inversify 7 remains supported; upgrading to 8 is optional.
+Your application must also have `inversify` and `reflect-metadata` installed. Supported Inversify versions: `^7.0.0 || ^8.0.0`.
 
-👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
+Suites 4 supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and ESM package entry points.
 
-## TypeScript setup
+## Configuration
 
-Add a `suites.d.ts` file included by your test `tsconfig.json`:
+Create `suites.d.ts` and include it in your test `tsconfig.json`:
 
-```ts
+```typescript
 /// <reference types="@suites/doubles.jest/unit" />
 /// <reference types="@suites/di.inversify/metadata" />
 ```
 
-For Vitest, use `@suites/doubles.vitest/unit` instead. The Inversify metadata reference enables named and tagged metadata objects in `TestBed.mock()` and `unitRef.get()`. These references load module augmentations directly from the packages, including when install scripts are disabled.
+Use one doubles adapter reference and one DI adapter reference per test TypeScript project. These declarations load module augmentations directly; no postinstall script is needed.
 
-## Key Features
+For Vitest, use `@suites/doubles.vitest/unit` for the first reference.
 
-- **Automatic Mock Generation** - Creates mocks for all InversifyJS `@injectable()` decorated classes
-- **Tagged Dependencies** - Handles `@tagged()`, `@named()`, and metadata decorators
-- **Multi-Injection** - Supports `@multiInject()` for array dependencies
-- **LazyServiceIdentifier Compatible** - Supports lazy service resolution patterns
-- **Type-Safe Mocks** - Full TypeScript support with proper type inference
-- **Automatic Runtime Detection** - No changes required to existing InversifyJS applications
-
-## Supported InversifyJS Patterns
-
-This adapter supports InversifyJS patterns including:
-
-- `@injectable()` class decorators
-- `@inject(identifier)` for constructor-based injection
-- `@multiInject(identifier)` for array injection
-- `@tagged(key, value)` and `@named(name)` for metadata-driven injection
-- `LazyServiceIdentifier` for lazy resolution
-- `@unmanaged()` for non-injected parameters
-- Symbol and string identifiers
-- Interface-based service identifiers
-
-## Requirements
-
-Enable decorator metadata in your `tsconfig.json`:
+Enable decorator metadata in your test TypeScript configuration:
 
 ```json
 {
@@ -133,43 +72,83 @@ Enable decorator metadata in your `tsconfig.json`:
 }
 ```
 
-## Best Practices
+Load `reflect-metadata` before decorated classes. Your Jest or Vitest transformer must also emit decorator metadata; follow the [runner setup](https://suites.dev/docs/get-started/installation/).
 
-TestBed creates mocks for all dependencies automatically:
+## Write a test
 
-- Test business logic in isolation from dependencies
-- Control mock behavior for different scenarios
-- Verify interactions with injected dependencies
-- Avoid complex container configuration
-- Run faster tests without container overhead
+Create `user.service.ts`:
 
-## Documentation
+```typescript
+import 'reflect-metadata';
+import { inject, injectable } from 'inversify';
 
-- [Suites Documentation](https://suites.dev/docs) - Complete unit testing guide and patterns
-- [Official InversifyJS Suites Page](https://inversify.io/docs/ecosystem/suites/) - Official InversifyJS documentation for Suites
-- [Getting Started](https://suites.dev/docs/get-started/quickstart) - 5-minute quickstart guide
-- [Adapter Architecture](https://suites.dev/docs/fundamentals/adapters) - How adapters work
+export abstract class UserRepository {
+  abstract findName(id: string): Promise<string>;
+}
 
-## Other DI Adapters
+@injectable()
+export class UserService {
+  constructor(@inject(UserRepository) private readonly users: UserRepository) {}
 
-Suites supports multiple dependency injection frameworks:
+  findName(id: string): Promise<string> {
+    return this.users.findName(id);
+  }
+}
+```
 
-- **@suites/di.inversify** - Unit testing adapter for InversifyJS applications (this package)
-- **[@suites/di.nestjs](https://www.npmjs.com/package/@suites/di.nestjs)** - Unit testing adapter for NestJS applications
+Create `user.service.test.ts`:
 
-All adapters provide the same consistent testing API while handling framework-specific dependency injection patterns.
+```typescript
+import { expect, it } from '@jest/globals';
+import { TestBed } from '@suites/unit';
+import { UserRepository, UserService } from './user.service.js';
 
-## Support & Community
+it('returns the repository result', async () => {
+  const { unit, unitRef } = await TestBed.solitary(UserService).compile();
+  const users = unitRef.get(UserRepository);
+  users.findName.mockResolvedValue('Alice');
 
-- [GitHub Discussions](https://github.com/suites-dev/suites/discussions) - Ask questions and share ideas
-- [Issue Tracker](https://github.com/suites-dev/suites/issues) - Report bugs or request features
-- [Documentation](https://suites.dev/docs) - Comprehensive guides and examples
-- [Examples](https://github.com/suites-dev/suites/tree/master/examples) - Real-world usage examples
+  await expect(unit.findName('1')).resolves.toBe('Alice');
+  expect(users.findName).toHaveBeenCalledWith('1');
+});
+```
 
-## Contributing
+For Vitest, import `expect` and `it` from `vitest`. The repository is automatically mocked, and the abstract class token preserves type inference.
 
-We welcome contributions! See our [contribution guidelines](https://github.com/suites-dev/suites/blob/master/CONTRIBUTING.md) and [Code of Conduct](https://github.com/suites-dev/suites/blob/master/CODE_OF_CONDUCT.md).
+## Supported dependency patterns
+
+- Explicit `@inject(identifier)` on constructor parameters and properties, including symbol-keyed properties.
+- Concrete and abstract class, string, and symbol identifiers.
+- `@named()` and `@tagged()` metadata, including combined metadata and symbol keys.
+- `LazyServiceIdentifier` tokens resolved to their underlying identifier.
+
+Use explicit `@inject(Dependency)` for class dependencies, as shown above. For strings and symbols, provide the dependency type when retrieving a mock.
+
+Match named or tagged metadata in both overrides and lookups. For a dependency decorated with `@inject(UserRepository) @named('primary')`:
+
+```typescript
+const { unitRef } = await TestBed.solitary(UserService)
+  .mock(UserRepository, { named: 'primary' })
+  .impl((stub) => ({ findName: stub().mockResolvedValue('Alice') }))
+  .compile();
+
+const users = unitRef.get(UserRepository, { named: 'primary' });
+```
+
+Suites builds a flat test container from class metadata. It does not consume production container bindings, run provider factories, or reproduce scopes and multi-binding collections. Supply explicit values or implementations through `.mock()` when needed.
+
+The examples use `.js` import paths for TypeScript ESM compatibility. When Jest transforms TypeScript source directly, configure its [relative import mapping](https://github.com/suites-dev/unit/tree/master/packages/doubles/jest#typescript-import-paths).
+
+## Next steps
+
+- [Configure mocks and final values](https://suites.dev/docs/api-reference/mock-configuration/)
+- [Keep selected dependencies real](https://suites.dev/docs/guides/sociable/)
+- [Configure the test runner](https://suites.dev/docs/get-started/installation/)
+
+## Community and contributing
+
+Ask questions in [GitHub Discussions](https://github.com/suites-dev/unit/discussions), [report an issue](https://github.com/suites-dev/unit/issues), or read the [contribution guidelines](https://github.com/suites-dev/unit/blob/master/CONTRIBUTING.md).
 
 ## License
 
-Apache-2.0 © [Suites](https://suites.dev)
+Suites is licensed under the [Apache License, Version 2.0](https://github.com/suites-dev/unit/blob/master/LICENSE).

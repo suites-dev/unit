@@ -22,7 +22,8 @@
     "@swc/jest": "^0.2.39",
     "@swc/core": "^1.16.21",
     "@jest/globals": "^30.5.2",
-    "@types/node": "^26.6.6"
+    "@types/node": "^26.6.6",
+    "@suites/types.common": "e2e"
   },
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || ^26.0.0"

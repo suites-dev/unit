@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.1...%40suites%2Fcore.unit%404.1.2) (2026-11-05)
+
+**Note:** Version bump only for package @suites/core.unit
+
+
+
+
+
+## [4.1.1](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.0...%40suites%2Fcore.unit%404.1.1) (2026-11-05)
+
+### Bug Fixes
+
+* **core.unit:** support abstract tokens in mock configuration and lookups ([bb0b7b9](https://github.com/suites-dev/unit/commit/bb0b7b906e4e3d8dc12d8828dc8990ab15dc5a47))
+
+
 # [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.0.0...%40suites%2Fcore.unit%404.1.0) (2026-11-04)
 
 ### Features

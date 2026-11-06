@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.1.1...%40suites%2Funit%404.1.2) (2026-11-05)
+
+**Note:** Version bump only for package @suites/unit
+
+
+
+
+
+## [4.1.1](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.1.0...%40suites%2Funit%404.1.1) (2026-11-05)
+
+### Bug Fixes
+
+* **unit:** accept abstract dependency tokens without constructor casts ([c9e3bc6](https://github.com/suites-dev/unit/commit/c9e3bc6a2c877cfd40f2fc14b21d79badabd93f9))
+
+
 # [4.1.0](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.0.0...%40suites%2Funit%404.1.0) (2026-11-04)
 
 ### Features

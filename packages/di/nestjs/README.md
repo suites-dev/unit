@@ -1,123 +1,67 @@
 <p align="center">
-  <img width="150" src="https://raw.githubusercontent.com/suites-dev/suites/master/logo.png" alt="Logo" />
-  <img width="150" src="https://nestjs.com/img/logo-small.svg" alt="NestJS Logo" />
+  <img width="90" src="https://raw.githubusercontent.com/suites-dev/unit/master/logo.png" alt="Suites logo" />
 </p>
 
-# @suites/di.nestjs
+<h1 align="center">@suites/di.nestjs</h1>
 
-[Suites](https://suites.dev) unit testing adapter for [NestJS](https://nestjs.com). See official documentation [here](https://docs.nestjs.com/recipes/suites).
+<p align="center">
+NestJS dependency injection adapter for Suites
+</p>
 
-[![npm version](https://badge.fury.io/js/%40suites%2Fdi.nestjs.svg)](https://badge.fury.io/js/%40suites%2Fdi.nestjs)
-[![npm downloads](https://img.shields.io/npm/dm/%40suites%2Fdi.nestjs.svg?style=flat-square)](https://www.npmjs.com/package/@suites/di.nestjs)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<p align="center">
+  <a href="https://docs.nestjs.com/v11/recipes/suites">Suites in the official NestJS documentation</a>
+</p>
 
-If you are new to Suites: Suites is a unit testing framework for TypeScript backends using inversion of control and dependency injection. Check out our [getting started guide](https://suites.dev/docs/get-started/quickstart).
+<div align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
+  <a href="https://github.com/suites-dev/unit/blob/master/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome" /></a>
+  <a href="https://www.npmjs.com/package/@suites/di.nestjs"><img src="https://img.shields.io/npm/dm/@suites/di.nestjs.svg?label=%40suites%2Fdi.nestjs" alt="npm downloads" /></a>
+</div>
 
-## What is @suites/di.nestjs?
+<h3 align="center">
+  <a href="https://suites.dev/docs/">Docs</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://suites.dev/docs/get-started/quickstart/">Getting Started</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://suites.dev/docs/get-started/installation/">Installation</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://github.com/suites-dev/suites-unit-examples">Examples</a>
+</h3>
 
-The NestJS adapter integrates [Suites](https://suites.dev) unit testing with NestJS dependency injection. TestBed analyzes NestJS services decorated with `@Injectable()` and `@Inject()`, auto-generates mocks for all dependencies, and provides isolated unit tests for TypeScript applications using NestJS.
-
-Supports NestJS providers, modules, constructor injection, property injection, and custom tokens.
-
-## Unit Testing NestJS Services
-
-Unit testing NestJS applications typically requires complex test module setup and provider overrides. This adapter automates mock generation and provides isolated testing without initializing the full NestJS module.
-
-## Quick Start
-
-```typescript
-import { Injectable, Inject } from '@nestjs/common';
-import { TestBed, type Mocked } from '@suites/unit';
-
-@Injectable()
-export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-    @Inject('CONFIG') private readonly config: AppConfig
-  ) {}
-
-  async getUser(id: string) {
-    const apiUrl = this.config.apiUrl;
-    return this.userRepository.findById(id);
-  }
-}
-
-describe('UserService', () => {
-  let userService: UserService;
-  let userRepository: Mocked<UserRepository>;
-  let config: Mocked<AppConfig>;
-
-  beforeAll(async () => {
-    const { unit, unitRef } = await TestBed.solitary(UserService).compile();
-    userService = unit;
-    userRepository = unitRef.get(UserRepository);
-    config = unitRef.get('CONFIG');
-  });
-
-  it('should fetch user from repository', async () => {
-    config.apiUrl = 'https://api.example.com';
-    userRepository.findById.mockResolvedValue({ id: '1', name: 'John' });
-
-    const user = await userService.getUser('1');
-
-    expect(user.name).toBe('John');
-    expect(userRepository.findById).toHaveBeenCalledWith('1');
-  });
-});
-```
+Test NestJS services with Suites. The adapter reads dependency metadata so `TestBed` can supply typed mocks without creating your production container.
 
 ## Installation
 
-With Jest:
+For Jest:
 
-```bash
-npm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.jest
+```sh
+pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.jest
 ```
 
-Or with Vitest:
+For Vitest:
 
-```bash
-npm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.vitest
+```sh
+pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.vitest
 ```
 
-**Peer dependencies:** Requires `@nestjs/common` in `^10.0.0 || ^11.0.0 || ^12.0.1` and `reflect-metadata`. NestJS 10 and 11 remain supported; upgrading to 12 is optional.
+Your application must also have `@nestjs/common` and `reflect-metadata` installed. Supported NestJS versions: `^10.0.0 || ^11.0.0 || ^12.0.1`.
 
-👉 [Complete installation guide](https://suites.dev/docs/get-started/installation)
+Suites 4 supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and ESM package entry points.
 
-## TypeScript setup
+## Configuration
 
-Add a `suites.d.ts` file included by your test `tsconfig.json`:
+Create `suites.d.ts` and include it in your test `tsconfig.json`:
 
-```ts
+```typescript
 /// <reference types="@suites/doubles.jest/unit" />
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-For Vitest, use `@suites/doubles.vitest/unit` instead. The NestJS metadata reference rejects metadata arguments to `TestBed.mock()` and `unitRef.get()`. These references load module augmentations directly from the packages, including when install scripts are disabled.
+Use one doubles adapter reference and one DI adapter reference per test TypeScript project. These declarations load module augmentations directly; no postinstall script is needed.
 
-## Key Features
+For Vitest, use `@suites/doubles.vitest/unit` for the first reference.
 
-- **Automatic Mock Generation** - Creates mocks for all NestJS `@Injectable()` decorated services
-- **Token Injection** - Handles `@Inject()` decorators with string/symbol tokens
-- **ForwardRef Compatible** - Supports NestJS `forwardRef()` for circular dependencies
-- **Property Injection** - Supports constructor and property-based injection
-- **Type-Safe Mocks** - Full TypeScript support with proper type inference
-- **Automatic Runtime Detection** - No changes required to existing NestJS applications
-
-## Supported NestJS Patterns
-
-This adapter supports NestJS patterns including:
-
-- `@Injectable()` class decorators
-- `@Inject(token)` for custom providers
-- `forwardRef(() => Type)` for circular dependencies
-- Property injection with `@Inject()` decorators
-- Custom token providers (strings, symbols, `InjectionToken`)
-- Multi-provider tokens
-
-## Requirements
-
-Enable decorator metadata in your `tsconfig.json`:
+Enable decorator metadata in your test TypeScript configuration:
 
 ```json
 {
@@ -128,43 +72,72 @@ Enable decorator metadata in your `tsconfig.json`:
 }
 ```
 
-## Best Practices
+Load `reflect-metadata` before decorated classes. Your Jest or Vitest transformer must also emit decorator metadata; follow the [runner setup](https://suites.dev/docs/get-started/installation/).
 
-TestBed creates mocks for all dependencies automatically:
+## Write a test
 
-- Test business logic in isolation from dependencies
-- Control mock behavior for different scenarios
-- Verify interactions with injected services
-- Avoid complex module configuration
-- Run faster tests without full module initialization
+Create `user.service.ts`:
 
-## Documentation
+```typescript
+import 'reflect-metadata';
+import { Injectable } from '@nestjs/common';
 
-- [Suites Documentation](https://suites.dev/docs) - Complete unit testing guide and patterns
-- [Official NestJS Suites Recipe](https://docs.nestjs.com/recipes/suites) - Official NestJS documentation for Suites
-- [Getting Started](https://suites.dev/docs/get-started/quickstart) - 5-minute quickstart guide
-- [Adapter Architecture](https://suites.dev/docs/fundamentals/adapters) - How adapters work
+export abstract class UserRepository {
+  abstract findName(id: string): Promise<string>;
+}
 
-## Other DI Adapters
+@Injectable()
+export class UserService {
+  constructor(private readonly users: UserRepository) {}
 
-Suites supports multiple dependency injection frameworks:
+  findName(id: string): Promise<string> {
+    return this.users.findName(id);
+  }
+}
+```
 
-- **@suites/di.nestjs** - Unit testing adapter for NestJS applications (this package)
-- **[@suites/di.inversify](https://www.npmjs.com/package/@suites/di.inversify)** - Unit testing adapter for InversifyJS applications
+Create `user.service.test.ts`:
 
-All adapters provide the same consistent testing API while handling framework-specific dependency injection patterns.
+```typescript
+import { expect, it } from '@jest/globals';
+import { TestBed } from '@suites/unit';
+import { UserRepository, UserService } from './user.service.js';
 
-## Support & Community
+it('returns the repository result', async () => {
+  const { unit, unitRef } = await TestBed.solitary(UserService).compile();
+  const users = unitRef.get(UserRepository);
+  users.findName.mockResolvedValue('Alice');
 
-- [GitHub Discussions](https://github.com/suites-dev/suites/discussions) - Ask questions and share ideas
-- [Issue Tracker](https://github.com/suites-dev/suites/issues) - Report bugs or request features
-- [Documentation](https://suites.dev/docs) - Comprehensive guides and examples
-- [Examples](https://github.com/suites-dev/suites/tree/master/examples) - Real-world usage examples
+  await expect(unit.findName('1')).resolves.toBe('Alice');
+  expect(users.findName).toHaveBeenCalledWith('1');
+});
+```
 
-## Contributing
+For Vitest, import `expect` and `it` from `vitest`. The repository is automatically mocked, and the abstract class token preserves type inference.
 
-We welcome contributions! See our [contribution guidelines](https://github.com/suites-dev/suites/blob/master/CONTRIBUTING.md) and [Code of Conduct](https://github.com/suites-dev/suites/blob/master/CODE_OF_CONDUCT.md).
+## Supported dependency patterns
+
+- Constructor dependencies discovered through NestJS decorator metadata.
+- `@Inject()` on constructor parameters and properties, including string and symbol tokens.
+- `forwardRef()` tokens resolved to the underlying class or identifier.
+- Abstract class tokens in `.mock()` and `unitRef.get()`.
+
+For a custom token, use an explicit dependency type: `unitRef.get<UserRepository>('USER_REPOSITORY')`. The `/metadata` reference rejects identifier metadata arguments, which NestJS does not use.
+
+Suites builds a flat test container from the class. It does not load NestJS modules, run application lifecycle hooks, or reproduce production provider factories, scopes, and multi-provider configuration. Supply values with `.mock(token).final(value)` when needed.
+
+The examples use `.js` import paths for TypeScript ESM compatibility. When Jest transforms TypeScript source directly, configure its [relative import mapping](https://github.com/suites-dev/unit/tree/master/packages/doubles/jest#typescript-import-paths).
+
+## Next steps
+
+- [Configure mocks and final values](https://suites.dev/docs/api-reference/mock-configuration/)
+- [Keep selected dependencies real](https://suites.dev/docs/guides/sociable/)
+- [Configure the test runner](https://suites.dev/docs/get-started/installation/)
+
+## Community and contributing
+
+Ask questions in [GitHub Discussions](https://github.com/suites-dev/unit/discussions), [report an issue](https://github.com/suites-dev/unit/issues), or read the [contribution guidelines](https://github.com/suites-dev/unit/blob/master/CONTRIBUTING.md).
 
 ## License
 
-Apache-2.0 © [Suites](https://suites.dev)
+Suites is licensed under the [Apache License, Version 2.0](https://github.com/suites-dev/unit/blob/master/LICENSE).
