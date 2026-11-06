@@ -39,8 +39,8 @@ export class DependencyResolver {
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
   ): Type | FinalValue | StubbedInstance<unknown> {
-    if (this.dependencyMap.has(identifier)) {
-      return this.dependencyMap.get(identifier) as Type | FinalValue | ClassInjectable;
+    if (this.dependencyMap.has(identifier, metadata)) {
+      return this.dependencyMap.get(identifier, metadata) as Type | FinalValue | ClassInjectable;
     }
 
     const existingMock = this.mockedFromBeforeContainer.resolve(identifier, metadata);
@@ -51,10 +51,6 @@ export class DependencyResolver {
     }
 
     if (this.isLeafOrPrimitive(identifier)) {
-      if (this.dependencyMap.has(identifier)) {
-        return this.dependencyMap.get(identifier) as Type | FinalValue | StubbedInstance<unknown>;
-      }
-
       if (this.isExposedClass(identifier)) {
         return this.instantiateClass(identifier, metadata);
       }
@@ -80,8 +76,8 @@ export class DependencyResolver {
     type: Type,
     metadata: IdentifierMetadata | undefined = undefined
   ): Type | FinalValue | StubbedInstance<unknown> {
-    if (this.dependencyMap.has(type)) {
-      return this.dependencyMap.get(type) as Type | FinalValue | StubbedInstance<unknown>;
+    if (this.dependencyMap.has(type, metadata)) {
+      return this.dependencyMap.get(type, metadata) as Type | FinalValue | StubbedInstance<unknown>;
     }
 
     const injectableRegistry = this.adapter.inspect(type);
@@ -95,10 +91,6 @@ export class DependencyResolver {
     const ctorInjectables = injectableRegistry.list().filter(({ type }) => type === 'PARAM');
 
     const ctorParams = ctorInjectables.map(({ identifier, metadata }: WithMetadata<never>) => {
-      if (this.dependencyMap.has(type)) {
-        return this.dependencyMap.get(type);
-      }
-
       return this.resolveOrMock(identifier, metadata);
     });
 
@@ -110,8 +102,6 @@ export class DependencyResolver {
     propsInjectables.forEach(({ identifier, metadata, property }: WithMetadata<never>) => {
       const propValue = this.resolveOrMock(identifier, metadata);
       instance[property!.key] = propValue;
-
-      this.dependencyMap.set(type, propValue, metadata as never);
     });
 
     return instance;
@@ -136,7 +126,7 @@ export class DependencyResolver {
       );
 
     const notFound = this.mockedFromBeforeContainer.list().filter(([injectable]) => {
-      return !this.dependencyMap.has(injectable.identifier);
+      return !this.dependencyMap.has(injectable.identifier, injectable.metadata as never);
     });
 
     return {
