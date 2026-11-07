@@ -172,12 +172,12 @@ jobs:
       - name: Install Dependencies from Verdaccio
         working-directory: e2e/${{ matrix.e2e-project }}
         run: |
-          npm install --no-package-lock
-          npm install --save-dev --no-package-lock @types/node@${{ matrix.node-version }}
+          pnpm install --no-frozen-lockfile
+          pnpm add --save-dev @types/node@${{ matrix.node-version }}
 
       - name: Execute Test
         working-directory: e2e/${{ matrix.e2e-project }}
-        run: npm test
+        run: pnpm test
 
       - name: Test Success Summary
         if: success()
