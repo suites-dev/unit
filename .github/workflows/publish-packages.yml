@@ -58,9 +58,6 @@ jobs:
   e2e:
     name: Test reviewed commit
     needs: plan
-    permissions:
-      contents: read
-      actions: read
     uses: ./.github/workflows/e2e-release.yml
     with:
       target_branch: master

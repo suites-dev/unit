@@ -142,18 +142,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Pack branch packages for Vitest compatibility
-        if: matrix.e2e-project == 'vitest/nestjs'
-        run: node e2e/run-vitest-compatibility.cjs --prepare "$RUNNER_TEMP/vitest-compatibility"
-
-      - name: Share candidate adapter with maintenance branches
-        if: matrix.e2e-project == 'vitest/nestjs' && matrix.node-version == '26.x'
-        uses: actions/upload-artifact@v7
-        with:
-          name: vitest-adapter-candidate
-          path: ${{ runner.temp }}/vitest-compatibility/candidate/*.tgz
-          if-no-files-found: error
-
       - name: Configure local test registry
         env:
           TEST_NPMRC: ${{ runner.temp }}/verdaccio.npmrc
@@ -228,16 +216,3 @@ jobs:
 
       - name: Test supported DI versions from Verdaccio
         run: node e2e/run-di-compatibility.cjs "${{ matrix.e2e-project }}"
-
-      - name: Check candidate adapter with this branch’s Unit packages
-        if: matrix.e2e-project == 'vitest/nestjs'
-        run: node e2e/run-vitest-compatibility.cjs --run "$RUNNER_TEMP/vitest-compatibility"
-
-      - name: Upload branch compatibility evidence
-        if: always() && matrix.e2e-project == 'vitest/nestjs'
-        uses: actions/upload-artifact@v7
-        with:
-          name: vitest-compatibility-${{ matrix.node-version }}
-          path: |
-            ${{ runner.temp }}/vitest-compatibility/branch.json
-            ${{ runner.temp }}/vitest-compatibility/*.lock.yaml

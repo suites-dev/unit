@@ -3,8 +3,8 @@ const { execFileSync } = require('node:child_process');
 const { readFileSync, writeFileSync } = require('node:fs');
 
 // Stable peer ranges intentionally exclude prereleases. Only the disposable
-// release simulation adds the exact versions it just generated. The separately
-// packed compatibility artifact retains the real published peer contract.
+// release simulation adds the exact versions it just generated. These edits
+// stay in the disposable checkout and never change a published peer contract.
 const branch = execFileSync('git', ['branch', '--show-current'], { encoding: 'utf8' }).trim();
 assert(branch.startsWith('e2e-'), 'Peer alignment is only for disposable E2E branches');
 const files = execFileSync('git', ['ls-files', '-z', 'packages/**/package.json'], {
