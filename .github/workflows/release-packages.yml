@@ -31,12 +31,17 @@ on:
           - 'beta'
         required: true
         default: 'next'
+      vitest_candidate_run:
+        description: 'Unit 4 E2E run ID containing vitest-adapter-candidate'
+        required: true
+        type: string
       exact_version:
         description: 'Exact Version'
         type: string
         required: false
 
 permissions:
+  actions: read
   contents: write
   id-token: write
 
@@ -46,7 +51,9 @@ jobs:
     uses: ./.github/workflows/e2e-release.yml
     with:
       target_branch: ${{ github.event.inputs.target_branch }}
+      vitest_candidate_run: ${{ inputs.vitest_candidate_run }}
     permissions:
+      actions: read
       contents: write
       id-token: write
 
