@@ -51,7 +51,7 @@
     "build": "sh build.sh",
     "test": "pnpm vitest run --coverage && pnpm test:types",
     "lint": "pnpm eslint '{src,test}/**/*.ts'",
-    "test:types": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target es2020 --module esnext --moduleResolution bundler src/types.spec.ts"
+    "test:types": "tsc --project tsconfig.types.json"
   },
   "files": [
     "unit.d.ts",
@@ -87,7 +87,8 @@
     "@suites/types.doubles": "workspace:^4.0.2",
     "@vitest/coverage-v8": "5.1.0",
     "@vitest/spy": "5.1.0",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "@suites/unit": "workspace:^4.1.2"
   },
   "publishConfig": {
     "access": "public",
