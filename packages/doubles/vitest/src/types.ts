@@ -39,8 +39,6 @@ import type { MaybeMockedDeep, MockedFunction } from '@vitest/spy';
  * @see {@link https://vitest.dev/api/vi.html#vi-fn | Vitest Mock API}
  * @see {@link https://suites.dev/docs/api-reference/types | Type Reference}
  */
-// Keep Vitest's native mapping: intersecting a second recursive mapping makes
-// contextual inference traverse large clients such as Redis repeatedly (#1078).
 export type Mocked<T> = MaybeMockedDeep<T>;
 
 /**
