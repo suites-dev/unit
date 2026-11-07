@@ -1,108 +1,186 @@
 name: E2E Release Simulation
-
-on:
-  workflow_dispatch:
-    inputs:
-      vitest_candidate_run:
-        description: 'Unit 4 E2E run ID containing vitest-adapter-candidate'
-        required: true
-        type: string
-  workflow_call:
-    inputs:
-      target_branch:
-        description: 'Must match the selected maintenance branch'
-        required: false
-        type: string
-      vitest_candidate_run:
-        description: 'Unit 4 E2E run ID containing vitest-adapter-candidate'
-        required: true
-        type: string
-
-permissions:
-  contents: read
-  actions: read
-
 env:
   CI: true
 
+on:
+  workflow_call:
+    inputs:
+      target_branch:
+        description: 'Must match the branch selected for the calling workflow'
+        required: true
+        type: string
+      commit:
+        description: Exact source commit to simulate
+        required: false
+        type: string
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  vitest:
-    name: Branch Vitest compatibility (Node ${{ matrix.node-version }})
+  e2e-full:
+    name: Full E2E (${{ matrix.e2e-project }}, Node ${{ matrix.node-version }})
+    env:
+      REQUESTED_BRANCH: ${{ inputs.target_branch }}
+      RUN_BRANCH: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22.x, 24.x, 26.x]
+        e2e-project:
+          [
+            'jest/nestjs',
+            'vitest/nestjs',
+            'jest/inversify',
+            'vitest/inversify',
+            'esm/jest/nestjs',
+            'esm/vitest/nestjs',
+          ]
+        node-version: [18.x, 20.x, 22.x, 24.x, 26.x]
+        # Adapter v5 requires Node 22; other Unit 3 adapters retain their matrix.
+        exclude:
+          - { e2e-project: 'vitest/nestjs', node-version: 18.x }
+          - { e2e-project: 'vitest/nestjs', node-version: 20.x }
+          - { e2e-project: 'esm/vitest/nestjs', node-version: 18.x }
+          - { e2e-project: 'esm/vitest/nestjs', node-version: 20.x }
+          - { e2e-project: 'vitest/inversify', node-version: 18.x }
+          - { e2e-project: 'vitest/inversify', node-version: 20.x }
     steps:
-      - name: Verify selected maintenance branch
-        env:
-          TARGET_BRANCH: ${{ inputs.target_branch }}
-          RUN_BRANCH: ${{ github.ref_name }}
+      - name: Verify release branch
         run: |
-          if [ -n "$TARGET_BRANCH" ] && [ "$TARGET_BRANCH" != "$RUN_BRANCH" ]; then
-            echo 'Select the maintenance branch in the workflow branch selector.' >&2
+          if [ -n "$REQUESTED_BRANCH" ] && [ "$REQUESTED_BRANCH" != "$RUN_BRANCH" ]; then
+            echo "Select the release target in the calling workflow's branch selector." >&2
             exit 1
           fi
 
-      - name: Checkout this maintenance branch
+      - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.commit || github.sha }}
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Setup build runtime
+      - name: Create local simulation branch
+        run: git switch -c e2e-release-simulation
+
+      # Build and publish with the supported development toolchain.
+      - name: Setup Node for build tools
         uses: actions/setup-node@v7
         with:
           node-version: '26.x'
           package-manager-cache: false
 
-      - name: Install this branch’s package manager
+      - name: Install pnpm
         uses: pnpm/action-setup@v6
-
-      - name: Install locked dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Build Unit and Nest adapter from this branch
-        run: pnpm --filter '@suites/unit...' --filter '@suites/di.nestjs...' -r run build
-
-      - name: Download candidate adapter
-        uses: actions/download-artifact@v8
         with:
-          name: vitest-adapter-candidate
-          run-id: ${{ inputs.vitest_candidate_run }}
-          github-token: ${{ github.token }}
-          path: ${{ runner.temp }}/vitest-candidate
+          version: 8.15.9
 
-      - name: Pack this branch’s packages
-        run: node e2e/run-vitest-compatibility.cjs --prepare "$RUNNER_TEMP/vitest-compatibility" "$RUNNER_TEMP/vitest-candidate"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Run isolated local registry
+      - name: Run Verdaccio Docker
         run: |
-          docker run -d --name verdaccio -p 4873:4873 \
-            -v "$GITHUB_WORKSPACE/e2e/config.yaml:/verdaccio/conf/config.yaml" \
-            verdaccio/verdaccio
+          docker run -d --name verdaccio \
+          -p 4873:4873 \
+          -v ${{ github.workspace }}/e2e/config.yaml:/verdaccio/conf/config.yaml \
+          verdaccio/verdaccio
 
-      - name: Remove workspace source before consumer tests
-        run: rm -rf packages node_modules package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc
+      - name: Build
+        run: pnpm build
 
-      - name: Setup consumer runtime
+      - name: Configure local test registry
+        env:
+          TEST_NPMRC: ${{ runner.temp }}/verdaccio.npmrc
+        run: |
+          printf '%s\n' 'registry=http://localhost:4873/' '@suites:registry=http://localhost:4873/' > "$TEST_NPMRC"
+          echo "NPM_CONFIG_USERCONFIG=$TEST_NPMRC" >> "$GITHUB_ENV"
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Restrict package publishing to the local test registry
+        run: |
+          find packages -name 'package.json' | while read filename; do
+            jq 'del(.publishConfig.provenance) | .publishConfig.registry = "http://localhost:4873"' "$filename" > temp.json && mv temp.json "$filename"
+          done
+
+      - name: Config Git
+        run: |
+          git config --global user.email "e2e@suites.dev"
+          git config --global user.name "Suites e2e"
+
+      - name: Commit Provenance Change
+        run: |
+          git add .
+          git commit -am "remove provenance"
+
+      - name: Version Packages
+        run: |
+          pnpm exec lerna version --yes \
+          --conventional-commits \
+          --conventional-prerelease \
+          --preid e2e \
+          --no-changelog \
+          --allow-branch e2e-release-simulation \
+          --no-git-tag-version \
+          --no-push \
+          --force-publish \
+          --no-commit-hooks
+
+      - name: Allow this run's simulated prereleases in internal peers
+        run: node e2e/align-simulation-peers.cjs
+
+      - name: Commit Packages Versions
+        run: |
+          git add .
+          git commit -am "bump versions"
+
+      - name: Capture Versions for Report
+        run: |
+          echo "## 📦 E2E Release Simulation (Node ${{ matrix.node-version }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Project:** ${{ matrix.e2e-project }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Simulated Versions:" >> $GITHUB_STEP_SUMMARY
+          pnpm exec lerna ls --json | jq -r '.[] | "- **\(.name)** → `v\(.version)`"' >> $GITHUB_STEP_SUMMARY
+
+      - name: Publish Packages to Verdaccio
+        run: |
+          pnpm lerna publish from-package --yes \
+          --registry http://localhost:4873 \
+          --no-git-tag-version \
+          --no-push \
+          --no-git-reset \
+          --exact \
+          --dist-tag e2e
+
+      - name: Clean Source
+        run: |
+          rm -rf packages
+          rm -rf node_modules
+          rm pnpm-lock.yaml pnpm-workspace.yaml
+          rm package.json
+          rm -f .npmrc
+
+      # Exercise the published packages on every consumer runtime in the matrix.
+      - name: Setup Node ${{ matrix.node-version }} for tests
         uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
-          package-manager-cache: false
 
-      - name: Install consumer package manager
-        uses: pnpm/action-setup@v6
-        with:
-          version: 12.16.1
+      - name: Install Dependencies from Verdaccio
+        working-directory: e2e/${{ matrix.e2e-project }}
+        run: |
+          npm install --no-package-lock
+          npm install --save-dev --no-package-lock @types/node@${{ matrix.node-version }}
 
-      - name: Test candidate against branch packages
-        run: node e2e/run-vitest-compatibility.cjs --run "$RUNNER_TEMP/vitest-compatibility"
+      - name: Execute Test
+        working-directory: e2e/${{ matrix.e2e-project }}
+        run: npm test
 
-      - name: Upload compatibility evidence
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: vitest-compatibility-${{ matrix.node-version }}
-          path: |
-            ${{ runner.temp }}/vitest-compatibility/branch.json
-            ${{ runner.temp }}/vitest-compatibility/*.lock.yaml
+      - name: Test Success Summary
+        if: success()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Test Passed** - Packages work correctly when published" >> $GITHUB_STEP_SUMMARY
