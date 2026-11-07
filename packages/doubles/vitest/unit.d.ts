@@ -1,9 +1,12 @@
 /// <reference types="@vitest/spy" />
-import type { DeepPartial, Type } from '@suites/types.common';
-import type { IdentifierMetadata } from '@suites/types.di';
+import type { DeepPartial } from '@suites/types.common';
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { TestBedBuilder } from '@suites/core.unit';
 import type { Mocked as VitestMocked, Stub as VitestStub } from '.';
 import type { ArgsType } from '@suites/types.doubles';
+
+// Keep the augmentation usable with Unit 3, whose common types predate AbstractType.
+type AbstractType<T> = abstract new (...args: any[]) => T;
 
 declare module '@suites/unit' {
   /**
@@ -24,7 +27,7 @@ declare module '@suites/unit' {
    * Represents a test double instance where all methods and properties are stubbed.
    *
    * This abstract type provides the foundation for creating test doubles in unit tests.
-   * When a testing adapter is installed, this type is automatically augmented with
+   * When the testing adapter's `/unit` declaration is referenced, this type gains
    * framework-specific capabilities through TypeScript module augmentation.
    *
    * @template T The type of the object being transformed into a test double
@@ -49,7 +52,7 @@ declare module '@suites/core.unit' {
    *
    * The return type of `.get()` is augmented by adapter packages to provide
    * framework-specific mock types. Configure augmentation by referencing the
-   * adapter's unit.d.ts in your global.d.ts.
+   * adapter's unit.d.ts in your suites.d.ts.
    *
    * @since 3.0.0
    * @see {@link https://suites.dev/docs/api-reference/unit-reference | UnitReference API Reference}
@@ -79,7 +82,7 @@ declare module '@suites/core.unit' {
      * @throws {@link DependencyResolutionError} If the dependency is not found.
      * @returns The mocked object corresponding to the provided type identifier.
      */
-    get<TDependency>(type: Type<TDependency>): VitestMocked<TDependency>;
+    get<TDependency>(type: AbstractType<TDependency>): VitestMocked<TDependency>;
 
     /**
      * Retrieves a reference to the mocked object of a dependency corresponding to its type identifier
@@ -94,7 +97,7 @@ declare module '@suites/core.unit' {
      * symbol-based token.
      */
     get<TDependency>(
-      type: Type<TDependency>,
+      type: AbstractType<TDependency>,
       identifierMetadata: IdentifierMetadata
     ): VitestMocked<TDependency>;
 
@@ -160,13 +163,13 @@ declare module '@suites/core.unit' {
      *
      * @since 3.0.0
      * @template TDependency The type of the dependency being retrieved.
-     * @param identifier - The token representing the dependency. It can be of type `Type<TDependency>`, `string`, or `symbol`.
+     * @param identifier - The token representing the dependency. It can be of type `AbstractType<TDependency>`, `string`, or `symbol`.
      * @param identifierMetadata - A corresponding metadata object for the token identifier.
      * @throws {@link DependencyResolutionError} If the dependency is not found.
      * @returns The mocked instance corresponding to the provided identifier and metadata.
      */
     get<TDependency>(
-      identifier: Type<TDependency> | string | symbol,
+      identifier: InjectableIdentifier<TDependency>,
       identifierMetadata?: IdentifierMetadata
     ): VitestMocked<TDependency>;
   }

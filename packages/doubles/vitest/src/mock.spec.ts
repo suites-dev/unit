@@ -119,6 +119,163 @@ describe('Mocking Proxy Mechanism Unit Spec', () => {
     });
   });
 
+  describe('accessor implementations', () => {
+    test.each([false, undefined])(
+      'preserves a getter returning %s without reading it during initialization',
+      (value) => {
+        let reads = 0;
+        const implementation = {
+          get enabled() {
+            reads += 1;
+            return value;
+          },
+        };
+        const descriptor = Object.getOwnPropertyDescriptor(implementation, 'enabled');
+
+        const mockObject = mock(implementation);
+
+        expect(reads).toBe(0);
+        expect(Object.getOwnPropertyDescriptor(mockObject, 'enabled')).toEqual(descriptor);
+        expect(mockObject.enabled).toBe(value);
+        expect(reads).toBe(1);
+      }
+    );
+
+    test.each([true, false])(
+      'preserves getter and setter behavior with configurable=%s',
+      (configurable) => {
+        let value = false;
+        let reads = 0;
+        let writes = 0;
+        const implementation = Object.create(null, {
+          enabled: {
+            enumerable: true,
+            configurable,
+            get() {
+              reads += 1;
+              return value;
+            },
+            set(nextValue: boolean) {
+              writes += 1;
+              value = nextValue;
+            },
+          },
+        });
+        const descriptor = Object.getOwnPropertyDescriptor(implementation, 'enabled');
+
+        const mockObject = mock<{ enabled: boolean }>(implementation);
+
+        expect(reads).toBe(0);
+        expect(writes).toBe(0);
+        expect(Object.getOwnPropertyDescriptor(mockObject, 'enabled')).toEqual(descriptor);
+        mockObject.enabled = true;
+        expect(writes).toBe(1);
+        expect(mockObject.enabled).toBe(true);
+        expect(reads).toBe(1);
+      }
+    );
+
+    test.each([true, false])(
+      'preserves a setter-only property with configurable=%s',
+      (configurable) => {
+        const received: boolean[] = [];
+        const implementation = Object.create(null, {
+          enabled: {
+            enumerable: true,
+            configurable,
+            set(value: boolean) {
+              received.push(value);
+            },
+          },
+        });
+
+        const mockObject = mock<{ enabled: boolean }>(implementation);
+
+        expect(received).toEqual([]);
+        expect(mockObject.enabled).toBeUndefined();
+        mockObject.enabled = false;
+        expect(received).toEqual([false]);
+      }
+    );
+
+    test('preserves a non-configurable getter and rejects assignment', () => {
+      let reads = 0;
+      const implementation = Object.create(null, {
+        enabled: {
+          enumerable: true,
+          configurable: false,
+          get() {
+            reads += 1;
+            return false;
+          },
+        },
+      });
+      const mockObject = mock<{ enabled: boolean }>(implementation);
+
+      expect(reads).toBe(0);
+      expect(mockObject.enabled).toBe(false);
+      expect(() => {
+        mockObject.enabled = true;
+      }).toThrow(TypeError);
+      expect(mockObject.enabled).toBe(false);
+    });
+
+    test('preserves accessors inside a nested supplied implementation', () => {
+      let reads = 0;
+      const settings = {
+        get enabled() {
+          reads += 1;
+          return false;
+        },
+      };
+      const descriptor = Object.getOwnPropertyDescriptor(settings, 'enabled');
+
+      const mockObject = mock({ settings });
+
+      expect(reads).toBe(0);
+      expect(Object.getOwnPropertyDescriptor(mockObject.settings, 'enabled')).toEqual(descriptor);
+      expect(mockObject.settings.enabled).toBe(false);
+      expect(reads).toBe(1);
+    });
+
+    test('returns an accessor-provided object without eagerly traversing it', () => {
+      let reads = 0;
+      const settings = { enabled: false };
+      const implementation = {
+        get settings() {
+          reads += 1;
+          return settings;
+        },
+      };
+
+      const mockObject = mock(implementation);
+
+      expect(reads).toBe(0);
+      expect(mockObject.settings).toBe(settings);
+      expect(reads).toBe(1);
+    });
+
+    test('preserves a non-enumerable accessor', () => {
+      let reads = 0;
+      const implementation = Object.create(null, {
+        enabled: {
+          enumerable: false,
+          configurable: true,
+          get() {
+            reads += 1;
+            return false;
+          },
+        },
+      });
+      const mockObject = mock<{ enabled: boolean }>(implementation);
+
+      expect(reads).toBe(0);
+      expect(Object.keys(mockObject)).not.toContain('enabled');
+      expect(mockObject.enabled).toBe(false);
+      expect(reads).toBe(1);
+    });
+  });
+
   describe('promises', () => {
     test('should successfully use mock for promises resolving', async () => {
       const mockObject = mock<ArbitraryMock>();
@@ -196,9 +353,9 @@ describe('Mocking Proxy Mechanism Unit Spec', () => {
 
       mockObject.user.create.mockRejectedValue(new Error('Some error'));
 
-      await expect(
-        mockObject.user.create({ id: '123', name: 'Mashu', age: 123 })
-      ).rejects.toThrowError('Some error');
+      await expect(mockObject.user.create({ id: '123', name: 'Mashu', age: 123 })).rejects.toThrow(
+        'Some error'
+      );
     });
   });
 });

@@ -1,8 +1,4 @@
-import type { MaybeMockedDeep, Mock, Mocked as VitestMocked } from '@vitest/spy';
-
-type MockFunction<T extends (...args: any[]) => any> = VitestMocked<ReturnType<T>> & T;
-
-type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : Mocked<T>;
+import type { MaybeMockedDeep, MockedFunction } from '@vitest/spy';
 
 /**
  * Represents a fully mocked instance where all properties and methods are Vitest mocks.
@@ -16,7 +12,7 @@ type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : M
  * @template T The type of the object being mocked
  *
  * @remarks
- * When `@suites/doubles.vitest` is installed, this type augments the base
+ * When `@suites/doubles.vitest/unit` is referenced, this type augments the base
  * `Mocked<T>` type from `@suites/unit` with Vitest-specific functionality.
  * All mocked methods support Vitest's mock API including `mockReturnValue`,
  * `mockResolvedValue`, `mockImplementation`, and assertion matchers.
@@ -43,9 +39,7 @@ type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : M
  * @see {@link https://vitest.dev/api/vi.html#vi-fn | Vitest Mock API}
  * @see {@link https://suites.dev/docs/api-reference/types | Type Reference}
  */
-export type Mocked<T> = MaybeMockedDeep<T> & {
-  [K in keyof T]: MockedProperty<T[K]>;
-};
+export type Mocked<T> = MaybeMockedDeep<T>;
 
 /**
  * Represents a Vitest mock function that can stub behavior and track calls.
@@ -59,7 +53,7 @@ export type Mocked<T> = MaybeMockedDeep<T> & {
  * @template TArgs The tuple type of the function's arguments
  *
  * @remarks
- * When `@suites/doubles.vitest` is installed, this type augments the base
+ * When `@suites/doubles.vitest/unit` is referenced, this type augments the base
  * `Stub` type from `@suites/unit` with Vitest's mock function capabilities.
  * It's the fundamental building block for all function mocking in Vitest.
  *
@@ -68,4 +62,7 @@ export type Mocked<T> = MaybeMockedDeep<T> & {
  * @see {@link https://vitest.dev/api/vi.html#vi-fn | Vitest Function Mocks}
  * @see {@link https://suites.dev/docs/api-reference/mock | Stub Reference}
  */
-export type Stub<TArgs extends any[] = any[], TReturn = any> = Mock<TArgs, TReturn>;
+// MockedFunction accepts a function signature across Vitest 1.x and later versions.
+export type Stub<TArgs extends any[] = any[], TReturn = any> = MockedFunction<
+  (...args: TArgs) => TReturn
+>;
