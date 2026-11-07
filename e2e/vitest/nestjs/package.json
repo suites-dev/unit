@@ -25,7 +25,7 @@
     "@suites/types.doubles": "e2e"
   },
   "scripts": {
-    "test": "tsc --noEmit && vitest --run",
+    "test": "tsc --noEmit && tsc -p tsconfig.adapter-contract.json --noEmit && vitest --run",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {
