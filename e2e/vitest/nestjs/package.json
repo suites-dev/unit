@@ -12,6 +12,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
+    "ioredis": "6.0.0",
     "@swc/core": "^1.16.2",
     "@vitest/coverage-v8": "5.1.0",
     "ts-node": "^10.9.2",

@@ -1,8 +1,4 @@
-import type { MaybeMockedDeep, MockedFunction, Mocked as VitestMocked } from '@vitest/spy';
-
-type MockFunction<T extends (...args: any[]) => any> = VitestMocked<ReturnType<T>> & T;
-
-type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : Mocked<T>;
+import type { MaybeMockedDeep, MockedFunction } from '@vitest/spy';
 
 /**
  * Represents a fully mocked instance where all properties and methods are Vitest mocks.
@@ -43,9 +39,9 @@ type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : M
  * @see {@link https://vitest.dev/api/vi.html#vi-fn | Vitest Mock API}
  * @see {@link https://suites.dev/docs/api-reference/types | Type Reference}
  */
-export type Mocked<T> = MaybeMockedDeep<T> & {
-  [K in keyof T]: MockedProperty<T[K]>;
-};
+// Keep Vitest's native mapping: intersecting a second recursive mapping makes
+// contextual inference traverse large clients such as Redis repeatedly (#1078).
+export type Mocked<T> = MaybeMockedDeep<T>;
 
 /**
  * Represents a Vitest mock function that can stub behavior and track calls.
