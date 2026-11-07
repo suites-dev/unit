@@ -112,6 +112,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Create local simulation branch
         run: git checkout -B e2e-simulation
@@ -192,6 +193,9 @@ jobs:
           --no-push \
           --force-publish \
           --no-commit-hooks
+
+      - name: Allow this run's simulated prereleases in internal peers
+        run: node e2e/align-simulation-peers.cjs
 
       - name: Commit Packages Versions
         run: |

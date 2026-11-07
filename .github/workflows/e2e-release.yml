@@ -154,6 +154,9 @@ jobs:
           --force-publish \
           --no-commit-hooks
 
+      - name: Allow this run's simulated prereleases in internal peers
+        run: node e2e/align-simulation-peers.cjs
+
       - name: Commit Packages Versions
         run: |
           git add .
