@@ -117,7 +117,7 @@ expect(mock.method.callCount).to.equal(3);
 ## Documentation
 
 - [Suites Documentation](https://suites.dev/docs) - Complete unit testing guide and patterns
-- [Sinon Stubs](https://sinonjs.org/releases/latest/stubs) - Sinon stubbing API reference
+- [Sinon Stubs](https://sinonjs.org/concepts/stubs/) - Sinon stubbing API reference
 - [Getting Started](https://suites.dev/docs/get-started/quickstart) - 5-minute quickstart guide
 - [Adapter Architecture](https://suites.dev/docs/fundamentals/adapters) - How adapters work
 

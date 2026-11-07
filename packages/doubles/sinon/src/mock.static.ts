@@ -101,7 +101,7 @@ const handler = <T>() => ({
  * ```
  *
  * @since 3.0.0
- * @see {@link https://sinonjs.org/releases/latest/stubs/ | Sinon Stubs}
+ * @see {@link https://sinonjs.org/concepts/stubs/ | Sinon Stubs}
  * @see {@link https://suites.dev/docs/api-reference/mock | Mock API Reference}
  */
 export const mock = <T>(mockImplementation: DeepPartial<T> = {} as DeepPartial<T>): Mocked<T> => {
