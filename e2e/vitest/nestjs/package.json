@@ -17,7 +17,8 @@
     "ts-node": "*",
     "typescript": "^5.x",
     "unplugin-swc": "^1.4.4",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "ioredis": "6.0.0"
   },
   "scripts": {
     "test": "tsc --noEmit && vitest --run",

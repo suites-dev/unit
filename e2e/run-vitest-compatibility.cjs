@@ -13,8 +13,7 @@ const {
 } = require('node:fs');
 const { createRequire } = require('node:module');
 const { tmpdir } = require('node:os');
-const { join, resolve } = require('node:path');
-const toolchains = require('./vitest/toolchains.json');
+const { join, resolve, basename } = require('node:path');
 const root = resolve(__dirname, '..');
 const hostPaths = ['unit', 'core', 'types/common', 'types/di', 'types/doubles', 'di/nestjs'];
 const registry = 'http://localhost:4873/';
@@ -137,116 +136,56 @@ async function check(destination) {
   console.log(
     `Branch ${plan.source}, Unit ${versions['@suites/unit']}, adapter SHA256 ${plan.adapter.sha256}`
   );
-  for (const runner of toolchains.vitest) {
-    for (const format of toolchains.formats) {
-      const name = `vitest${runner.version}-${format}`;
-      const folder = join(workspace, name);
-      cpSync(join(__dirname, 'vitest/nestjs/regressions/redis'), folder, { recursive: true });
-      writeFileSync(
-        join(folder, 'package.json'),
-        JSON.stringify(
-          {
-            name,
-            private: true,
-            type: format,
-            packageManager: 'pnpm@12.16.1',
-            devDependencies: {
-              '@suites/unit': versions['@suites/unit'],
-              '@suites/di.nestjs': versions['@suites/di.nestjs'],
-              '@suites/doubles.vitest': `file:${join(destination, plan.adapter.archive)}`,
-              '@nestjs/common': '11.1.17',
-              '@nestjs/core': '11.1.17',
-              '@nestjs-modules/ioredis': '2.2.2',
-              '@types/node': '26.4.1',
-              '@vitest/spy': runner.version,
-              vitest: runner.version,
-              vite: runner.vite,
-              ioredis: '6.0.0',
-              'unplugin-swc': '1.6.0',
-              '@swc/core': '1.16.2',
-              'reflect-metadata': '0.2.2',
-              rxjs: '7.8.2',
-              typescript: '5.9.3',
-              typescript6: 'npm:typescript@6.0.3',
-            },
-          },
-          null,
-          2
-        )
-      );
-      writeFileSync(
-        join(folder, 'pnpm-workspace.yaml'),
-        'packages: []\nautoInstallPeers: true\nstrictPeerDependencies: true\n'
-      );
-      writeFileSync(
-        join(folder, 'global.d.ts'),
-        '/// <reference types="@suites/doubles.vitest/unit" />\n'
-      );
-      writeFileSync(
-        join(folder, 'tsconfig.mock-types.json'),
-        JSON.stringify(
-          {
-            compilerOptions: {
-              strict: true,
-              skipLibCheck: false,
-              target: 'es2022',
-              module: 'nodenext',
-              moduleResolution: 'nodenext',
-              experimentalDecorators: true,
-              emitDecoratorMetadata: true,
-              types: ['vitest/globals', 'node'],
-            },
-            files: ['global.d.ts', 'mock-types.ts'],
-          },
-          null,
-          2
-        )
-      );
-      console.log(`::group::${name}`);
-      run('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], folder, 180000, env);
-      const consumer = createRequire(join(folder, 'package.json'));
-      const unit = createRequire(consumer.resolve('@suites/unit'));
-      const adapter = createRequire(consumer.resolve('@suites/doubles.vitest'));
-      for (const name of [
-        '@suites/core.unit',
-        '@suites/types.common',
-        '@suites/types.di',
-        '@suites/types.doubles',
-      ]) {
-        const host = packageDirectory(unit, name);
-        assert.equal(packageDirectory(adapter, name), host, `Unit and adapter must share ${name}`);
-        assert.equal(JSON.parse(readFileSync(join(host, 'package.json'))).version, versions[name]);
+  // Exercise the existing E2E project with its own compiler and Vitest config.
+  // Only the Suites package sources differ from a normal E2E run.
+  const folder = join(workspace, 'e2e/vitest/nestjs');
+  cpSync(join(__dirname, 'vitest/nestjs'), folder, {
+    recursive: true,
+    filter: (source) => basename(source) !== 'node_modules',
+  });
+  cpSync(join(__dirname, 'vitest/tsconfig.json'), join(workspace, 'e2e/vitest/tsconfig.json'));
+  cpSync(join(__dirname, 'tsconfig.json'), join(workspace, 'e2e/tsconfig.json'));
+  const manifestPath = join(folder, 'package.json');
+  const manifest = JSON.parse(readFileSync(manifestPath));
+  for (const section of ['dependencies', 'devDependencies']) {
+    for (const name of Object.keys(manifest[section] || {})) {
+      if (name === '@suites/doubles.vitest') {
+        manifest[section][name] = `file:${join(destination, plan.adapter.archive)}`;
+      } else if (name.startsWith('@suites/')) {
+        assert(versions[name], `No branch package for ${name}`);
+        manifest[section][name] = versions[name];
       }
-      for (const compiler of ['typescript', 'typescript6']) {
-        const executable = join(folder, 'node_modules', compiler, 'bin/tsc');
-        run(
-          process.execPath,
-          ['--max-old-space-size=1024', executable, '--noEmit', '--extendedDiagnostics'],
-          folder,
-          30000,
-          env
-        );
-        run(
-          process.execPath,
-          ['--max-old-space-size=1024', executable, '--noEmit', '-p', 'tsconfig.mock-types.json'],
-          folder,
-          30000,
-          env
-        );
-      }
-      run(
-        process.execPath,
-        [join(folder, 'node_modules/vitest/vitest.mjs'), 'run'],
-        folder,
-        120000,
-        env
-      );
-      cpSync(join(folder, 'pnpm-lock.yaml'), join(destination, `${name}.lock.yaml`));
-      console.log('::endgroup::');
     }
   }
+  manifest.devDependencies['@types/node'] = process.versions.node.split('.')[0];
+  manifest.packageManager = 'pnpm@12.16.1';
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+  const settingsPath = join(folder, 'pnpm-workspace.yaml');
+  const settings = existsSync(settingsPath)
+    ? readFileSync(settingsPath, 'utf8').replace('lockfile: false', 'lockfile: true')
+    : 'packages: []\n';
+  writeFileSync(
+    settingsPath,
+    `${settings}\nstrictPeerDependencies: true\nverifyDepsBeforeRun: false\n`
+  );
+  run('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], folder, 180000, env);
+  const consumer = createRequire(manifestPath);
+  const unit = createRequire(consumer.resolve('@suites/unit'));
+  const adapter = createRequire(consumer.resolve('@suites/doubles.vitest'));
+  for (const name of [
+    '@suites/core.unit',
+    '@suites/types.common',
+    '@suites/types.di',
+    '@suites/types.doubles',
+  ]) {
+    const host = packageDirectory(unit, name);
+    assert.equal(packageDirectory(adapter, name), host, `Unit and adapter must share ${name}`);
+    assert.equal(JSON.parse(readFileSync(join(host, 'package.json'))).version, versions[name]);
+  }
+  run('pnpm', ['test'], folder, 120000, env);
+  cpSync(join(folder, 'pnpm-lock.yaml'), join(destination, 'vitest-nestjs.lock.yaml'));
   console.log(
-    'Branch packages passed Redis inference, strict declarations, shared dependency identity and runtime tests.'
+    'Branch packages passed the regular Vitest/NestJS E2E suite and shared dependency identity checks.'
   );
 }
 

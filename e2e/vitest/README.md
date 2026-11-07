@@ -1,59 +1,35 @@
-# Test the Vitest adapter across maintained Unit branches
+# Vitest E2E across Unit releases
 
-Each branch builds its own Unit packages. The Unit 4 E2E run supplies one candidate
-Vitest adapter tarball; the Unit 3 maintenance branch tests the same tarball.
-No Unit version list or additional checkout is needed.
+The Redis client test runs alongside the other NestJS tests in
+[`nestjs/redis.e2e.test.ts`](nestjs/redis.e2e.test.ts). Mock inference and invalid-call
+checks live in [`nestjs/type-safety.e2e.test.ts`](nestjs/type-safety.e2e.test.ts).
+Both use the project's normal `pnpm test` command, TypeScript config, and Vitest
+config. There is no separate fixture project, compiler configuration, or toolchain
+matrix for this case.
 
-## Run in GitHub Actions
+## Test the shared adapter on Unit 3 and Unit 4
 
-1. Run **E2E Tests** on the Unit 4 implementation branch. Its Node 26 / Vitest NestJS
-   job uploads `vitest-adapter-candidate`.
-2. Select `release/3.x` in **E2E Release Simulation**, then set
-   `vitest_candidate_run` to that Unit 4 workflow run ID.
-3. Confirm both runs pass and compare the adapter SHA256 recorded in their
-   `vitest-compatibility-*` artifacts. It must be identical.
+1. Run **E2E Tests** on the Unit 4 implementation branch. The Node 26 / Vitest
+   NestJS job uploads `vitest-adapter-candidate`.
+2. Run **E2E Release Simulation** on `release/3.x` (or its PR branch), setting
+   `vitest_candidate_run` to that Unit 4 run ID.
+3. Check both runs on Node 22, 24, and 26. Compare the adapter SHA256 in the
+   `vitest-compatibility-*` artifacts; it must match.
 
-The maintenance branch starts at `@suites/unit@3.1.1`. Its own manifests and lockfile
-supply the host packages. Backports on that branch are included automatically.
-The workflow requires the shared adapter artifact; it does not build or test the
-old Vitest or Sinon adapters.
+Each checkout supplies its own Unit packages and its existing Vitest/NestJS E2E
+project. The helper only packages and installs the branch's Unit dependencies,
+substitutes the shared adapter tarball, and runs that project's `pnpm test`.
+Its compiler and runner versions come from the project's package.json.
 
-On Unit 4, release simulation also accepts `vitest_candidate_run`. Without it,
-that branch tests its own adapter build. After changing adapter code or metadata,
-produce a new artifact and repeat both branch runs.
-
-## Regression fixtures
-
-The Redis reproduction and strict mock-type checks live under
-[`nestjs/regressions/redis`](nestjs/regressions/redis). Both branch jobs reuse these
-fixtures. Their separate compiler invocation preserves the reported inference
-case and enforces the heap/time limit without applying it to unrelated E2E tests.
-[`toolchains.json`](toolchains.json) contains the Vitest test configurations only;
-Unit versions always come from the branch checkout.
-
-## What is checked
-
-- Full Redis mock inference from issue #1078 under TypeScript 5.9 and 6.
-- Strict declarations, constructor-token inference, and rejected invalid mock calls.
-- CJS and ESM consumers with Vitest 1 and 5 on Node 22, 24, and 26.
-- Identical core and internal type package instances for Unit and the adapter.
-
-Consumer projects install independently using pnpm, without dependency overrides
-or package extensions. This does not establish support for two Unit majors in a
-single pnpm workspace; that remains a separate peer-resolution case.
-
-Before simulated versioning, `--prepare` packs the host packages and records their
-versions, hashes, and checkout commit in `branch.json`. The candidate package
-keeps its source version until the normal Lerna release process versions it.
-
-`--run` publishes host archives only to the disposable localhost Verdaccio
-registry. Suites packages cannot fall back to npmjs. Consumers install those
-branch packages and the candidate tarball, then save their lockfiles as evidence.
-The compiler regression has a 1 GiB heap limit and a 30-second timeout.
+Before simulated versioning, `--prepare` records package versions, hashes, and
+the checkout commit in `branch.json`. `--run` publishes those archives only to a
+disposable localhost Verdaccio registry. Suites packages cannot fall back to npmjs.
+It verifies that Unit and the adapter resolve identical core/type packages, then
+saves the consumer lockfile alongside the manifest as CI evidence.
 
 ## Run locally
 
-Build the branch using its declared package manager and lockfile. On Unit 4:
+Build the checkout using its own lockfile and package manager. On Unit 4:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -61,7 +37,7 @@ pnpm build
 node e2e/run-vitest-compatibility.cjs --prepare /tmp/unit4-vitest
 ```
 
-On the Unit 3 maintenance branch:
+On Unit 3, build only the host packages and reuse that candidate:
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
@@ -69,24 +45,21 @@ pnpm --filter '@suites/unit...' --filter '@suites/di.nestjs...' -r run build
 node e2e/run-vitest-compatibility.cjs --prepare /tmp/unit3-vitest /tmp/unit4-vitest/candidate
 ```
 
-Use fresh output directories. Start a fresh registry for each branch run:
+Use fresh output directories and a fresh registry per branch:
 
 ```sh
 docker run -d --name suites-vitest-e2e -p 127.0.0.1:4873:4873 \
   -v "$PWD/e2e/config.yaml:/verdaccio/conf/config.yaml:ro" verdaccio/verdaccio
 node e2e/run-vitest-compatibility.cjs --run /tmp/unit4-vitest
-# For the maintenance branch, use /tmp/unit3-vitest instead.
+# Use /tmp/unit3-vitest for the Unit 3 checkout.
 docker rm -fv suites-vitest-e2e
 ```
 
-Consumer tests use pnpm 12 and Node 22.22.2+, 24.15+, or 26. The maintenance branch
-still uses its historical pnpm version for its own install, build, and pack steps.
+Consumer installs use pnpm 12 on supported Node 22, 24, or 26. Unit 3 retains its
+historical package manager for building and packing its own packages. Its old
+Vitest and Sinon adapters are not built by this cross-branch check.
 
-## Release boundary
-
-These workflows validate packages locally; they do not publish to npm or create
-release tags. Adapter v5 is released from Unit 4's mainline. Unit 3 stays on its own
-major. If a Unit 3 package patch becomes necessary, first backport the reviewed
-Release Bot / Trusted Publishing lifecycle, use a separate npm channel, and keep
-that release from replacing the latest Unit 4 GitHub release. The maintenance
-branch's historical publishing workflows are not the release path for this work.
+This flow creates no public releases or tags. Adapter v5 belongs to mainline;
+Unit 3 remains on `release/3.x`. A future Unit 3 package release first needs the
+reviewed Release Bot / Trusted Publishing lifecycle backported, a separate npm
+channel, and a GitHub release that does not replace Unit 4 as latest.
