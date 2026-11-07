@@ -14,7 +14,7 @@ const {
 const { createRequire } = require('node:module');
 const { tmpdir } = require('node:os');
 const { join, resolve } = require('node:path');
-const toolchains = require('./compatibility/vitest/toolchains.json');
+const toolchains = require('./vitest/toolchains.json');
 const root = resolve(__dirname, '..');
 const hostPaths = ['unit', 'core', 'types/common', 'types/di', 'types/doubles', 'di/nestjs'];
 const registry = 'http://localhost:4873/';
@@ -141,7 +141,7 @@ async function check(destination) {
     for (const format of toolchains.formats) {
       const name = `vitest${runner.version}-${format}`;
       const folder = join(workspace, name);
-      cpSync(join(__dirname, 'compatibility/vitest'), folder, { recursive: true });
+      cpSync(join(__dirname, 'vitest/nestjs/regressions/redis'), folder, { recursive: true });
       writeFileSync(
         join(folder, 'package.json'),
         JSON.stringify(
@@ -183,7 +183,7 @@ async function check(destination) {
         '/// <reference types="@suites/doubles.vitest/unit" />\n'
       );
       writeFileSync(
-        join(folder, 'tsconfig.compat.json'),
+        join(folder, 'tsconfig.mock-types.json'),
         JSON.stringify(
           {
             compilerOptions: {
@@ -196,7 +196,7 @@ async function check(destination) {
               emitDecoratorMetadata: true,
               types: ['vitest/globals', 'node'],
             },
-            files: ['global.d.ts', 'compatibility.ts'],
+            files: ['global.d.ts', 'mock-types.ts'],
           },
           null,
           2
@@ -228,7 +228,7 @@ async function check(destination) {
         );
         run(
           process.execPath,
-          ['--max-old-space-size=1024', executable, '--noEmit', '-p', 'tsconfig.compat.json'],
+          ['--max-old-space-size=1024', executable, '--noEmit', '-p', 'tsconfig.mock-types.json'],
           folder,
           30000,
           env
