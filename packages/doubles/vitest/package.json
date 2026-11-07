@@ -58,7 +58,6 @@
     "dist"
   ],
   "peerDependencies": {
-    "@suites/unit": "^3.1.1 || ^4.0.0",
     "@suites/core.unit": "^3.1.0 || ^4.0.0",
     "@suites/types.common": "^3.1.0 || ^4.0.0",
     "@suites/types.di": "^3.1.0 || ^4.0.0",
@@ -67,9 +66,6 @@
     "vitest": ">= 1.0"
   },
   "peerDependenciesMeta": {
-    "@suites/unit": {
-      "optional": true
-    },
     "@suites/core.unit": {
       "optional": true
     },
@@ -87,8 +83,7 @@
     "@suites/types.doubles": "workspace:^4.0.2",
     "@vitest/coverage-v8": "5.1.0",
     "@vitest/spy": "5.1.0",
-    "vitest": "5.1.0",
-    "@suites/unit": "workspace:^4.1.2"
+    "vitest": "5.1.0"
   },
   "publishConfig": {
     "access": "public",

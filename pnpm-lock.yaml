@@ -392,9 +392,6 @@ importers:
       '@suites/types.doubles':
         specifier: workspace:^4.0.2
         version: link:../../types/doubles
-      '@suites/unit':
-        specifier: workspace:^4.1.2
-        version: link:../../unit
       '@vitest/coverage-v8':
         specifier: 5.1.0
         version: 5.1.0(vitest@5.1.0)
