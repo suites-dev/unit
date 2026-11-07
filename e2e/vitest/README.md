@@ -22,6 +22,15 @@ On Unit 4, release simulation also accepts `vitest_candidate_run`. Without it,
 that branch tests its own adapter build. After changing adapter code or metadata,
 produce a new artifact and repeat both branch runs.
 
+## Regression fixtures
+
+The Redis reproduction and strict mock-type checks live under
+[`nestjs/regressions/redis`](nestjs/regressions/redis). Both branch jobs reuse these
+fixtures. Their separate compiler invocation preserves the reported inference
+case and enforces the heap/time limit without applying it to unrelated E2E tests.
+[`toolchains.json`](toolchains.json) contains the Vitest test configurations only;
+Unit versions always come from the branch checkout.
+
 ## What is checked
 
 - Full Redis mock inference from issue #1078 under TypeScript 5.9 and 6.
