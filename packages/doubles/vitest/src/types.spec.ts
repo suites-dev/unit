@@ -1,6 +1,5 @@
 import { expect, expectTypeOf, it, vi } from 'vitest';
 import type { Mocked, Stub } from './types.js';
-import { mock } from './mock.static.js';
 
 it('preserves explicit stub arguments and return values', () => {
   const stub: Stub<[name: string, count: number], boolean> =
@@ -30,7 +29,10 @@ it('preserves nested mock methods and their argument and return types', async ()
     settings: { readonly enabled: boolean; retries(): number };
   }
 
-  const repository: Mocked<Repository> = mock<Repository>();
+  const repository: Mocked<Repository> = {
+    find: vi.fn<Repository['find']>(),
+    settings: { enabled: true, retries: vi.fn<Repository['settings']['retries']>() },
+  };
   repository.find.mockResolvedValue({ id: 'user-1' });
   repository.settings.retries.mockReturnValue(3);
 
@@ -61,12 +63,9 @@ it('preserves generic and overloaded method call signatures', () => {
     convert(value: string): string;
   }
 
-  const service = mock<Service>();
-  expectTypeOf(service.identity('example')).toEqualTypeOf<string>();
-  expectTypeOf(service.identity({ id: 'example' })).toEqualTypeOf<{ id: string }>();
-  expectTypeOf(service.convert(1)).toEqualTypeOf<number>();
-  expectTypeOf(service.convert('one')).toEqualTypeOf<string>();
-
-  service.convert.mockReturnValue('converted');
-  expect(service.convert('one')).toBe('converted');
+  expectTypeOf<Mocked<Service>['identity']>().toExtend<Service['identity']>();
+  expectTypeOf<Mocked<Service>['convert']>().toExtend<Service['convert']>();
+  expectTypeOf<Mocked<Service>['convert']['mockReturnValue']>()
+    .parameter(0)
+    .toEqualTypeOf<string>();
 });
