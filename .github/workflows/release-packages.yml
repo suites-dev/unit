@@ -20,6 +20,9 @@ jobs:
   e2e:
     if: github.ref == 'refs/heads/master'
     name: E2E Release Simulation
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/e2e-release.yml
     with:
       target_branch: master

@@ -13,10 +13,20 @@ on:
         description: Exact source commit to simulate
         required: false
         type: string
+      vitest_candidate_run:
+        description: 'Optional workflow run ID supplying vitest-adapter-candidate'
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      vitest_candidate_run:
+        description: 'Optional workflow run ID supplying vitest-adapter-candidate'
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   e2e-full:
@@ -84,6 +94,26 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Download candidate adapter from the selected run
+        if: matrix.e2e-project == 'vitest/nestjs' && inputs.vitest_candidate_run != ''
+        uses: actions/download-artifact@v8
+        with:
+          name: vitest-adapter-candidate
+          run-id: ${{ inputs.vitest_candidate_run }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/vitest-candidate
+
+      - name: Pack branch packages for Vitest compatibility
+        if: matrix.e2e-project == 'vitest/nestjs'
+        env:
+          CANDIDATE_RUN: ${{ inputs.vitest_candidate_run }}
+        run: |
+          if [ -n "$CANDIDATE_RUN" ]; then
+            node e2e/run-vitest-compatibility.cjs --prepare "$RUNNER_TEMP/vitest-compatibility" "$RUNNER_TEMP/vitest-candidate"
+          else
+            node e2e/run-vitest-compatibility.cjs --prepare "$RUNNER_TEMP/vitest-compatibility"
+          fi
 
       - name: Configure local test registry
         env:
@@ -164,6 +194,19 @@ jobs:
 
       - name: Test supported DI versions from Verdaccio
         run: node e2e/run-di-compatibility.cjs "${{ matrix.e2e-project }}"
+
+      - name: Check candidate adapter with this branch’s Unit packages
+        if: matrix.e2e-project == 'vitest/nestjs'
+        run: node e2e/run-vitest-compatibility.cjs --run "$RUNNER_TEMP/vitest-compatibility"
+
+      - name: Upload branch compatibility evidence
+        if: always() && matrix.e2e-project == 'vitest/nestjs'
+        uses: actions/upload-artifact@v7
+        with:
+          name: vitest-compatibility-${{ matrix.node-version }}
+          path: |
+            ${{ runner.temp }}/vitest-compatibility/branch.json
+            ${{ runner.temp }}/vitest-compatibility/*.lock.yaml
 
       - name: Test Success Summary
         if: success()

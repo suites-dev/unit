@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "types": ["vitest/globals"]
+  }
+}
