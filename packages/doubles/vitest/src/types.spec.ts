@@ -1,5 +1,6 @@
 import { expect, expectTypeOf, it, vi } from 'vitest';
-import type { Stub } from './types.js';
+import type { Mocked, Stub } from './types.js';
+import { mock } from './mock.static.js';
 
 it('preserves explicit stub arguments and return values', () => {
   const stub: Stub<[name: string, count: number], boolean> =
@@ -21,4 +22,48 @@ it('preserves the resolved value type of async stubs', async () => {
   stub.mockResolvedValue(42);
 
   await expect(stub('example')).resolves.toBe(42);
+});
+
+it('preserves nested mocks, readonly properties and async method argument types', async () => {
+  interface Repository {
+    find(id: string): Promise<{ id: string }>;
+    settings: { readonly enabled: boolean; retries(): number };
+  }
+  const repository: Mocked<Repository> = mock<Repository>();
+  repository.find.mockResolvedValue({ id: 'user-1' });
+  repository.settings.retries.mockReturnValue(3);
+
+  await expect(repository.find('user-1')).resolves.toEqual({ id: 'user-1' });
+  expect(repository.settings.retries()).toBe(3);
+  expectTypeOf(repository.find).parameter(0).toEqualTypeOf<string>();
+
+  const invalid = () => {
+    // @ts-expect-error Method arguments remain checked.
+    repository.find(1);
+    // @ts-expect-error Resolved values retain their original shape.
+    repository.find.mockResolvedValue({ id: 1 });
+    // @ts-expect-error Nested mock return values remain checked.
+    repository.settings.retries.mockReturnValue('three');
+    // @ts-expect-error Readonly properties remain readonly.
+    repository.settings.enabled = true;
+    // @ts-expect-error Promise members belong to the result, not the mocked method.
+    void repository.find.then;
+  };
+  expect(invalid).toBeTypeOf('function');
+});
+
+it('preserves generic and overloaded method call signatures', () => {
+  interface Service {
+    identity<T>(value: T): T;
+    convert(value: number): number;
+    convert(value: string): string;
+  }
+  const service = mock<Service>();
+  expectTypeOf(service.identity('example')).toEqualTypeOf<string>();
+  expectTypeOf(service.identity({ id: 'example' })).toEqualTypeOf<{ id: string }>();
+  expectTypeOf(service.convert(1)).toEqualTypeOf<number>();
+  expectTypeOf(service.convert('one')).toEqualTypeOf<string>();
+  service.identity.mockReturnValue('value');
+  service.convert.mockReturnValue('converted');
+  expect(service.convert('one')).toBe('converted');
 });

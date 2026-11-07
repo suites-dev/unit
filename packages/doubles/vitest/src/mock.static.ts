@@ -6,7 +6,7 @@ import type { Mocked } from './types.js';
 type ProxiedProperty = string | number | symbol;
 
 const overrideMockImp = <T>(obj: DeepPartial<T>): Mocked<T> => {
-  const proxy = new Proxy<Mocked<T>>(obj as Mocked<T>, handler());
+  const proxy = new Proxy<Mocked<T> & object>(obj as Mocked<T> & object, handler());
 
   for (const name of Object.keys(obj)) {
     const descriptor = Object.getOwnPropertyDescriptor(obj, name);

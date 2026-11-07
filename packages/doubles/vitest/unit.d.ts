@@ -1,9 +1,12 @@
 /// <reference types="@vitest/spy" />
-import type { DeepPartial, AbstractType } from '@suites/types.common';
+import type { DeepPartial } from '@suites/types.common';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { TestBedBuilder } from '@suites/core.unit';
 import type { Mocked as VitestMocked, Stub as VitestStub } from '.';
 import type { ArgsType } from '@suites/types.doubles';
+
+// Keep the augmentation usable with Unit 3, whose common types predate AbstractType.
+type AbstractType<T> = abstract new (...args: any[]) => T;
 
 declare module '@suites/unit' {
   /**

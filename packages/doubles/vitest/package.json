@@ -58,16 +58,33 @@
     "dist"
   ],
   "peerDependencies": {
+    "@suites/unit": "^3.1.1 || ^4.0.0",
+    "@suites/core.unit": "^3.1.0 || ^4.0.0",
+    "@suites/types.common": "^3.1.0 || ^4.0.0",
+    "@suites/types.di": "^3.1.0 || ^4.0.0",
+    "@suites/types.doubles": "^3.1.0 || ^4.0.0",
     "@vitest/spy": ">= 1.0",
     "vitest": ">= 1.0"
   },
-  "dependencies": {
+  "peerDependenciesMeta": {
+    "@suites/unit": {
+      "optional": true
+    },
+    "@suites/core.unit": {
+      "optional": true
+    },
+    "@suites/types.di": {
+      "optional": true
+    },
+    "@suites/types.doubles": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
     "@suites/core.unit": "workspace:^4.1.2",
     "@suites/types.common": "workspace:^4.0.2",
     "@suites/types.di": "workspace:^4.1.2",
-    "@suites/types.doubles": "workspace:^4.0.2"
-  },
-  "devDependencies": {
+    "@suites/types.doubles": "workspace:^4.0.2",
     "@vitest/coverage-v8": "5.1.0",
     "@vitest/spy": "5.1.0",
     "vitest": "5.1.0"
