@@ -1,8 +1,17 @@
 /// <reference types="vitest" />
+import type { DeepPartial } from '@suites/types.common';
+import type { DoublesAdapter, StubbedInstance } from '@suites/types.doubles';
 import { mock } from './mock.static.js';
+import type { Mocked } from './types.js';
 export { Mocked, Stub } from './types.js';
 import type { Mock } from '@vitest/spy';
 import { fn } from '@vitest/spy';
+
+function adapterMock<T>(implementation?: DeepPartial<T>): Mocked<T>;
+function adapterMock(implementation?: DeepPartial<unknown>): StubbedInstance<unknown>;
+function adapterMock(implementation: DeepPartial<unknown> = {}): StubbedInstance<unknown> {
+  return mock<DeepPartial<unknown>>(implementation);
+}
 
 /**
  * Adapter for a Vitest mocking library to be used with Suites framework.
@@ -16,7 +25,7 @@ import { fn } from '@vitest/spy';
  * const mockedService = adapter.mock<MyService>();
  * ```
  */
-export const adapter = { mock, stub: (): Mock => fn() };
+export const adapter = { mock: adapterMock, stub: (): Mock => fn() } satisfies DoublesAdapter;
 
 export { mock } from './mock.static.js';
 

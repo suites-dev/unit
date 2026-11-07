@@ -21,7 +21,8 @@
     "vitest": "5.1.0",
     "@vitest/spy": "5.1.0",
     "@types/node": "^26.6.6",
-    "@suites/types.common": "e2e"
+    "@suites/types.common": "e2e",
+    "@suites/types.doubles": "e2e"
   },
   "scripts": {
     "test": "tsc --noEmit && vitest --run",
