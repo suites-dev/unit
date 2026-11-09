@@ -4,7 +4,7 @@ import type {
   DependencyInjectionAdapter,
   InjectableIdentifier,
 } from '@suites/types.di';
-import { SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
+import { FluentSociableTestBedBuilder as SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
 import { UnitMocker } from './unit-mocker.js';
 
 const param = (identifier: InjectableIdentifier, metadata?: unknown): ClassInjectable =>

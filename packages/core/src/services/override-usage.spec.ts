@@ -1,6 +1,6 @@
 import type { Type } from '@suites/types.common';
 import type { ClassInjectable, DependencyInjectionAdapter } from '@suites/types.di';
-import { SolitaryTestBedBuilder } from './builders/solitary-unit-builder.js';
+import { FluentSolitaryTestBedBuilder } from './builders/solitary-unit-builder.js';
 import { UnitMocker } from './unit-mocker.js';
 
 const primary = { named: 'primary' } as never;
@@ -30,7 +30,7 @@ function builder(dependencies: ClassInjectable[]) {
   const warn = jest.fn();
   return {
     warn,
-    testBed: new SolitaryTestBedBuilder(
+    testBed: new FluentSolitaryTestBedBuilder(
       doubles,
       new UnitMocker(doubles.then((adapter) => adapter.mock), Promise.resolve(adapter)),
       Consumer,
