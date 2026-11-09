@@ -14,9 +14,9 @@ import { TestBedBuilder } from './testbed-builder.js';
 export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
   expose(dependency: string | symbol, implementation: Type): SociableTestBedBuilder<TClass>;
-  expose<TDependency>(
-    dependency: AbstractType<TDependency>,
-    implementation: Type<NoInfer<TDependency>>
+  expose<TToken extends AbstractType>(
+    dependency: TToken,
+    implementation: Type<InstanceType<TToken>>
   ): SociableTestBedBuilder<TClass>;
 }
 
@@ -125,9 +125,9 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
     dependency: string | symbol,
     implementation: Type
   ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
-  public expose<TDependency>(
-    dependency: AbstractType<TDependency>,
-    implementation: Type<NoInfer<TDependency>>
+  public expose<TToken extends AbstractType>(
+    dependency: TToken,
+    implementation: Type<InstanceType<TToken>>
   ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
   public expose(
     dependency: AbstractType | string | symbol,

@@ -65,9 +65,9 @@ export interface SociableTestBedBuilder<TClass> extends SociableTestBedBuilderCo
    * @param implementation - A concrete implementation of the token's instance type.
    * @returns The sociable builder for further configuration.
    */
-  expose<TDependency>(
-    dependency: AbstractType<TDependency>,
-    implementation: Type<NoInfer<TDependency>>
+  expose<TToken extends AbstractType>(
+    dependency: TToken,
+    implementation: Type<InstanceType<TToken>>
   ): SociableTestBedBuilder<TClass>;
 }
 
