@@ -60,6 +60,14 @@ export interface UnitTestBed<TClass> {
  */
 export interface MockOverride<TDependency, TClass, TBuilder = TestBedBuilder<TClass>> {
   /**
+   * Generates a mock without an initial implementation.
+   * Configure and inspect the mock through `unitRef.get()` after compilation.
+   *
+   * @returns The originating builder for method chaining.
+   */
+  auto(): TBuilder;
+
+  /**
    * Configures mocks with stubs that can be retrieved and modified later via `unitRef.get()`.
    *
    * Use this when you need to change mock behavior after TestBed compilation.

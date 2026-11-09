@@ -35,6 +35,14 @@ export abstract class TestBedBuilder<TClass> implements TestBedBuilder<TClass> {
     metadata?: IdentifierMetadata
   ): MockOverride<TDependency, TClass, this> {
     return {
+      auto: (): this => {
+        this.identifiersToBeMocked.push([
+          normalizeIdentifier(identifier, metadata as never),
+          () => ({}),
+        ]);
+
+        return this;
+      },
       impl: (
         mockImplementation: (
           stubFn: () => Stub<TDependency, ArgsType<TDependency>>

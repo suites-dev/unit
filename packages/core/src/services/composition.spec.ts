@@ -253,6 +253,58 @@ describe('opt-in composition', () => {
     expect(mocked.repository).toBeInstanceOf(Repository);
   });
 
+  it('does not register a mock until the selector is completed', async () => {
+    const current = builder().compose();
+    current.mock(Client);
+    const { unit } = await current.compile();
+    expect(unit.repository.client).toBeInstanceOf(Client);
+  });
+
+  it('never inspects or constructs the graph behind an automatic mock', async () => {
+    const constructed = jest.fn();
+    class Nested {
+      constructor() {
+        constructed('Nested');
+      }
+    }
+    class Boundary {
+      constructor(readonly nested: Nested) {
+        constructed('Boundary');
+      }
+    }
+    class Root {
+      constructor(readonly boundary: Boundary) {}
+    }
+    const localAdapter = registry([
+      [Root, [param(Boundary)]],
+      [Boundary, [param(Nested)]],
+    ]);
+    const inspect = jest.fn((type: Type) => {
+      if (type === Boundary || type === Nested) {
+        throw new Error('must not inspect a mocked graph');
+      }
+      return localAdapter.inspect(type);
+    });
+    const doubles = Promise.resolve({ mock: jest.fn(() => ({})), stub: jest.fn });
+    const { unit, unitRef } = await new SociableTestBedBuilder(
+      doubles,
+      new UnitMocker(
+        doubles.then((value) => value.mock),
+        Promise.resolve({ inspect })
+      ),
+      Root,
+      console
+    )
+      .compose()
+      .mock(Boundary)
+      .auto()
+      .compile();
+    expect(unit.boundary).toBe(unitRef.get(Boundary));
+    expect(inspect).not.toHaveBeenCalledWith(Boundary);
+    expect(inspect).not.toHaveBeenCalledWith(Nested);
+    expect(constructed).not.toHaveBeenCalled();
+  });
+
   it('creates independent composed builders without changing the original mode', async () => {
     const current = builder();
     const composed = current.compose();
