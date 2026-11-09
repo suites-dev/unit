@@ -197,6 +197,7 @@ testing context or container. Refer to the docs for further information: https:/
     }
 
     if (
+      selectedDependency !== undefined &&
       this.exposedDependencies.some(
         (entry) =>
           entry.identifier === identifier &&

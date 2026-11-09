@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { DependencyResolutionError } from '@suites/types.common';
 import type { FinalValue, Type, AbstractType } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
@@ -20,8 +21,11 @@ export interface ResolverOptions {
 
 export class DependencyResolver {
   private readonly dependencyMap = new DependencyMap();
-  private readonly availableClassesToExpose = new Set<AbstractType>();
-  private readonly constructionPath: Type[] = [];
+  private readonly availableClassesToExpose = new Set<InjectableIdentifier>();
+  private readonly constructionPath: {
+    identifier: InjectableIdentifier;
+    metadata?: IdentifierMetadata;
+  }[] = [];
   private readonly composedDependencies: IdentifierToMockOrFinal[0][] = [];
   private readonly exposedDependencies: IdentifierToMockOrFinal[0][] = [];
 
@@ -117,9 +121,15 @@ export class DependencyResolver {
         Type | FinalValue | StubbedInstance<unknown>;
     }
 
-    if (this.options.compose && this.constructionPath.includes(type)) {
-      const path = [...this.constructionPath, type]
-        .map((dependency) => dependency.name)
+    const trackConstruction = this.options.compose || (this.options.exposedBindings?.size ?? 0) > 0;
+    if (
+      trackConstruction &&
+      this.constructionPath.some(
+        (entry) => entry.identifier === identifier && isDeepStrictEqual(entry.metadata, metadata)
+      )
+    ) {
+      const path = [...this.constructionPath, { identifier, metadata }]
+        .map(({ identifier: token }) => (typeof token === 'function' ? token.name : String(token)))
         .join(' -> ');
       throw new DependencyResolutionError(
         `Cannot compose circular constructor dependencies: ${path}. ` +
@@ -127,14 +137,12 @@ export class DependencyResolver {
       );
     }
 
-    if (this.options.compose) this.constructionPath.push(type);
+    if (trackConstruction) this.constructionPath.push({ identifier, metadata });
     try {
       const injectableRegistry = this.adapter.inspect(type);
 
       injectableRegistry.list().forEach((injectable: ClassInjectable) => {
-        if (typeof injectable.identifier === 'function') {
-          this.availableClassesToExpose.add(injectable.identifier);
-        }
+        this.availableClassesToExpose.add(injectable.identifier);
       });
 
       const ctorInjectables = injectableRegistry.list().filter(({ type }) => type === 'PARAM');
@@ -155,7 +163,7 @@ export class DependencyResolver {
 
       return instance;
     } finally {
-      if (this.options.compose) this.constructionPath.pop();
+      if (trackConstruction) this.constructionPath.pop();
     }
   }
 
@@ -174,6 +182,7 @@ export class DependencyResolver {
   public getResolutionSummary(): {
     mocks: { metadata?: unknown; identifier: AbstractType }[];
     exposes: Type[];
+    exposedTokens: InjectableIdentifier[];
     notFound: IdentifierToMockOrFinal[];
   } {
     const exposes = this.classesToExpose.filter((cls) => !this.availableClassesToExpose.has(cls));
@@ -196,6 +205,9 @@ export class DependencyResolver {
         identifier: AbstractType;
       }[],
       exposes,
+      exposedTokens: [...(this.options.exposedBindings?.keys() ?? [])].filter(
+        (token) => !this.availableClassesToExpose.has(token)
+      ),
     };
   }
 }

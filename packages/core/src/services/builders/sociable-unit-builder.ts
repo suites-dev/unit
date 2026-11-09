@@ -2,7 +2,7 @@ import type { DoublesAdapter } from '@suites/types.doubles';
 import { resolveAdapter } from '../../adapter-provider.js';
 import type { AdapterProvider } from '../../adapter-provider.js';
 import type { InjectableIdentifier } from '@suites/types.di';
-import type { Type } from '@suites/types.common';
+import type { AbstractType, Type } from '@suites/types.common';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
@@ -14,6 +14,10 @@ import { TestBedBuilder } from './testbed-builder.js';
 export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
   expose(dependency: string | symbol, implementation: Type): SociableTestBedBuilder<TClass>;
+  expose<TDependency>(
+    dependency: AbstractType<TDependency>,
+    implementation: Type<NoInfer<TDependency>>
+  ): SociableTestBedBuilder<TClass>;
 }
 
 /** A sociable graph with explicitly selected mocked boundaries. */
@@ -91,6 +95,13 @@ For detailed instructions and best practices, refer to our documentation: https:
       });
     }
 
+    for (const token of resolution.exposedTokens ?? []) {
+      this.logger.warn(
+        `Suites Warning: Unreachable Exposed Dependency Detected. The dependency ${String(token)} ` +
+          `cannot be reached within the testing context of ${this.targetClass.name}.`
+      );
+    }
+
     return {
       unit: instance,
       unitRef: new UnitReference(
@@ -114,13 +125,28 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
     dependency: string | symbol,
     implementation: Type
   ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  public expose<TDependency>(
+    dependency: AbstractType<TDependency>,
+    implementation: Type<NoInfer<TDependency>>
+  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
   public expose(
-    dependency: Type | string | symbol,
+    dependency: AbstractType | string | symbol,
     implementation?: Type
   ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
     if (typeof dependency === 'function' && implementation === undefined) {
-      this.classesToExpose.push(dependency);
-    } else if (implementation !== undefined) {
+      const existing = this.exposedBindings.get(dependency);
+      if (existing !== undefined && existing !== dependency) {
+        throw new Error('Cannot expose different implementations for the same dependency token.');
+      }
+      this.classesToExpose.push(dependency as Type);
+    } else if (typeof implementation === 'function') {
+      const existing = this.exposedBindings.get(dependency);
+      if (
+        (existing !== undefined && existing !== implementation) ||
+        (this.classesToExpose.some((type) => type === dependency) && implementation !== dependency)
+      ) {
+        throw new Error('Cannot expose different implementations for the same dependency token.');
+      }
       this.exposedBindings.set(dependency, implementation);
     } else {
       throw new Error('Exposing a dependency token requires a concrete implementation.');
