@@ -1,7 +1,11 @@
 import type { DoublesAdapter } from '@suites/types.doubles';
+import { resolveAdapter } from '../../adapter-provider.js';
+import type { AdapterProvider } from '../../adapter-provider.js';
+import type { InjectableIdentifier } from '@suites/types.di';
 import type { Type } from '@suites/types.common';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
+import type { ResolverOptions } from '../dependency-resolver.js';
 import type { IdentifierToMockOrFinal } from '../dependency-container.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { UnitTestBed } from '../../types.js';
@@ -11,26 +15,33 @@ export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
 }
 
-export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
-  private readonly classesToExpose: Type[] = [];
+/** A sociable graph with explicitly selected mocked boundaries. */
+export interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
+  exclude(...identifiers: [InjectableIdentifier, ...InjectableIdentifier[]]): this;
+}
+
+abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
+  protected readonly classesToExpose: Type[] = [];
+  protected abstract get resolutionOptions(): ResolverOptions;
 
   public constructor(
-    private readonly doublesAdapter: Promise<DoublesAdapter>,
-    private readonly unitMocker: UnitMocker,
-    private readonly targetClass: Type<TClass>,
-    private readonly logger: Console
+    protected readonly doublesAdapter: AdapterProvider<DoublesAdapter>,
+    protected readonly unitMocker: UnitMocker,
+    protected readonly targetClass: Type<TClass>,
+    protected readonly logger: Console
   ) {
     super();
   }
 
-  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
-    this.classesToExpose.push(dependency);
-    return this;
+  protected copyMockConfigurationTo(builder: SociableBuilderBase<TClass>): void {
+    builder.identifiersToBeMocked.push(...this.identifiersToBeMocked);
+    builder.identifiersToBeFinalized.push(...this.identifiersToBeFinalized);
   }
 
   public async compile(): Promise<UnitTestBed<TClass>> {
-    const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
-    const stubCb = await this.doublesAdapter.then((adapter) => adapter.stub);
+    const doublesAdapter = await resolveAdapter(this.doublesAdapter);
+    const mockFn = doublesAdapter.mock;
+    const stubCb = doublesAdapter.stub;
 
     const identifiersToMocks: IdentifierToMockOrFinal[] = this.identifiersToBeMocked.map(
       ([identifier, mockImplCallback]) => {
@@ -44,11 +55,15 @@ export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
       }
     );
 
-    const { container, instance, resolution } = await this.unitMocker.constructUnit<TClass>(
-      this.targetClass,
-      this.classesToExpose,
-      new DependencyContainer([...identifiersToMocks, ...identifiersToFinal])
-    );
+    const { container, instance, resolution, composedDependencies } =
+      await this.unitMocker.constructUnit<TClass>(
+        this.targetClass,
+        this.classesToExpose,
+        new DependencyContainer([...identifiersToMocks, ...identifiersToFinal]),
+        {
+          resolution: this.resolutionOptions,
+        }
+      );
 
     if (resolution.mocks.length > 0) {
       resolution.mocks.forEach((identifier) => {
@@ -75,8 +90,58 @@ For detailed instructions and best practices, refer to our documentation: https:
     }
 
     return {
-      unit: instance as TClass,
-      unitRef: new UnitReference(container, this.classesToExpose, this.identifiersToBeFinalized),
+      unit: instance,
+      unitRef: new UnitReference(
+        container,
+        this.classesToExpose,
+        this.identifiersToBeFinalized,
+        composedDependencies
+      ),
     };
+  }
+}
+
+export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> {
+  protected get resolutionOptions(): ResolverOptions {
+    return {};
+  }
+
+  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
+    this.classesToExpose.push(dependency);
+    return this;
+  }
+
+  /** Recursively constructs discovered classes. Exclude abstract tokens and I/O explicitly. */
+  public compose(): ComposedTestBedBuilder<TClass> {
+    if (this.classesToExpose.length > 0) {
+      throw new Error('Cannot combine .compose() with .expose(); choose one sociable strategy.');
+    }
+    const composed = new ComposedSociableTestBedBuilder(
+      this.doublesAdapter,
+      this.unitMocker,
+      this.targetClass,
+      this.logger
+    );
+    this.copyMockConfigurationTo(composed);
+    return composed;
+  }
+}
+
+class ComposedSociableTestBedBuilder<TClass>
+  extends SociableBuilderBase<TClass>
+  implements ComposedTestBedBuilder<TClass>
+{
+  private readonly excludedIdentifiers: InjectableIdentifier[] = [];
+
+  protected get resolutionOptions(): ResolverOptions {
+    return { compose: true, excludedIdentifiers: this.excludedIdentifiers };
+  }
+
+  public exclude(...identifiers: [InjectableIdentifier, ...InjectableIdentifier[]]): this {
+    if (identifiers.length === 0) {
+      throw new Error('.exclude() requires at least one dependency identifier.');
+    }
+    this.excludedIdentifiers.push(...identifiers);
+    return this;
   }
 }

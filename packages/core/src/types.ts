@@ -58,7 +58,15 @@ export interface UnitTestBed<TClass> {
  * @since 3.0.0
  * @see {@link https://suites.dev/docs/api-reference/mock-configuration | Mock Configuration}
  */
-export interface MockOverride<TDependency, TClass> {
+export interface MockOverride<TDependency, TClass, TBuilder = TestBedBuilder<TClass>> {
+  /**
+   * Generates a mock without an initial implementation.
+   * Configure and inspect the mock through `unitRef.get()` after compilation.
+   *
+   * @returns The originating builder for method chaining.
+   */
+  auto(): TBuilder;
+
   /**
    * Configures mocks with stubs that can be retrieved and modified later via `unitRef.get()`.
    *
@@ -72,7 +80,7 @@ export interface MockOverride<TDependency, TClass> {
    */
   impl(
     mockImplementation: (stubFn: Stub<any, ArgsType<TDependency>>) => DeepPartial<TDependency>
-  ): TestBedBuilder<TClass>;
+  ): TBuilder;
 
   /**
    * Sets immutable final values for a mocked dependency. The mock cannot be retrieved
@@ -85,5 +93,5 @@ export interface MockOverride<TDependency, TClass> {
    * @returns A TestBedBuilder instance for method chaining.
    * @see {@link https://suites.dev/docs/api-reference/mock-configuration | Mock Configuration}
    */
-  final(finalImplementation: DeepPartial<TDependency>): TestBedBuilder<TClass>;
+  final(finalImplementation: DeepPartial<TDependency>): TBuilder;
 }
