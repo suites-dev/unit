@@ -297,6 +297,22 @@ export interface MockOverride<
   TBuilder = TestBedBuilder<TClass>,
 > extends MockOverrideCore<TDependency, TClass, TBuilder> {
   /**
+   * Generates a mock without an initial implementation.
+   * Configure and inspect the mock through `unitRef.get()` after compilation.
+   *
+   * @returns The originating builder for method chaining.
+   * @example
+   * ```ts
+   * const { unitRef } = await TestBed.solitary(MyService)
+   *   .mock(Logger)
+   *   .auto()
+   *   .compile();
+   * unitRef.get(Logger).log.mockReturnValue(undefined);
+   * ```
+   */
+  auto(): TBuilder;
+
+  /**
    * Provides a mock implementation using stub functions for methods.
    *
    * Use this when you need fine-grained control over method behavior with stub functions.

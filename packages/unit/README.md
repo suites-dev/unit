@@ -142,6 +142,24 @@ Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
+## Declare an automatic mock
+
+Use `.mock(Service).auto()` to generate a mock without supplying an initial implementation. Configure its behavior after compilation through `unitRef.get()`:
+
+```typescript
+const { unit, unitRef } = await TestBed.sociable(OrderService)
+  .expose(PricingService)
+  .mock(TaxService)
+  .auto()
+  .compile();
+
+unitRef.get(TaxService).calculate.mockReturnValue(20);
+```
+
+`.mock(Service)` selects a dependency; complete the declaration with `.auto()`, `.impl(callback)`, or `.final(value)`. Automatic mocks use the selected doubles adapter's normal behavior, including unstubbed methods returning `undefined`. They support the same token and metadata overloads as the other mock declarations.
+
+`.auto()` is available in solitary, selective sociable, and composition setups and preserves the builder's chaining methods. In composition, it replaces the selected dependency with a mock and stops traversal of that dependency. `.exclude(...tokens)` remains a convenient way to declare multiple composition boundaries. Existing automatic mocking defaults are unchanged; `.auto()` does not enable fail-fast validation.
+
 ## Compose a dependency graph
 
 Composition is opt-in. `.compose()` returns a separate builder with a copy of the current mock configuration. It recursively constructs discovered class dependencies while keeping your selected boundaries mocked:
