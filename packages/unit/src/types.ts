@@ -48,6 +48,27 @@ export interface SociableTestBedBuilder<TClass> extends SociableTestBedBuilderCo
    * @see {@link https://suites.dev/docs/api-reference/testbed-sociable | TestBed.sociable() API Reference}
    */
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
+
+  /**
+   * Constructs the supplied implementation for a string or symbol dependency token.
+   *
+   * @param dependency - The token requested by the dependent class.
+   * @param implementation - The concrete class to construct for that token.
+   * @returns The sociable builder for further configuration.
+   */
+  expose(dependency: string | symbol, implementation: Type): SociableTestBedBuilder<TClass>;
+
+  /**
+   * Constructs a compatible implementation for an abstract or concrete class token.
+   *
+   * @param dependency - The class token requested by the dependent class.
+   * @param implementation - A concrete implementation of the token's instance type.
+   * @returns The sociable builder for further configuration.
+   */
+  expose<TDependency>(
+    dependency: AbstractType<TDependency>,
+    implementation: Type<NoInfer<TDependency>>
+  ): SociableTestBedBuilder<TClass>;
 }
 
 export type { ComposedTestBedBuilder } from '@suites/core.unit';

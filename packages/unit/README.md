@@ -142,6 +142,26 @@ Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
+### Expose an implementation behind a token
+
+When a dependency is injected through a string, symbol, or abstract-class token, supply the concrete implementation that Suites should construct:
+
+```typescript
+const { unit, unitRef } = await TestBed.sociable(CheckoutService)
+  .expose(PRICING, PricingService)
+  .mock(ExchangeRates)
+  .impl((stub) => ({ rate: stub().mockReturnValue(1.2) }))
+  .compile();
+```
+
+Suites constructs `PricingService` under the `PRICING` token and resolves its dependencies using the usual sociable rules. Unexposed dependencies remain automatically mocked. Existing `.expose(Class)` calls keep their behavior. For abstract or concrete class tokens, TypeScript checks that the implementation satisfies the token's instance type; plain strings and symbols do not carry that type information.
+
+Repeated requests for the same token and metadata share an instance. Different tokens or metadata qualifiers receive separate instances, even when they use the same implementation class. Exposing a token does not also expose or alias its implementation's class token. A binding applies to every metadata-qualified occurrence of its token; use a qualified `.mock(...).auto()`, `.impl()`, or `.final()` declaration to override a particular occurrence. Explicit mock declarations take precedence over exposure, regardless of declaration order.
+
+Access exposed instances through the unit; `unitRef.get()` remains for mocks. Repeating the same binding is allowed, but assigning different implementations to the same token throws during configuration. Constructor cycles through bindings produce a dependency-path error. An unreachable token binding produces a warning.
+
+Token exposure uses selective sociable construction and cannot be combined with `.compose()`. The test supplies the binding explicitly: Suites does not read or verify the application's container registration. Keep the selected implementation aligned with production wiring when that matters to the test.
+
 ## Declare an automatic mock
 
 Use `.mock(Service).auto()` to generate a mock without supplying an initial implementation. Configure its behavior after compilation through `unitRef.get()`:
