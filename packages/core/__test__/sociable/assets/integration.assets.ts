@@ -9,6 +9,7 @@ import type {
 import type { Type } from '@suites/types.common';
 import { normalizeIdentifier } from '../../../src/normalize-identifier.static.js';
 import {
+  DataMapper,
   apiServiceRegistry,
   databaseServiceRegistry,
   userApiServiceRegistry,
@@ -29,6 +30,7 @@ import {
 } from './injectable-registry.fixture.js';
 
 const registryToClass: Map<Type, InjectableRegistry> = new Map<Type, InjectableRegistry>([
+  [DataMapper, emptyRegistry],
   [HttpClient, emptyRegistry],
   [TestLogger, emptyRegistry],
   [UserVerificationService, emptyRegistry],

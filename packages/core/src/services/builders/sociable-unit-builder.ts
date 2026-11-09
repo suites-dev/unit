@@ -2,7 +2,7 @@ import type { DoublesAdapter } from '@suites/types.doubles';
 import { resolveAdapter } from '../../adapter-provider.js';
 import type { AdapterProvider } from '../../adapter-provider.js';
 import type { InjectableIdentifier } from '@suites/types.di';
-import type { Type } from '@suites/types.common';
+import type { AbstractType, Type } from '@suites/types.common';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
@@ -13,6 +13,11 @@ import { TestBedBuilder } from './testbed-builder.js';
 
 export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
+  expose(dependency: string | symbol, implementation: Type): SociableTestBedBuilder<TClass>;
+  expose<TToken extends AbstractType>(
+    dependency: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SociableTestBedBuilder<TClass>;
 }
 
 /** A sociable graph with explicitly selected mocked boundaries. */
@@ -22,6 +27,7 @@ export interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 
 abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
   protected readonly classesToExpose: Type[] = [];
+  protected readonly exposedBindings = new Map<InjectableIdentifier, Type>();
   protected abstract get resolutionOptions(): ResolverOptions;
 
   public constructor(
@@ -55,7 +61,7 @@ abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
       }
     );
 
-    const { container, instance, resolution, composedDependencies } =
+    const { container, instance, resolution, composedDependencies, exposedDependencies } =
       await this.unitMocker.constructUnit<TClass>(
         this.targetClass,
         this.classesToExpose,
@@ -89,13 +95,21 @@ For detailed instructions and best practices, refer to our documentation: https:
       });
     }
 
+    for (const token of resolution.exposedTokens ?? []) {
+      this.logger.warn(
+        `Suites Warning: Unreachable Exposed Dependency Detected. The dependency ${String(token)} ` +
+          `cannot be reached within the testing context of ${this.targetClass.name}.`
+      );
+    }
+
     return {
       unit: instance,
       unitRef: new UnitReference(
         container,
         this.classesToExpose,
         this.identifiersToBeFinalized,
-        composedDependencies
+        composedDependencies,
+        exposedDependencies
       ),
     };
   }
@@ -103,17 +117,46 @@ For detailed instructions and best practices, refer to our documentation: https:
 
 export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> {
   protected get resolutionOptions(): ResolverOptions {
-    return {};
+    return { exposedBindings: this.exposedBindings };
   }
 
-  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
-    this.classesToExpose.push(dependency);
+  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  public expose(
+    dependency: string | symbol,
+    implementation: Type
+  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  public expose<TToken extends AbstractType>(
+    dependency: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  public expose(
+    dependency: AbstractType | string | symbol,
+    implementation?: Type
+  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
+    if (typeof dependency === 'function' && implementation === undefined) {
+      const existing = this.exposedBindings.get(dependency);
+      if (existing !== undefined && existing !== dependency) {
+        throw new Error('Cannot expose different implementations for the same dependency token.');
+      }
+      this.classesToExpose.push(dependency as Type);
+    } else if (typeof implementation === 'function') {
+      const existing = this.exposedBindings.get(dependency);
+      if (
+        (existing !== undefined && existing !== implementation) ||
+        (this.classesToExpose.some((type) => type === dependency) && implementation !== dependency)
+      ) {
+        throw new Error('Cannot expose different implementations for the same dependency token.');
+      }
+      this.exposedBindings.set(dependency, implementation);
+    } else {
+      throw new Error('Exposing a dependency token requires a concrete implementation.');
+    }
     return this;
   }
 
   /** Recursively constructs discovered classes. Exclude abstract tokens and I/O explicitly. */
   public compose(): ComposedTestBedBuilder<TClass> {
-    if (this.classesToExpose.length > 0) {
+    if (this.classesToExpose.length > 0 || this.exposedBindings.size > 0) {
       throw new Error('Cannot combine .compose() with .expose(); choose one sociable strategy.');
     }
     const composed = new ComposedSociableTestBedBuilder(

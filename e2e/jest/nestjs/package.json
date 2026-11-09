@@ -20,10 +20,11 @@
     "@swc/core": "^1.16.21",
     "@jest/globals": "^30.5.2",
     "@types/node": "^26.6.6",
-    "@suites/types.common": "e2e"
+    "@suites/types.common": "e2e",
+    "typescript-legacy": "npm:typescript@5.2.2"
   },
   "scripts": {
-    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && jest",
+    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && node node_modules/typescript-legacy/bin/tsc -p tsconfig.legacy.json && jest",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {
