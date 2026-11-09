@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.2.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%404.1.2...%40suites%2Fdoubles.jest%404.2.0) (2026-11-09)
+
+### Bug Fixes
+
+* **doubles.jest:** preserve supplied getter and setter descriptors ([f7e9788](https://github.com/suites-dev/unit/commit/f7e9788457e6fb279eaa62f84b2a5fa4e4c48edc))
+
+### Features
+
+* **doubles.jest:** preserve fluent builder APIs after mock overrides ([cf34898](https://github.com/suites-dev/unit/commit/cf34898eb006258adfa7f33c92ff088f8e4b9494))
+
+
 ## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%404.1.1...%40suites%2Fdoubles.jest%404.1.2) (2026-11-05)
 
 **Note:** Version bump only for package @suites/doubles.jest
