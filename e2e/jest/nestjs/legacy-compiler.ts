@@ -1,4 +1,4 @@
-import type { SociableTestBedBuilder } from '@suites/unit';
+import type { FluentSociableTestBedBuilder as SociableTestBedBuilder } from '@suites/unit';
 
 declare const builder: SociableTestBedBuilder<{ run(): void }>;
 class Logger {
