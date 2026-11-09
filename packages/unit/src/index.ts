@@ -4,5 +4,6 @@ export type {
   TestBedBuilder,
   SolitaryTestBedBuilder,
   SociableTestBedBuilder,
+  ComposedTestBedBuilder,
 } from './types.js';
 export type { UnitReference, MockOverride } from '@suites/core.unit';
