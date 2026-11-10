@@ -60,7 +60,7 @@
     "reflect-metadata": "<1.0.0"
   },
   "devDependencies": {
-    "inversify": "8.2.3",
+    "inversify": "8.2.4",
     "reflect-metadata": "<1.0.0"
   },
   "publishConfig": {
