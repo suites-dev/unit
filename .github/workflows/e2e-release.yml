@@ -19,6 +19,12 @@ permissions:
   contents: read
 
 jobs:
+  backward-compatibility:
+    name: Verify previous release consumers
+    uses: ./.github/workflows/backward-compatibility.yml
+    with:
+      commit: ${{ inputs.commit || github.sha }}
+
   e2e-full:
     name: Full E2E (${{ matrix.e2e-project }}, Node ${{ matrix.node-version }})
     env:

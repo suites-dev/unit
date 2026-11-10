@@ -1,0 +1,20 @@
+name: Previous release compatibility
+on:
+  pull_request:
+  workflow_call:
+    inputs:
+      commit:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/run-consumer-e2e.yml
+    with:
+      target-kind: candidate
+      target: ${{ inputs.commit || github.sha }}
+      baseline-version: previous
+      artifact-name: previous-release

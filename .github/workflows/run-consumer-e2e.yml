@@ -1,0 +1,104 @@
+name: Reusable consumer E2E
+on:
+  workflow_call:
+    inputs:
+      target-kind:
+        type: string
+        required: true
+      target:
+        type: string
+        required: true
+      test-ref:
+        type: string
+        default: ''
+      baseline-version:
+        type: string
+        default: ''
+      projects:
+        type: string
+        default: '[]'
+      node-versions:
+        type: string
+        default: '["22.x","24.x","26.x"]'
+      artifact-name:
+        type: string
+        default: consumer-e2e
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Freeze E2E inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.prepare.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        if: inputs.target-kind == 'candidate'
+        with:
+          ref: ${{ inputs.target }}
+          path: candidate-source
+          persist-credentials: false
+      - uses: ./.github/actions/setup-e2e-tools
+        with:
+          node-version: '26.x'
+      - uses: ./.github/actions/prepare-e2e-target
+        id: prepare
+        with:
+          target-kind: ${{ inputs.target-kind }}
+          target: ${{ inputs.target }}
+          test-ref: ${{ inputs.test-ref }}
+          baseline-version: ${{ inputs.baseline-version }}
+          projects: ${{ inputs.projects }}
+          node-versions: ${{ inputs.node-versions }}
+          destination: ${{ runner.temp }}/e2e-bundle
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact-name }}-inputs
+          path: ${{ runner.temp }}/e2e-bundle
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  consumer:
+    name: Consumer (${{ matrix.project }}, Node ${{ matrix.node }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-e2e-tools
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact-name }}-inputs
+          path: ${{ runner.temp }}/e2e-bundle
+      - uses: ./.github/actions/run-e2e-consumer
+        with:
+          bundle: ${{ runner.temp }}/e2e-bundle
+          project: ${{ matrix.project }}
+          work-directory: ${{ runner.temp }}/consumer
+      - name: Preserve verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact-name }}-${{ matrix.id }}
+          path: |
+            ${{ runner.temp }}/consumer/result.json
+            ${{ runner.temp }}/consumer/*/consumer.log
+            ${{ runner.temp }}/consumer/*/installed.json
+            ${{ runner.temp }}/consumer/*/e2e/**/pnpm-lock.yaml
+          if-no-files-found: warn
+          retention-days: 7

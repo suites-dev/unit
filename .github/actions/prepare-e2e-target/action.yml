@@ -1,0 +1,54 @@
+name: Prepare E2E target
+description: Build candidate packages when requested and freeze a test snapshot and target manifest.
+inputs:
+  target-kind:
+    description: npm or candidate.
+    required: true
+  target:
+    description: Exact npm version or latest; candidate source is checked out by the caller.
+    required: true
+  candidate-directory:
+    description: Checked-out candidate source directory.
+    default: candidate-source
+  test-ref:
+    description: Test Git revision; empty selects the baseline or target source commit.
+    default: ''
+  baseline-version:
+    description: Optional npm baseline to verify before the target.
+    default: ''
+  projects:
+    description: JSON array of consumers; empty array discovers all projects in the test snapshot.
+    default: '[]'
+  node-versions:
+    description: JSON array of consumer Node versions.
+    default: '["22.x","24.x","26.x"]'
+  destination:
+    description: Fresh bundle directory.
+    required: true
+outputs:
+  matrix:
+    description: Frozen consumer and runtime matrix.
+    value: ${{ steps.prepare.outputs.matrix }}
+runs:
+  using: composite
+  steps:
+    - name: Build candidate once
+      if: inputs.target-kind == 'candidate'
+      shell: bash
+      working-directory: ${{ inputs.candidate-directory }}
+      run: |
+        pnpm install --frozen-lockfile
+        pnpm build
+    - name: Freeze test source and package targets
+      id: prepare
+      shell: bash
+      env:
+        E2E_TARGET_KIND: ${{ inputs.target-kind }}
+        E2E_TARGET: ${{ inputs.target }}
+        E2E_CANDIDATE_REPOSITORY: ${{ inputs.candidate-directory }}
+        E2E_TEST_REF: ${{ inputs.test-ref }}
+        E2E_BASELINE: ${{ inputs.baseline-version }}
+        E2E_PROJECTS: ${{ inputs.projects }}
+        E2E_NODES: ${{ inputs.node-versions }}
+        E2E_DESTINATION: ${{ inputs.destination }}
+      run: node scripts/e2e/cli.cjs prepare "$E2E_DESTINATION"
