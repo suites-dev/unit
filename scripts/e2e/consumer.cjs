@@ -141,6 +141,7 @@ function phase(bundle, plan, project, target, directory, baseline) {
       '--registry=https://registry.npmjs.org/',
     ]);
     const tree = installedPackages(consumer);
+    writeFileSync(join(directory, 'installed.json'), JSON.stringify(tree, null, 2));
     verifyInstalled(tree, target);
     const external = externalVersions(tree);
     if (baseline)
@@ -172,8 +173,10 @@ function phase(bundle, plan, project, target, directory, baseline) {
       'Consumer installation settings changed'
     );
     verifySnapshot(directory, plan.tests.hashes, dependencyFiles);
-    writeFileSync(join(directory, 'installed.json'), JSON.stringify(tree, null, 2));
     return { consumer, external };
+  } catch (error) {
+    console.error(readFileSync(log, 'utf8'));
+    throw error;
   } finally {
     closeSync(descriptor);
   }
@@ -196,17 +199,24 @@ function runConsumer(bundle, project, workdir, runPhase = phase) {
     testCommit: plan.tests.commit,
     target: plan.target.label,
     baseline: plan.baseline?.label,
+    baselineStatus: plan.baseline ? 'not-run' : 'not-requested',
+    targetStatus: 'not-run',
     status: 'baseline-unavailable',
   };
   try {
     let baseline;
     if (plan.baseline) {
       console.log(`Baseline ${plan.baseline.label}: ${project}`);
+      result.baselineStatus = 'failed';
       baseline = runPhase(bundle, plan, project, plan.baseline, join(workdir, 'baseline'));
+      result.baselineStatus = 'passed';
+      console.log(`PASSED baseline ${plan.baseline.label}: ${project}`);
     }
     result.status = plan.baseline ? 'candidate-failed' : 'target-failed';
     console.log(`Target ${plan.target.label}: ${project}`);
+    result.targetStatus = 'failed';
     runPhase(bundle, plan, project, plan.target, join(workdir, 'target'), baseline);
+    result.targetStatus = 'passed';
     result.status = 'passed';
     console.log(
       `Passed ${project}: tests ${plan.tests.commit}, target ${plan.target.label}, Node ${process.version}`
@@ -219,7 +229,7 @@ function runConsumer(bundle, project, workdir, runPhase = phase) {
     if (process.env.GITHUB_STEP_SUMMARY) {
       require('node:fs').appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
-        `### Consumer verification: ${project}\n\n- Tests: \`${plan.tests.commit}\`\n- Target: \`${plan.target.label}\`\n- Baseline: \`${plan.baseline?.label || 'not requested'}\`\n- Node: \`${process.version}\`\n- Result: **${result.status}**\n`
+        `### Consumer verification: ${project}\n\n- Tests: \`${plan.tests.commit}\`\n- Node: \`${process.version}\`\n- Result: **${result.status}**\n\n| Execution | Package target | Result |\n| --- | --- | --- |\n| Baseline | ${plan.baseline?.label || 'not requested'} | ${result.baselineStatus} |\n| Candidate / target | ${plan.target.label} | ${result.targetStatus} |\n`
       );
     }
   }

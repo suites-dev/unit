@@ -59,9 +59,13 @@ The automatic gate requires a published baseline in the same major. Use the stan
 
 This verifies the behavior represented in the selected suite. It cannot detect an uncovered contract or a test removed from that historical suite. Current E2E tests, DI-version coverage, and mixed-version TypeScript checks remain separate gates.
 
+The separate **Current regression consumers** comparison uses newly added consumer examples from the candidate commit. It runs the identical example against the published baseline and candidate through the same reusable runner. These examples cover contracts absent from the historical suite; they are not presented as tests shipped with the old release. The `regressions/testbed-subclasses` consumer compiles legacy static factory overrides and must remain compatible before a minor release.
+
 ## Read the evidence
 
 Each job summary records the test commit, target, baseline, Node version, and result. The input artifact contains `plan.json`, frozen tests, and integrity-checked package tarballs. Consumer artifacts contain `result.json`, install/test logs, the installed dependency inventory, and lockfiles. Download the logs when an installation or test fails.
+
+The summary also shows baseline and target results separately. A failing baseline prevents target execution. Failed consumer output is printed in the job log, and installed dependency inventories are retained even if the tests fail.
 
 Registry lookups use a fresh temporary npm cache per preparation, so an old local metadata cache cannot choose the baseline. Within a prepared bundle, refs and versions are resolved once; retries consume that frozen bundle.
 

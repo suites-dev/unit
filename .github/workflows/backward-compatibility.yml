@@ -18,3 +18,15 @@ jobs:
       target: ${{ inputs.commit || github.sha }}
       baseline-version: previous
       artifact-name: previous-release
+
+  regression-consumers:
+    name: Current regression consumers
+    uses: ./.github/workflows/run-consumer-e2e.yml
+    with:
+      target-kind: candidate
+      target: ${{ inputs.commit || github.sha }}
+      baseline-version: previous
+      test-ref: ${{ inputs.commit || github.sha }}
+      projects: '["regressions/testbed-subclasses"]'
+      node-versions: '["26.x"]'
+      artifact-name: regression-consumers

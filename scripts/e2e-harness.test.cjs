@@ -50,10 +50,10 @@ test('a failing baseline blocks target execution and reports unavailable verific
     /baseline cannot run/
   );
   assert.deepEqual(calls, ['10.3.0']);
-  assert.equal(
-    JSON.parse(readFileSync(join(workdir, 'result.json'))).status,
-    'baseline-unavailable'
-  );
+  const result = JSON.parse(readFileSync(join(workdir, 'result.json')));
+  assert.equal(result.status, 'baseline-unavailable');
+  assert.equal(result.baselineStatus, 'failed');
+  assert.equal(result.targetStatus, 'not-run');
 });
 
 test('a target failure after a passing baseline fails compatibility', (t) => {
@@ -76,7 +76,10 @@ test('a target failure after a passing baseline fails compatibility', (t) => {
     /existing assertion failed/
   );
   assert.deepEqual(calls, ['10.3.0', '10.4.0']);
-  assert.equal(JSON.parse(readFileSync(join(workdir, 'result.json'))).status, 'candidate-failed');
+  const result = JSON.parse(readFileSync(join(workdir, 'result.json')));
+  assert.equal(result.status, 'candidate-failed');
+  assert.equal(result.baselineStatus, 'passed');
+  assert.equal(result.targetStatus, 'failed');
 });
 
 test('successful pairs keep baseline and target in separate consumer directories', (t) => {
@@ -92,6 +95,8 @@ test('successful pairs keep baseline and target in separate consumer directories
     }
   );
   assert.equal(result.status, 'passed');
+  assert.equal(result.baselineStatus, 'passed');
+  assert.equal(result.targetStatus, 'passed');
   assert.deepEqual(directories, [join(workdir, 'baseline'), join(workdir, 'target')]);
 });
 
