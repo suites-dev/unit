@@ -111,8 +111,9 @@ try {
       }
       writeFileSync(join(consumer, 'package.json'), '{"private":true}');
       const files = ['legacy.ts', 'core.ts'];
-      if (current.includes('@suites/unit')) files.push('fluent.ts');
-      for (const file of files) {
+      const hasCandidateUnit = current.includes('@suites/unit');
+      if (hasCandidateUnit) files.push('fluent.ts', 'helpers.ts');
+      for (const file of [...files, ...(hasCandidateUnit ? ['emitted.ts'] : [])]) {
         writeFileSync(
           join(consumer, file),
           readFileSync(join(fixtures, file), 'utf8').replaceAll(
@@ -139,6 +140,28 @@ try {
           })
         );
         run(process.execPath, [compiler, '-p', config]);
+        if (hasCandidateUnit) {
+          run(process.execPath, [
+            compiler,
+            '-p',
+            config,
+            '--noEmit',
+            'false',
+            '--declaration',
+            '--emitDeclarationOnly',
+            '--outDir',
+            join(consumer, 'declarations'),
+          ]);
+          const emittedConfig = join(consumer, 'tsconfig.emitted.json');
+          writeFileSync(
+            emittedConfig,
+            JSON.stringify({
+              extends: './tsconfig.json',
+              files: ['emitted.ts'],
+            })
+          );
+          run(process.execPath, [compiler, '-p', emittedConfig]);
+        }
         console.log(`Passed ${label}, ${framework}, TypeScript ${version}`);
         checks++;
       }

@@ -443,10 +443,4 @@ export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
   compile(): Promise<UnitTestBed<TClass>>;
 }
 
-export type {
-  ComposedTestBedBuilder,
-  FluentTestBedBuilder,
-  FluentSociableTestBedBuilder,
-  FluentSolitaryTestBedBuilder,
-  FluentMockOverride,
-} from '@suites/core.unit';
+export type { ComposedTestBedBuilder } from '@suites/core.unit';

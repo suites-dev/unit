@@ -1,5 +1,13 @@
 import type {} from '@suites/doubles.jest/unit';
-import { TestBed, type ComposedTestBedBuilder, type FluentMockOverride } from '@suites/unit';
+import { TestBed, type ComposedTestBedBuilder } from '@suites/unit';
+// @ts-expect-error Fluent implementation types are not exported by Unit.
+import type { FluentTestBedBuilder } from '@suites/unit';
+// @ts-expect-error Fluent implementation types are not exported by Unit.
+import type { FluentSociableTestBedBuilder } from '@suites/unit';
+// @ts-expect-error Fluent implementation types are not exported by Unit.
+import type { FluentSolitaryTestBedBuilder } from '@suites/unit';
+// @ts-expect-error Fluent implementation types are not exported by Unit.
+import type { FluentMockOverride } from '@suites/unit';
 import type { Type, AbstractType } from '@suites/types.common';
 class Service {
   name = 'service';
@@ -72,7 +80,7 @@ async function run() {
 void run;
 void generic;
 
-const selected: FluentMockOverride<Service, Subject> = TestBed.solitary(Subject).mock(Service);
+const selected = TestBed.solitary(Subject).mock(Service);
 selected.auto().compile();
 
 const inferred = TestBed.solitary(Subject).mock(Service);
