@@ -1,0 +1,40 @@
+name: Run E2E against a version
+on:
+  workflow_dispatch:
+    inputs:
+      target-kind:
+        description: Where the packages come from.
+        type: choice
+        options: [npm, candidate]
+        default: npm
+      target:
+        description: npm version/latest, or a Git revision when testing a candidate.
+        type: string
+        required: true
+        default: latest
+      test-ref:
+        description: Test Git revision; empty uses the target release's tests.
+        type: string
+        default: ''
+      projects:
+        description: JSON consumer list; [] runs every consumer in the selected test snapshot.
+        type: string
+        default: '[]'
+      node-versions:
+        description: JSON Node version list.
+        type: string
+        default: '["22.x","24.x","26.x"]'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/run-consumer-e2e.yml
+    with:
+      target-kind: ${{ inputs.target-kind }}
+      target: ${{ inputs.target }}
+      test-ref: ${{ inputs.test-ref }}
+      projects: ${{ inputs.projects }}
+      node-versions: ${{ inputs.node-versions }}
+      artifact-name: remote-e2e

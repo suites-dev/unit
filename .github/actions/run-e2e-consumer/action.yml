@@ -1,0 +1,22 @@
+name: Run isolated E2E consumer
+description: Verify installed packages and frozen tests, then execute the baseline and target.
+inputs:
+  bundle:
+    description: Downloaded E2E bundle directory.
+    required: true
+  project:
+    description: Consumer path from the bundle's project inventory.
+    required: true
+  work-directory:
+    description: Fresh directory outside the source checkout.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Execute frozen consumer tests
+      shell: bash
+      env:
+        E2E_BUNDLE: ${{ inputs.bundle }}
+        E2E_PROJECT: ${{ inputs.project }}
+        E2E_WORK_DIRECTORY: ${{ inputs.work-directory }}
+      run: node scripts/e2e/cli.cjs run "$E2E_BUNDLE" "$E2E_PROJECT" "$E2E_WORK_DIRECTORY"

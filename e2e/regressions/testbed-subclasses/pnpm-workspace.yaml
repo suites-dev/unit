@@ -1,0 +1,4 @@
+packages: []
+lockfile: false
+minimumReleaseAgeExclude:
+  - '@suites/*'
