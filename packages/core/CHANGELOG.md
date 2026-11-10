@@ -3,21 +3,6 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [4.2.0](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.2...%40suites%2Fcore.unit%404.2.0) (2026-11-09)
-
-### Bug Fixes
-
-* **core.unit:** guard final values selected by qualified token fallback ([fccd11e](https://github.com/suites-dev/unit/commit/fccd11ec4c895cdc38503d3b62a46b7a2b9a86fe))
-* **core.unit:** preserve metadata identity in dependency caches ([33892d1](https://github.com/suites-dev/unit/commit/33892d1c1bca24c3a7993d49739a0e7d891c48e0))
-
-### Features
-
-* **core.unit:** add recursive composition with explicit mock boundaries ([ac10e62](https://github.com/suites-dev/unit/commit/ac10e6254d1f35a339474fbea826fc494f472c49))
-* **core.unit:** construct exposed implementations for dependency tokens ([477ae5c](https://github.com/suites-dev/unit/commit/477ae5c4b48f64d8d89b365b8add4c02161eef42)), closes [#465](https://github.com/suites-dev/unit/issues/465)
-* **core.unit:** support explicit automatic mock declarations ([e4e95f1](https://github.com/suites-dev/unit/commit/e4e95f1a9c815eb5f5948c35a3cdb4b6397ea8f4))
-* **core.unit:** validate token bindings and support abstract classes ([99fd7ad](https://github.com/suites-dev/unit/commit/99fd7ade1b9084be07532db3ee8a29ce5c260428))
-
-
 ## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.1...%40suites%2Fcore.unit%404.1.2) (2026-11-05)
 
 **Note:** Version bump only for package @suites/core.unit

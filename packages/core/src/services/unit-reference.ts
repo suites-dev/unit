@@ -3,11 +3,7 @@ import type { StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { AbstractType } from '@suites/types.common';
 import { DependencyResolutionError } from '@suites/types.common';
-import type {
-  DependencyContainer,
-  IdentifierToFinal,
-  IdentifierToMockOrFinal,
-} from './dependency-container.js';
+import type { DependencyContainer, IdentifierToFinal } from './dependency-container.js';
 import { referenceDependencyNotFoundError, stringifyIdentifier } from './functions.static.js';
 
 /**
@@ -147,9 +143,7 @@ export class UnitReference {
   public constructor(
     private readonly mocksContainer: DependencyContainer,
     private readonly exposedInstances: InjectableIdentifier[],
-    private readonly fakedDependencies: IdentifierToFinal[],
-    private readonly composedDependencies: readonly IdentifierToMockOrFinal[0][] = [],
-    private readonly exposedDependencies: readonly IdentifierToMockOrFinal[0][] = []
+    private readonly fakedDependencies: IdentifierToFinal[]
   ) {}
 
   public get<TDependency>(type: AbstractType<TDependency>): StubbedInstance<TDependency>;
@@ -175,17 +169,11 @@ export class UnitReference {
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): StubbedInstance<TDependency> {
-    const selectedDependency = this.mocksContainer.resolveEntry(identifier, identifierMetadata);
-
     if (
       this.fakedDependencies
         .map(([identifier]) => identifier)
         .some(
-          (id) =>
-            id.identifier === identifier &&
-            (isDeepStrictEqual(id.metadata, identifierMetadata) ||
-              (selectedDependency !== undefined &&
-                isDeepStrictEqual(id.metadata, selectedDependency[0].metadata)))
+          (id) => id.identifier === identifier && isDeepStrictEqual(id.metadata, identifierMetadata)
         )
     ) {
       const identifierString = stringifyIdentifier(identifier, identifierMetadata);
@@ -196,36 +184,14 @@ Faked dependencies are not intended for direct retrieval and should be accessed 
 testing context or container. Refer to the docs for further information: https://suites.dev/docs`);
     }
 
-    if (
-      selectedDependency !== undefined &&
-      this.exposedDependencies.some(
-        (entry) =>
-          entry.identifier === identifier &&
-          isDeepStrictEqual(entry.metadata, selectedDependency?.[0].metadata)
-      )
-    ) {
-      throw new DependencyResolutionError(
-        `The dependency ${stringifyIdentifier(identifier, identifierMetadata)} is marked as an exposed dependency. ` +
-          'Access the real instance through the unit instead of unitRef.get().'
-      );
-    }
-
-    if (
-      typeof identifier === 'function' &&
-      (this.exposedInstances.includes(identifier) ||
-        this.composedDependencies.some(
-          (entry) =>
-            entry.identifier === identifier &&
-            isDeepStrictEqual(entry.metadata, selectedDependency?.[0].metadata)
-        ))
-    ) {
+    if (typeof identifier === 'function' && this.exposedInstances.includes(identifier)) {
       throw new DependencyResolutionError(`The dependency associated with the specified identifier '${identifier.name}' could not be retrieved from the
 current testing context, as it is marked as an exposed dependency.
 Exposed dependencies are not intended for direct retrieval and should be accessed through the appropriate
 testing context or container. Refer to the docs for further information: https://suites.dev/docs`);
     }
 
-    const dependency = selectedDependency?.[1];
+    const dependency = this.mocksContainer.resolve<TDependency>(identifier, identifierMetadata);
 
     if (!dependency) {
       const message = referenceDependencyNotFoundError(identifier, identifierMetadata);

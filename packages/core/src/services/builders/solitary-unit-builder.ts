@@ -1,13 +1,8 @@
 import type { DoublesAdapter } from '@suites/types.doubles';
-import { resolveAdapter } from '../../adapter-provider.js';
-import type { AdapterProvider } from '../../adapter-provider.js';
 import type { Type } from '@suites/types.common';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
-import type {
-  IdentifierToMockOrFinal,
-  IdentifierToMockImplWithCb,
-} from '../dependency-container.js';
+import type { IdentifierToMockOrFinal, IdentifierToMockImplWithCb } from '../dependency-container.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { UnitTestBed } from '../../types.js';
 import { TestBedBuilder } from './testbed-builder.js';
@@ -19,7 +14,7 @@ export class SolitaryTestBedBuilder<TClass>
   implements TestBedBuilder<TClass>
 {
   public constructor(
-    private readonly doublesAdapter: AdapterProvider<DoublesAdapter>,
+    private readonly doublesAdapter: Promise<DoublesAdapter>,
     private readonly unitMocker: UnitMocker,
     private readonly targetClass: Type<TClass>,
     private readonly logger: Console
@@ -28,9 +23,8 @@ export class SolitaryTestBedBuilder<TClass>
   }
 
   public async compile(): Promise<UnitTestBed<TClass>> {
-    const doublesAdapter = await resolveAdapter(this.doublesAdapter);
-    const mockFn = doublesAdapter.mock;
-    const stubFn = doublesAdapter.stub;
+    const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
+    const stubFn = await this.doublesAdapter.then((adapter) => adapter.stub);
 
     const identifiersToMocksImpls: IdentifierToMockOrFinal[] = this.identifiersToBeMocked.map(
       ([identifier, mockImplCallback]: IdentifierToMockImplWithCb) => {

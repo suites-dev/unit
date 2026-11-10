@@ -3,15 +3,6 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [4.2.0](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.1.2...%40suites%2Funit%404.2.0) (2026-11-09)
-
-### Features
-
-* **unit:** add mock().auto() for intentional automatic mocks ([7dadcef](https://github.com/suites-dev/unit/commit/7dadcef7e65cbad900af84c7a32aaed4ec083ed1))
-* **unit:** add opt-in compose() and variadic exclude() ([d16e812](https://github.com/suites-dev/unit/commit/d16e8127275b2c783d3692be83333e5e6e7e6e38))
-* **unit:** expose real implementations for dependency tokens ([fcc3afa](https://github.com/suites-dev/unit/commit/fcc3afac2650ae783e2e7b3ec7006112a67d21a2))
-
-
 ## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.1.1...%40suites%2Funit%404.1.2) (2026-11-05)
 
 **Note:** Version bump only for package @suites/unit

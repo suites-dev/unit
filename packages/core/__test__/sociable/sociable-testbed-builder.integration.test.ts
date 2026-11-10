@@ -2,7 +2,6 @@ import type { StubbedInstance } from '@suites/types.doubles';
 import { FakeAdapter } from './assets/integration.assets.js';
 import { mock } from '../mock.static.js';
 import type { Repository, User } from './assets/injectable-registry.fixture.js';
-import { DataMapper } from './assets/injectable-registry.fixture.js';
 import { Axios } from './assets/injectable-registry.fixture.js';
 import { HttpClient } from './assets/injectable-registry.fixture.js';
 import {
@@ -41,7 +40,6 @@ describe('Social TestBed Builder Integration Tests', () => {
       .expose(UserDal)
       .expose(HttpClient)
       .expose(DatabaseService)
-      .expose(DataMapper.token, DataMapper)
       .mock(TestLogger)
       .impl((stubFn: Mock) => ({ log: stubFn().mockReturnValue('overridden') }))
       .mock(Axios)
@@ -77,8 +75,6 @@ describe('Social TestBed Builder Integration Tests', () => {
   });
 
   it('should throw an error indicating the dependencies cannot be retrieved as they were exposed in the testbed', () => {
-    expect(() => unitRef.get(DataMapper.token)).toThrow(/exposed dependency/);
-    expect(() => unitRef.get(DataMapper)).toThrow();
     expect(() => unitRef.get(DatabaseService)).toThrow();
     expect(() => unitRef.get(UserDal)).toThrow();
     expect(() => unitRef.get(UserApiService)).toThrow();

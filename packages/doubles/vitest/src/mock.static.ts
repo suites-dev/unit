@@ -10,11 +10,6 @@ const overrideMockImp = <T>(obj: DeepPartial<T>): Mocked<T> => {
 
   for (const name of Object.keys(obj)) {
     const descriptor = Object.getOwnPropertyDescriptor(obj, name);
-    // Accessors already live on the proxy target; preserve them without evaluating or assigning.
-    if (descriptor && ('get' in descriptor || 'set' in descriptor)) {
-      continue;
-    }
-
     if (descriptor && !descriptor.writable && !descriptor.configurable) {
       continue;
     }
@@ -34,7 +29,7 @@ const overrideMockImp = <T>(obj: DeepPartial<T>): Mocked<T> => {
 const handler = <T>() => ({
   set: (obj: Mocked<T>, property: ProxiedProperty, value: T) => {
     const descriptor = Object.getOwnPropertyDescriptor(obj, property);
-    if (descriptor && 'value' in descriptor && !descriptor.writable && !descriptor.configurable) {
+    if (descriptor && !descriptor.writable && !descriptor.configurable) {
       return true;
     }
     // @ts-ignore https://github.com/microsoft/TypeScript/issues/1863

@@ -1,58 +1,36 @@
 import type { MockFunction } from '@suites/types.doubles';
-import type { DependencyInjectionAdapter, InjectableIdentifier } from '@suites/types.di';
+import type { DependencyInjectionAdapter } from '@suites/types.di';
 import type { IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyContainer } from './dependency-container.js';
 import type { Type, AbstractType } from '@suites/types.common';
-import type { ResolverOptions } from './dependency-resolver.js';
 import { DependencyResolver } from './dependency-resolver.js';
-import { resolveAdapter } from '../adapter-provider.js';
-import type { AdapterProvider } from '../adapter-provider.js';
 
 export interface MockedUnit<TClass> {
   container: DependencyContainer;
   instance: TClass;
-  composedDependencies?: IdentifierToMockOrFinal[0][];
-  exposedDependencies?: IdentifierToMockOrFinal[0][];
   resolution: {
     notFound: IdentifierToMockOrFinal[];
     mocks: { metadata?: unknown; identifier: AbstractType }[];
     exposes: Type[];
-    exposedTokens?: InjectableIdentifier[];
   };
-}
-
-/** Optional construction path; existing DI adapters keep their inspect contract. */
-export interface UnitConstructionStrategy<TClass> {
-  construct(targetClass: Type<TClass>): MockedUnit<TClass> | Promise<MockedUnit<TClass>>;
-}
-
-export interface UnitConstructionOptions<TClass> {
-  strategy?: UnitConstructionStrategy<TClass>;
-  resolution?: ResolverOptions;
 }
 
 export class UnitMocker {
   public constructor(
-    private readonly mockFunction: AdapterProvider<MockFunction>,
-    private readonly diAdapter: AdapterProvider<DependencyInjectionAdapter>
+    private readonly mockFunction: Promise<MockFunction>,
+    private readonly diAdapter: Promise<DependencyInjectionAdapter>
   ) {}
 
   public async constructUnit<TClass>(
     targetClass: Type<TClass>,
     classesToExpose: Type[],
-    mockContainer: DependencyContainer,
-    options?: UnitConstructionOptions<TClass>
+    mockContainer: DependencyContainer
   ): Promise<MockedUnit<TClass>> {
-    if (options?.strategy) {
-      return options.strategy.construct(targetClass);
-    }
-
     const dependencyResolver = new DependencyResolver(
       classesToExpose,
       mockContainer,
-      await resolveAdapter(this.diAdapter),
-      await resolveAdapter(this.mockFunction),
-      options?.resolution
+      await this.diAdapter,
+      await this.mockFunction
     );
 
     const instance = dependencyResolver.instantiateClass(targetClass);
@@ -65,8 +43,6 @@ export class UnitMocker {
       container: new DependencyContainer(identifierToDependency),
       instance: instance as TClass,
       resolution: dependencyResolver.getResolutionSummary(),
-      composedDependencies: dependencyResolver.getComposedDependencies(),
-      exposedDependencies: dependencyResolver.getExposedDependencies(),
     };
   }
 }
