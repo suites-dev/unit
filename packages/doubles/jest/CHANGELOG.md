@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%404.1.2...%40suites%2Fdoubles.jest%404.1.3) (2026-11-11)
+
+### Bug Fixes
+
+* **doubles.jest:** preserve accessors and lazily mock nested getter/setter objects
+
 ## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%404.1.1...%40suites%2Fdoubles.jest%404.1.2) (2026-11-05)
 
 **Note:** Version bump only for package @suites/doubles.jest
