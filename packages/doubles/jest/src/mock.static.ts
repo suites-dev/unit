@@ -6,10 +6,15 @@ import type { Mocked } from './types.js';
 type ProxiedProperty = string | number | symbol;
 
 const overrideMockImp = <T>(obj: DeepPartial<T>): Mocked<T> => {
-  const proxy = new Proxy<Mocked<T>>(obj as Mocked<T>, handler());
+  const proxy = new Proxy<Mocked<T>>(obj as Mocked<T>, handler(true));
 
   for (const name of Object.keys(obj)) {
     const descriptor = Object.getOwnPropertyDescriptor(obj, name);
+    // Accessors already live on the proxy target; preserve them without evaluating or assigning.
+    if (descriptor && ('get' in descriptor || 'set' in descriptor)) {
+      continue;
+    }
+
     if (descriptor && !descriptor.writable && !descriptor.configurable) {
       continue;
     }
@@ -26,48 +31,69 @@ const overrideMockImp = <T>(obj: DeepPartial<T>): Mocked<T> => {
   return proxy;
 };
 
-const handler = <T>() => ({
-  set: (obj: Mocked<T>, property: ProxiedProperty, value: T) => {
-    const descriptor = Object.getOwnPropertyDescriptor(obj, property);
-    if (descriptor && !descriptor.writable && !descriptor.configurable) {
+const handler = <T>(deepMockAccessors = false) => {
+  const accessorMocks = new WeakMap<WeakKey, unknown>();
+
+  return {
+    set: (obj: Mocked<T>, property: ProxiedProperty, value: T) => {
+      const descriptor = Object.getOwnPropertyDescriptor(obj, property);
+      if (descriptor && 'value' in descriptor && !descriptor.writable && !descriptor.configurable) {
+        return true;
+      }
+      // @ts-ignore https://github.com/microsoft/TypeScript/issues/1863
+      obj[property] = value;
       return true;
-    }
-    // @ts-ignore https://github.com/microsoft/TypeScript/issues/1863
-    obj[property] = value;
-    return true;
-  },
+    },
 
-  get: (obj: Mocked<T>, property: ProxiedProperty) => {
-    // @ts-ignore
-    if (!(property in obj)) {
-      if (property === 'then') {
-        return undefined;
-      }
-
-      // Jest's internal equality checking does some weird stuff to check for iterable equality
-      if (property === Symbol.iterator) {
-        // @ts-ignore
-        return obj[property];
-      }
-
-      if (property !== 'calls') {
-        // @ts-ignore
-        obj[property] = new Proxy<jest.Mock<T>>(jestGlobals.fn(), handler());
-        // @ts-ignore private property
-        obj[property as never]._isMockObject = true;
-      }
-    }
-
-    // @ts-ignore
-    if (obj instanceof Date && typeof obj[property] === 'function') {
+    get: (obj: Mocked<T>, property: ProxiedProperty) => {
       // @ts-ignore
-      return obj[property].bind(obj);
-    }
+      if (!(property in obj)) {
+        if (property === 'then') {
+          return undefined;
+        }
 
-    // @ts-ignore
-    return obj[property];
-  },
-});
+        // Jest's internal equality checking does some weird stuff to check for iterable equality
+        if (property === Symbol.iterator) {
+          // @ts-ignore
+          return obj[property];
+        }
+
+        if (property !== 'calls') {
+          // @ts-ignore
+          obj[property] = new Proxy<jest.Mock<T>>(jestGlobals.fn(), handler());
+          // @ts-ignore private property
+          obj[property as never]._isMockObject = true;
+        }
+      }
+
+      const value: unknown = Reflect.get(obj, property);
+      const descriptor = Object.getOwnPropertyDescriptor(obj, property);
+      if (
+        deepMockAccessors &&
+        descriptor?.enumerable &&
+        descriptor.get &&
+        descriptor.set &&
+        typeof value === 'object' &&
+        value !== null
+      ) {
+        const cached = accessorMocks.get(value);
+        if (cached) {
+          return cached;
+        }
+        const mocked = overrideMockImp(value);
+        accessorMocks.set(value, mocked);
+        accessorMocks.set(mocked, mocked);
+        return mocked;
+      }
+
+      if (obj instanceof Date && typeof value === 'function') {
+        return value.bind(obj);
+      }
+
+      return value;
+    },
+  };
+};
 
 /**
  * Creates a fully mocked instance with auto-generated Jest stub methods.
