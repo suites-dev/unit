@@ -12,6 +12,7 @@ import { DependencyMap } from './dependency-map.js';
 
 export class DependencyResolver {
   private readonly dependencyMap = new DependencyMap();
+  private readonly usedMockEntries = new Set<IdentifierToMockOrFinal>();
   private readonly availableClassesToExpose = new Set<AbstractType>();
 
   constructor(
@@ -43,9 +44,11 @@ export class DependencyResolver {
       return this.dependencyMap.get(identifier) as Type | FinalValue | ClassInjectable;
     }
 
-    const existingMock = this.mockedFromBeforeContainer.resolve(identifier, metadata);
+    const existingEntry = this.mockedFromBeforeContainer.resolveEntry(identifier, metadata);
 
-    if (existingMock !== undefined) {
+    if (existingEntry !== undefined && existingEntry[1] !== undefined) {
+      const existingMock = existingEntry[1];
+      this.usedMockEntries.add(existingEntry);
       this.dependencyMap.set(identifier, existingMock, metadata as never);
       return existingMock;
     }
@@ -135,9 +138,9 @@ export class DependencyResolver {
         ([injectable]) => !this.availableClassesToExpose.has(injectable.identifier as AbstractType)
       );
 
-    const notFound = this.mockedFromBeforeContainer.list().filter(([injectable]) => {
-      return !this.dependencyMap.has(injectable.identifier);
-    });
+    const notFound = this.mockedFromBeforeContainer
+      .list()
+      .filter((entry) => !this.usedMockEntries.has(entry));
 
     return {
       notFound,
