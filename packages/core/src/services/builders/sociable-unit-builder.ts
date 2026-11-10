@@ -1,27 +1,22 @@
 import type { DoublesAdapter } from '@suites/types.doubles';
 import { resolveAdapter } from '../../adapter-provider.js';
 import type { AdapterProvider } from '../../adapter-provider.js';
-import type { InjectableIdentifier } from '@suites/types.di';
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { AbstractType, Type } from '@suites/types.common';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
 import type { IdentifierToMockOrFinal } from '../dependency-container.js';
 import { DependencyContainer } from '../dependency-container.js';
-import type { UnitTestBed } from '../../types.js';
-import { TestBedBuilder } from './testbed-builder.js';
+import type { FluentMockOverride, UnitTestBed } from '../../types.js';
+import { TestBedBuilder, type FluentTestBedBuilder } from './testbed-builder.js';
 
 export interface SociableTestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
-  expose(dependency: string | symbol, implementation: Type): SociableTestBedBuilder<TClass>;
-  expose<TToken extends AbstractType>(
-    dependency: TToken,
-    implementation: Type<InstanceType<TToken>>
-  ): SociableTestBedBuilder<TClass>;
 }
 
 /** A sociable graph with explicitly selected mocked boundaries. */
-export interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
+export interface ComposedTestBedBuilder<TClass> extends FluentTestBedBuilder<TClass> {
   exclude(...identifiers: [InjectableIdentifier, ...InjectableIdentifier[]]): this;
 }
 
@@ -120,19 +115,33 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
     return { exposedBindings: this.exposedBindings };
   }
 
-  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  public expose(dependency: Type): SociableTestBedBuilder<TClass> {
+    this.classesToExpose.push(dependency);
+    return this;
+  }
+}
+
+export class FluentSociableTestBedBuilder<TClass> extends SociableTestBedBuilder<TClass> {
+  public mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    metadata?: IdentifierMetadata
+  ): FluentMockOverride<TDependency, TClass, this> {
+    return this.createMockOverride(identifier, metadata);
+  }
+
+  public expose(dependency: Type): FluentSociableTestBedBuilder<TClass>;
   public expose(
     dependency: string | symbol,
     implementation: Type
-  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  ): FluentSociableTestBedBuilder<TClass>;
   public expose<TToken extends AbstractType>(
     dependency: TToken,
     implementation: Type<InstanceType<TToken>>
-  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass>;
+  ): FluentSociableTestBedBuilder<TClass>;
   public expose(
     dependency: AbstractType | string | symbol,
     implementation?: Type
-  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
+  ): FluentSociableTestBedBuilder<TClass> {
     if (typeof dependency === 'function' && implementation === undefined) {
       const existing = this.exposedBindings.get(dependency);
       if (existing !== undefined && existing !== dependency) {
@@ -174,6 +183,13 @@ class ComposedSociableTestBedBuilder<TClass>
   extends SociableBuilderBase<TClass>
   implements ComposedTestBedBuilder<TClass>
 {
+  public mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    metadata?: IdentifierMetadata
+  ): FluentMockOverride<TDependency, TClass, this> {
+    return this.createMockOverride(identifier, metadata);
+  }
+
   private readonly excludedIdentifiers: InjectableIdentifier[] = [];
 
   protected get resolutionOptions(): ResolverOptions {

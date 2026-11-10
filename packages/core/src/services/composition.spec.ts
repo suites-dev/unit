@@ -6,7 +6,7 @@ import type {
 } from '@suites/types.di';
 import { DependencyContainer } from './dependency-container.js';
 import { DependencyResolver } from './dependency-resolver.js';
-import { SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
+import { FluentSociableTestBedBuilder as SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
 import { UnitMocker } from './unit-mocker.js';
 
 function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdapter {

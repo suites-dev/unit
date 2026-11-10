@@ -1,3 +1,4 @@
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { DoublesAdapter } from '@suites/types.doubles';
 import { resolveAdapter } from '../../adapter-provider.js';
 import type { AdapterProvider } from '../../adapter-provider.js';
@@ -9,7 +10,7 @@ import type {
   IdentifierToMockImplWithCb,
 } from '../dependency-container.js';
 import { DependencyContainer } from '../dependency-container.js';
-import type { UnitTestBed } from '../../types.js';
+import type { FluentMockOverride, UnitTestBed } from '../../types.js';
 import { TestBedBuilder } from './testbed-builder.js';
 
 export interface SolitaryTestBedBuilder<TClass> extends TestBedBuilder<TClass> {}
@@ -65,5 +66,14 @@ interactions. For detailed guidelines on setting up solitary tests, refer to: ht
       unit: instance as TClass,
       unitRef: new UnitReference(container, [], this.identifiersToBeFinalized),
     };
+  }
+}
+
+export class FluentSolitaryTestBedBuilder<TClass> extends SolitaryTestBedBuilder<TClass> {
+  public mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    metadata?: IdentifierMetadata
+  ): FluentMockOverride<TDependency, TClass, this> {
+    return this.createMockOverride(identifier, metadata);
   }
 }

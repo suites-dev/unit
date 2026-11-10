@@ -15,7 +15,10 @@ import {
   DatabaseService,
 } from './assets/injectable-registry.fixture.js';
 import type { UnitReference } from '../../src.js';
-import { SociableTestBedBuilder, UnitMocker } from '../../src.js';
+import {
+  FluentSociableTestBedBuilder as SociableTestBedBuilder,
+  UnitMocker,
+} from '../../src.js';
 import Mock = jest.Mock;
 
 describe('Social TestBed Builder Integration Tests', () => {

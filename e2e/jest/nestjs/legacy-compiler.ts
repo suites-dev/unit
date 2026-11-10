@@ -1,6 +1,9 @@
-import type { SociableTestBedBuilder } from '@suites/unit';
+import { TestBed } from '@suites/unit';
 
-declare const builder: SociableTestBedBuilder<{ run(): void }>;
+class Subject {
+  run(): void {}
+}
+const builder = TestBed.sociable(Subject);
 class Logger {
   log(): void {}
 }
