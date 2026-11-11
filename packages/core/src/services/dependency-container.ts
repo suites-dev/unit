@@ -32,6 +32,14 @@ export class DependencyContainer {
     identifier: InjectableIdentifier<TDependency>,
     metadata?: IdentifierMetadata
   ): StubbedInstance<TDependency> | ConstantValue | undefined {
+    return this.resolveEntry(identifier, metadata)?.[1] as
+      StubbedInstance<TDependency> | ConstantValue | undefined;
+  }
+
+  public resolveEntry(
+    identifier: InjectableIdentifier,
+    metadata?: IdentifierMetadata
+  ): IdentifierToMockOrFinal | undefined {
     // If there is one identifier, it is enough to match, no need to check metadata
     const identifiers = this.identifierToDependency.filter(
       ([{ identifier: injectableIdentifier }]) => injectableIdentifier === identifier
@@ -42,7 +50,7 @@ export class DependencyContainer {
     }
 
     if (identifiers.length === 1 && !metadata) {
-      return identifiers[0][1] as StubbedInstance<TDependency> | ConstantValue;
+      return identifiers[0];
     }
 
     // If there are more than one injectable with the same identifier, we need to check the metadata as well
@@ -51,9 +59,7 @@ export class DependencyContainer {
         isDeepStrictEqual(injectableMetadata, metadata)
       );
 
-      return identifierToMock
-        ? (identifierToMock[1] as StubbedInstance<TDependency> | ConstantValue)
-        : undefined;
+      return identifierToMock;
     }
 
     const foundIdentifier = this.identifierToDependency.find(
@@ -61,9 +67,7 @@ export class DependencyContainer {
         injectableIdentifier === identifier && typeof metadata === 'undefined'
     );
 
-    return foundIdentifier
-      ? (foundIdentifier[1] as StubbedInstance<TDependency> | ConstantValue)
-      : undefined;
+    return foundIdentifier;
   }
 
   public list(): IdentifierToMockOrFinal[] {
