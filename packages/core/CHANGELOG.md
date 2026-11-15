@@ -7,7 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
-* **core.unit:** track selected overrides in usage warnings ([4ba448f](https://github.com/suites-dev/unit/commit/4ba448f9))
+* **core.unit:** track selected overrides in usage warnings ([ea6a22f](https://github.com/suites-dev/unit/commit/ea6a22fe9644845aae2e9cea2f57be9bf9c4c3e5))
 
 ## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.1...%40suites%2Fcore.unit%404.1.2) (2026-11-05)
 

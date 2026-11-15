@@ -7,7 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
-* **doubles.jest:** preserve accessors and lazily mock nested getter/setter objects
+* **doubles.jest:** preserve accessors and lazily mock nested getter/setter objects ([306922c](https://github.com/suites-dev/unit/commit/306922cd6e735dd4f0fc37f80d38d408f105ad0d))
 
 ## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%404.1.1...%40suites%2Fdoubles.jest%404.1.2) (2026-11-05)
 
