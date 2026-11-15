@@ -2,7 +2,7 @@ name: Tag Release
 on:
   pull_request:
     types: [closed]
-    branches: [master]
+    branches: [master, release/4.1]
   workflow_dispatch:
 
 permissions:
@@ -16,14 +16,18 @@ jobs:
   tag:
     name: Tag reviewed Lerna versions
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release/4.1')) ||
       (github.event.pull_request.merged == true &&
+       (github.event.pull_request.base.ref == 'master' ||
+        github.event.pull_request.base.ref == 'release/4.1') &&
        github.event.pull_request.head.repo.full_name == github.repository &&
        startsWith(github.event.pull_request.head.ref, 'chore/release-'))
     environment: release
     runs-on: ubuntu-latest
     env:
       APPROVED_COMMIT: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+      APPROVED_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -33,8 +37,9 @@ jobs:
       - name: Verify reviewed source
         run: |
           [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$APPROVED_BRANCH" == master || "$APPROVED_BRANCH" == release/4.1 ]]
           test "$(git rev-parse HEAD)" = "$APPROVED_COMMIT"
-          git merge-base --is-ancestor "$APPROVED_COMMIT" origin/master
+          git merge-base --is-ancestor "$APPROVED_COMMIT" "origin/$APPROVED_BRANCH"
       - uses: actions/setup-node@v7
         with:
           node-version: '26.x'

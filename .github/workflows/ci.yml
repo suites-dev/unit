@@ -9,6 +9,31 @@ permissions:
   pull-requests: write
 
 jobs:
+  maintenance-release-plan:
+    name: Review 4.1 maintenance publication plan
+    if: github.event.pull_request.base.ref == 'release/4.1'
+    runs-on: ubuntu-latest
+    env:
+      APPROVED_COMMIT: ${{ github.sha }}
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26.x'
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.16.1
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Review package tags without creating them
+        run: node scripts/release-tagging.cjs plan "$RUNNER_TEMP/tags.json"
+      - name: Review npm publication without uploading
+        run: node scripts/release-publication.cjs plan "$RUNNER_TEMP/publication.json"
+
   build:
     name: Build
     runs-on: ubuntu-latest

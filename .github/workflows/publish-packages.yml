@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       commit:
-        description: Full reviewed master HEAD commit SHA (must match the workflow run)
+        description: Full reviewed release branch HEAD commit SHA (must match the workflow run)
         required: true
         type: string
 
@@ -28,7 +28,7 @@ env:
 jobs:
   plan:
     name: Review publication plan
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release/4.1'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,7 +36,7 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Select the reviewed master commit
+      - name: Select the reviewed release commit
         run: |
           [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           test "$APPROVED_COMMIT" = "$GITHUB_SHA" # npm provenance identifies the workflow commit
@@ -60,7 +60,7 @@ jobs:
     needs: plan
     uses: ./.github/workflows/e2e-release.yml
     with:
-      target_branch: master
+      target_branch: ${{ github.ref_name }}
       commit: ${{ inputs.commit }}
 
   publish:
@@ -77,7 +77,7 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Select the reviewed master commit
+      - name: Select the reviewed release commit
         run: |
           [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           test "$APPROVED_COMMIT" = "$GITHUB_SHA" # npm provenance identifies the workflow commit
