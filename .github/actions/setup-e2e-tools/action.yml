@@ -1,0 +1,19 @@
+name: Set up E2E tools
+description: Install the consumer runtime and the repository's pnpm version.
+inputs:
+  node-version:
+    description: Node version used by this job.
+    required: true
+  pnpm-version:
+    description: pnpm version used to install isolated consumers.
+    default: '12.16.1'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        package-manager-cache: false
+    - uses: pnpm/action-setup@v6
+      with:
+        version: ${{ inputs.pnpm-version }}
