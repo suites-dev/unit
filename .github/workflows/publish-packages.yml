@@ -63,9 +63,16 @@ jobs:
       target_branch: ${{ github.ref_name }}
       commit: ${{ inputs.commit }}
 
+  compatibility:
+    name: Verify previous release consumers
+    needs: plan
+    uses: ./.github/workflows/backward-compatibility.yml
+    with:
+      commit: ${{ inputs.commit }}
+
   publish:
     name: Publish reviewed tagged packages
-    needs: [plan, e2e]
+    needs: [plan, e2e, compatibility]
     environment: release
     runs-on: ubuntu-latest
     permissions:
