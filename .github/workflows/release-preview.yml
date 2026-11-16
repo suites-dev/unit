@@ -30,8 +30,7 @@ permissions:
 jobs:
   preview:
     name: Preview Release
-    # Select master or next using the workflow dispatch branch selector.
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/next'
+    if: github.ref == 'refs/heads/master'
     env:
       TARGET_BRANCH: ${{ github.ref_name }}
       RELEASE_TYPE: ${{ inputs.release_type }}
