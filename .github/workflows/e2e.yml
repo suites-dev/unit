@@ -5,7 +5,6 @@ env:
 on:
   pull_request:
     branches:
-      - next
       - master
   workflow_dispatch:
 
