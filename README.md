@@ -8,17 +8,6 @@
 A unit testing framework for TypeScript backends working with inversion of control and dependency injection
 </p>
 
-<p align="center">
-  <strong>Supported frameworks:</strong>
-  <a href="https://suites.dev/docs/guides/nestjs/">NestJS</a> ·
-  <a href="https://suites.dev/docs/guides/inversify/">InversifyJS</a> ·
-  <a href="https://suites.dev/docs/guides/injectionjs/">InjectionJS</a>
-  <br />
-  <strong>Test runners:</strong>
-  <a href="packages/doubles/jest/README.md">Jest</a> ·
-  <a href="packages/doubles/vitest/README.md">Vitest</a>
-</p>
-
 <div align="center">
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
   <a href="https://github.com/suites-dev/suites/blob/master/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" /></a>
@@ -48,6 +37,11 @@ Using Suites? <a href="https://github.com/suites-dev/suites/discussions/655">Sha
 - **Standardized Testing Across Teams** - Exposes a uniform testing surface across NestJS, InversifyJS, and InjectionJS, enabling consistent test structure and patterns regardless of the underlying framework.
 
 - **AI Ready** - Provides a concise and strict test API that minimizes context requirements for LLM-based coding agents, enabling higher-quality generated tests, clearer and more actionable error messages that guide automatic self-correction, and a higher likelihood of completing test authoring in a single pass.
+
+### Supported frameworks and test runners
+
+- **Frameworks:** [NestJS](https://suites.dev/docs/guides/nestjs/), [InversifyJS](https://suites.dev/docs/guides/inversify/), and [InjectionJS](https://suites.dev/docs/guides/injectionjs/).
+- **Test runners:** [Jest](packages/doubles/jest/README.md) and [Vitest](packages/doubles/vitest/README.md).
 
 ## Examples
 
