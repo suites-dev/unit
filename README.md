@@ -8,6 +8,17 @@
 A unit testing framework for TypeScript backends working with inversion of control and dependency injection
 </p>
 
+<p align="center">
+  <strong>Supported frameworks:</strong>
+  <a href="https://suites.dev/docs/guides/nestjs/">NestJS</a> ·
+  <a href="https://suites.dev/docs/guides/inversify/">InversifyJS</a> ·
+  <a href="https://suites.dev/docs/guides/injectionjs/">InjectionJS</a>
+  <br />
+  <strong>Test runners:</strong>
+  <a href="packages/doubles/jest/README.md">Jest</a> ·
+  <a href="packages/doubles/vitest/README.md">Vitest</a>
+</p>
+
 <div align="center">
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
   <a href="https://github.com/suites-dev/suites/blob/master/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" /></a>
@@ -34,7 +45,7 @@ Using Suites? <a href="https://github.com/suites-dev/suites/discussions/655">Sha
 
 - **Type-Safe Refactoring** - Binds mocks to concrete TypeScript implementations so that changes to constructors, injected dependencies, and method signatures are validated at compile time, enabling confident refactors with less failing tests.
 
-- **Standardized Testing Across Teams** - Exposes a uniform testing surface across NestJS, InversifyJS, and other DI setups, enabling consistent test structure and patterns regardless of the underlying framework.
+- **Standardized Testing Across Teams** - Exposes a uniform testing surface across NestJS, InversifyJS, and InjectionJS, enabling consistent test structure and patterns regardless of the underlying framework.
 
 - **AI Ready** - Provides a concise and strict test API that minimizes context requirements for LLM-based coding agents, enabling higher-quality generated tests, clearer and more actionable error messages that guide automatic self-correction, and a higher likelihood of completing test authoring in a single pass.
 
