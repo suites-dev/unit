@@ -34,9 +34,14 @@ Using Suites? <a href="https://github.com/suites-dev/suites/discussions/655">Sha
 
 - **Type-Safe Refactoring** - Binds mocks to concrete TypeScript implementations so that changes to constructors, injected dependencies, and method signatures are validated at compile time, enabling confident refactors with less failing tests.
 
-- **Standardized Testing Across Teams** - Exposes a uniform testing surface across NestJS, InversifyJS, and other DI setups, enabling consistent test structure and patterns regardless of the underlying framework.
+- **Standardized Testing Across Teams** - Exposes a uniform testing surface across NestJS, InversifyJS, and InjectionJS, enabling consistent test structure and patterns regardless of the underlying framework.
 
 - **AI Ready** - Provides a concise and strict test API that minimizes context requirements for LLM-based coding agents, enabling higher-quality generated tests, clearer and more actionable error messages that guide automatic self-correction, and a higher likelihood of completing test authoring in a single pass.
+
+### Supported frameworks and test runners
+
+- **Frameworks:** [NestJS](https://suites.dev/docs/guides/nestjs/), [InversifyJS](https://suites.dev/docs/guides/inversify/), and [InjectionJS](https://suites.dev/docs/guides/injectionjs/).
+- **Test runners:** [Jest](packages/doubles/jest/README.md) and [Vitest](packages/doubles/vitest/README.md).
 
 ## Examples
 
