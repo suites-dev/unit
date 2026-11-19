@@ -24,7 +24,8 @@
     "test": "pnpm lerna exec pnpm test",
     "e2e": "ts-node local-e2e.ts",
     "validate-tsdoc-links": "ts-node scripts/validate-tsdoc-links.ts",
-    "test:release": "node --test scripts/*.test.cjs"
+    "test:release": "node --test scripts/*.test.cjs",
+    "test:types:compat": "node scripts/check-release-type-compatibility.cjs"
   },
   "lint-staged": {
     "*.ts": [
