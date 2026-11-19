@@ -85,6 +85,10 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check published and candidate type compatibility
+        if: matrix.node-version == '26.x' && matrix.e2e-project == 'jest/nestjs'
+        run: pnpm test:types:compat
+
       - name: Configure local test registry
         env:
           TEST_NPMRC: ${{ runner.temp }}/verdaccio.npmrc

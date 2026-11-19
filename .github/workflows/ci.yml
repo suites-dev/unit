@@ -41,6 +41,10 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check published and candidate type compatibility
+        if: matrix.node-version == '26.x'
+        run: pnpm test:types:compat
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
