@@ -12,6 +12,15 @@ permissions:
   contents: read
 
 jobs:
+  manual-solitary:
+    name: Packed manual solitary consumers
+    uses: ./.github/workflows/run-consumer-e2e.yml
+    with:
+      target-kind: candidate
+      target: ${{ github.sha }}
+      projects: '["jest/manual", "vitest/manual", "esm/jest/manual", "esm/vitest/manual"]'
+      artifact-name: manual-solitary-e2e
+
   version-preview:
     name: Version Preview
     runs-on: ubuntu-latest
