@@ -77,16 +77,11 @@ export class UserDigestService {
   }
 }
 
-export class DataMapper {
-  static readonly token = Symbol('DATA_MAPPER');
-}
-
 export class UserApiService {
   public constructor(
     private readonly userVerificationService: UserVerificationService,
     private readonly apiService: ApiService,
-    private readonly userDigestService: UserDigestService,
-    @FakeInject(DataMapper.token) readonly dataMapper: DataMapper
+    private readonly userDigestService: UserDigestService
   ) {}
 
   public async getUserData(userId: string): Promise<string> {
@@ -187,7 +182,6 @@ export const userApiServiceRegistry: InjectableRegistry = {
       { identifier: UserVerificationService, value: UserVerificationService, type: 'PARAM' },
       { identifier: ApiService, value: ApiService, type: 'PARAM' },
       { identifier: UserDigestService, value: UserDigestService, type: 'PARAM' },
-      { identifier: DataMapper.token, value: DataMapper, type: 'PARAM' },
     ];
   },
   resolve: () => undefined,
