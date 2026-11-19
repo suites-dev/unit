@@ -3,16 +3,11 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [4.2.0](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.2...%40suites%2Fdoubles.vitest%404.2.0) (2026-11-09)
+## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.2...%40suites%2Fdoubles.vitest%404.1.3) (2026-11-11)
 
 ### Bug Fixes
 
-* **doubles.vitest:** preserve supplied getter and setter descriptors ([3b8c278](https://github.com/suites-dev/unit/commit/3b8c27815779d71c93a3d3adf1fd43d84a203f85))
-
-### Features
-
-* **doubles.vitest:** preserve fluent builder APIs after mock overrides ([17842c3](https://github.com/suites-dev/unit/commit/17842c338064f286b14dada4c17bc03804446db0))
-
+* **doubles.vitest:** preserve accessors and lazily mock nested getter/setter objects ([025656c](https://github.com/suites-dev/unit/commit/025656c2b4aaebdf3c19751c3b662f34520ef1c1))
 
 ## [4.1.2](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.1...%40suites%2Fdoubles.vitest%404.1.2) (2026-11-05)
 
