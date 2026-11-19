@@ -12,6 +12,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
+    "ioredis": "6.0.0",
     "@swc/core": "^1.16.2",
     "@vitest/coverage-v8": "5.1.0",
     "ts-node": "^10.9.2",
@@ -20,10 +21,11 @@
     "vitest": "5.1.0",
     "@vitest/spy": "5.1.0",
     "@types/node": "^26.6.6",
-    "@suites/types.common": "e2e"
+    "@suites/types.common": "e2e",
+    "@suites/types.doubles": "e2e"
   },
   "scripts": {
-    "test": "tsc --noEmit && vitest --run",
+    "test": "tsc --noEmit && tsc -p tsconfig.adapter-contract.json --noEmit && vitest --run",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {
