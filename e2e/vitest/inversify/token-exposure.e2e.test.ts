@@ -73,8 +73,6 @@ describe('token exposure', () => {
       TestBed.sociable(Root).expose(Port, Cache);
       // @ts-expect-error Implementations must satisfy concrete token instance types too.
       TestBed.sociable(Root).expose(Provider, Cache);
-      // @ts-expect-error Token exposure remains selective, not a composition operation.
-      TestBed.sociable(Single).compose().expose(PRIMARY, Provider);
     };
     expect(checkTypes).toBeDefined();
   });
@@ -87,17 +85,7 @@ describe('token exposure', () => {
     expect(unit.provider.region()).toBe('configured later');
   });
 
-  it('lets automatic, implementation and final overrides replace exposed tokens', async () => {
-    const automatic = await TestBed.sociable(Single)
-      .expose(PRIMARY, Provider)
-      .mock<Port>(PRIMARY)
-      .auto()
-      .compile();
-    automatic.unitRef.get<Port>(PRIMARY).region.mockReturnValue('automatic');
-    expect(automatic.unit.provider).toBe(automatic.unitRef.get(PRIMARY));
-    expect(automatic.unit.provider.region()).toBe('automatic');
-    expect(automatic.unit.provider).not.toBeInstanceOf(Provider);
-
+  it('lets implementation and final overrides replace exposed tokens', async () => {
     const implementation = await TestBed.sociable(Single)
       .expose(Cache)
       .mock<Port>(PRIMARY)
@@ -174,7 +162,7 @@ it('preserves qualified binding identity and allows a mock for one qualifier', a
     .expose(PRIMARY, Provider)
     .expose(Cache)
     .mock<Port>(PRIMARY, { named: 'secondary' })
-    .auto()
+    .impl((stub) => ({ region: stub() }))
     .compile();
   mixed.unitRef.get<Port>(PRIMARY, { named: 'secondary' }).region.mockReturnValue('mock');
   expect(mixed.unit.primary.region()).toBe('real');

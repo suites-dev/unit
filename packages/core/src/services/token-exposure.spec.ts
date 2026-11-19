@@ -23,8 +23,8 @@ function builder<T>(root: Type<T>, entries: [Type, ClassInjectable[]][]) {
   };
   const warn = jest.fn();
   const testBed = new SociableTestBedBuilder(
-    doubles,
-    new UnitMocker(Promise.resolve(doubles.mock), adapter),
+    Promise.resolve(doubles),
+    new UnitMocker(Promise.resolve(doubles.mock), Promise.resolve(adapter)),
     root,
     {
       ...console,
@@ -125,7 +125,7 @@ describe('real implementations behind dependency tokens', () => {
     const overridden = await builder(Root, entries)
       .testBed.expose(token, Leaf)
       .mock(token, { named: 'secondary' })
-      .auto()
+      .impl(() => ({}))
       .compile();
     expect(overridden.unit.primary).toBeInstanceOf(Leaf);
     expect(overridden.unit.secondary).toBe(overridden.unitRef.get(token, { named: 'secondary' }));
@@ -145,7 +145,7 @@ describe('real implementations behind dependency tokens', () => {
     expect(() => unitRef.get('provider', { named: 'missing' })).toThrow(/could not be located/);
   });
 
-  it.each(['auto', 'impl', 'final'] as const)(
+  it.each(['impl', 'final'] as const)(
     'lets %s override a token binding before construction',
     async (mode) => {
       const constructed = jest.fn();
@@ -163,7 +163,6 @@ describe('real implementations behind dependency tokens', () => {
       const testBed = builder(Root, [[Root, [param('provider')]]]).testBed.expose('provider', Real);
       const selector = testBed.mock<Real>('provider');
       const supplied = { read: () => 'supplied' };
-      if (mode === 'auto') selector.auto();
       if (mode === 'impl') selector.impl(() => supplied);
       if (mode === 'final') selector.final(supplied);
       const { unit, unitRef } = await testBed.compile();
@@ -245,13 +244,6 @@ describe('real implementations behind dependency tokens', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('missing'));
     expect(() => testBed.expose('missing', Cache)).toThrow(/different implementations/);
     expect(() => testBed.expose('missing', Provider)).not.toThrow();
-  });
-
-  it('keeps selective token exposure separate from composition', () => {
-    class Root {}
-    expect(() => builder(Root, []).testBed.expose('provider', Provider).compose()).toThrow(
-      /Cannot combine/
-    );
   });
 
   it('rejects missing implementations in untyped calls', () => {

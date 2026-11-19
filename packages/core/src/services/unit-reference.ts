@@ -148,7 +148,6 @@ export class UnitReference {
     private readonly mocksContainer: DependencyContainer,
     private readonly exposedInstances: InjectableIdentifier[],
     private readonly fakedDependencies: IdentifierToFinal[],
-    private readonly composedDependencies: readonly IdentifierToMockOrFinal[0][] = [],
     private readonly exposedDependencies: readonly IdentifierToMockOrFinal[0][] = []
   ) {}
 
@@ -210,15 +209,7 @@ testing context or container. Refer to the docs for further information: https:/
       );
     }
 
-    if (
-      typeof identifier === 'function' &&
-      (this.exposedInstances.includes(identifier) ||
-        this.composedDependencies.some(
-          (entry) =>
-            entry.identifier === identifier &&
-            isDeepStrictEqual(entry.metadata, selectedDependency?.[0].metadata)
-        ))
-    ) {
+    if (typeof identifier === 'function' && this.exposedInstances.includes(identifier)) {
       throw new DependencyResolutionError(`The dependency associated with the specified identifier '${identifier.name}' could not be retrieved from the
 current testing context, as it is marked as an exposed dependency.
 Exposed dependencies are not intended for direct retrieval and should be accessed through the appropriate

@@ -1,8 +1,4 @@
-import {
-  SuitesDIAdapters,
-  SuitesDoublesAdapters,
-  testBedBuilderFactory,
-} from './testbed-builder.js';
+import { SuitesDIAdapters, SuitesDoublesAdapters, testBedBuilderFactory } from './testbed-builder.js';
 import type { Type } from '@suites/types.common';
 import {
   SociableTestBedBuilder as SociableTestBedBuilderCore,
@@ -96,7 +92,7 @@ export class TestBed {
    */
   public static sociable<TClass = any>(
     targetClass: Type<TClass>
-  ): Pick<SociableTestBedBuilder<TClass>, 'expose' | 'compose'> {
+  ): Pick<SociableTestBedBuilder<TClass>, 'expose'> {
     return testBedBuilderFactory(SuitesDIAdapters, SuitesDoublesAdapters, targetClass).create(
       SociableTestBedBuilderCore<TClass>
     );

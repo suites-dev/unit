@@ -178,7 +178,7 @@ declare module '@suites/core.unit' {
    * @template TDependency The type of the dependency to be mocked.
    * @template TClass The type of the class under test.
    */
-  export interface MockOverride<TDependency, TClass, TBuilder> {
+  export interface MockOverride<TDependency, TClass> {
     /**
      * Provides a mock implementation using stub functions for methods.
      *
@@ -202,7 +202,7 @@ declare module '@suites/core.unit' {
       mockImplementation: (
         stubFn: () => JestStub<ArgsType<TDependency>>
       ) => DeepPartial<TDependency>
-    ): TBuilder;
+    ): TestBedBuilder<TClass>;
 
     /**
      * Provides a final implementation with concrete values or functions.
@@ -223,6 +223,6 @@ declare module '@suites/core.unit' {
      *   .compile();
      * ```
      */
-    final(finalImplementation: DeepPartial<TDependency>): TBuilder;
+    final(finalImplementation: DeepPartial<TDependency>): TestBedBuilder<TClass>;
   }
 }
