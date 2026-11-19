@@ -255,6 +255,80 @@ describe('Mocking Proxy Mechanism Unit Spec', () => {
       expect(reads).toBe(1);
     });
 
+    test.each([true, false])(
+      'deep mocks getter/setter objects lazily with configurable=%s',
+      (configurable) => {
+        let reads = 0;
+        let writes = 0;
+        let child: { nested: { read?: () => string } } = { nested: {} };
+        const implementation = Object.create(null, {
+          child: {
+            enumerable: true,
+            configurable,
+            get() {
+              reads += 1;
+              return child;
+            },
+            set(value: typeof child) {
+              writes += 1;
+              child = value;
+            },
+          },
+        });
+        const descriptor = Object.getOwnPropertyDescriptor(implementation, 'child');
+        const mockObject = mock<{ child: { nested: { read(): string } } }>(implementation);
+
+        expect(reads).toBe(0);
+        expect(writes).toBe(0);
+        const firstChild = mockObject.child;
+        expect(reads).toBe(1);
+        firstChild.nested.read.mockReturnValue('first');
+        expect(mockObject.child).toBe(firstChild);
+        expect(mockObject.child.nested.read()).toBe('first');
+        expect(writes).toBe(0);
+        expect(Object.getOwnPropertyDescriptor(mockObject, 'child')).toEqual(descriptor);
+
+        const originalChild = child;
+        child = { nested: {} };
+        const replacement = mockObject.child;
+        expect(replacement).not.toBe(firstChild);
+        expect(mockObject.child).toBe(replacement);
+        replacement.nested.read.mockReturnValue('replacement');
+        expect(mockObject.child.nested.read()).toBe('replacement');
+        expect(firstChild.nested.read()).toBe('first');
+
+        child = originalChild;
+        expect(mockObject.child).toBe(firstChild);
+        mockObject.child = firstChild;
+        expect(writes).toBe(1);
+        expect(mockObject.child).toBe(firstChild);
+        expect(mockObject.child.nested.read()).toBe('first');
+      }
+    );
+
+    test('supports spying on getter/setter objects without losing deep mocks', () => {
+      let child: { read?: () => string } = {};
+      const mockObject = mock<{ child: { read(): string } }>({
+        get child() {
+          return child;
+        },
+        set child(value) {
+          child = value;
+        },
+      });
+      const getter = jest.spyOn(mockObject, 'child', 'get');
+
+      const firstChild = mockObject.child;
+      firstChild.read.mockReturnValue('mocked');
+      expect(getter).toHaveBeenCalledTimes(1);
+      expect(mockObject.child.read()).toBe('mocked');
+      expect(getter).toHaveBeenCalledTimes(2);
+
+      getter.mockRestore();
+      expect(mockObject.child).toBe(firstChild);
+      expect(mockObject.child.read()).toBe('mocked');
+    });
+
     test('preserves a non-enumerable accessor', () => {
       let reads = 0;
       const implementation = Object.create(null, {
