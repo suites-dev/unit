@@ -43,6 +43,25 @@ test('new stable version is planned for latest at the reviewed commit', () => {
   assert.equal(plan.latest, '4.0.0');
 });
 
+test('retired 4.2.0 tags cannot be published again', () => {
+  for (const name of [
+    '@suites/unit',
+    '@suites/core.unit',
+    '@suites/doubles.jest',
+    '@suites/doubles.vitest',
+  ]) {
+    assert.throws(
+      () =>
+        createPlan(
+          [{ ...pkg, name, version: '4.2.0' }],
+          commit,
+          io(() => null)
+        ),
+      /retired release name/
+    );
+  }
+});
+
 test('unchanged independent packages preserve earlier source commits and latest tags', () => {
   const [plan] = createPlan(
     [pkg],

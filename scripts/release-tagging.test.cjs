@@ -34,6 +34,7 @@ test('tag plans use reviewed package versions without registry access and preser
     const second = git('rev-parse', 'HEAD');
     assert.equal(tagPlan([pkg], second)[0].gitHead, commit);
     assert.throws(() => tagPlan([{ ...pkg, version: '4.1.0-next.0' }], second), /stable versions/);
+    assert.throws(() => tagPlan([{ ...pkg, version: '4.2.0' }], second), /retired release name/);
     writeFileSync(join(location, 'CHANGELOG.md'), 'changed without version');
     git('add', '.');
     git('commit', '-m', 'changed');

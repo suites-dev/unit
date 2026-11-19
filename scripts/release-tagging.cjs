@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { execFileSync, spawnSync } = require('node:child_process');
 const { readFileSync, writeFileSync, appendFileSync } = require('node:fs');
 const { relative, resolve } = require('node:path');
+const { assertReleaseTagAvailable } = require('./retired-release-tags.cjs');
 const {
   assertSamePackage,
   releaseNotes,
@@ -24,6 +25,7 @@ function tagPlan(packages, commit) {
       /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/,
       `${name}: tag only reviewed stable versions`
     );
+    assertReleaseTagAvailable(name, version);
     const packagePath = relative(process.cwd(), location);
     assert(packagePath.startsWith('packages/') && !packagePath.split('/').includes('..'));
     const manifest = JSON.parse(readFileSync(resolve(location, 'package.json')));

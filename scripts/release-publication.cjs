@@ -3,6 +3,7 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const { readFileSync, writeFileSync, appendFileSync } = require('node:fs');
 const { relative, resolve } = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
+const { assertReleaseTagAvailable } = require('./retired-release-tags.cjs');
 
 const shaPattern = /^[0-9a-f]{40}$/;
 const stablePattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
@@ -65,6 +66,7 @@ function createPlan(packages, commit, io = {}) {
     assert.equal(isPrivate, false);
     assert.match(name, /^@suites\/[a-z][a-z.\d-]*$/);
     assert.match(version, stablePattern, `${name}: only stable versions may publish to latest`);
+    assertReleaseTagAvailable(name, version);
     const packagePath = relative(process.cwd(), location);
     assert(
       packagePath.startsWith('packages/') && !packagePath.split('/').includes('..'),
