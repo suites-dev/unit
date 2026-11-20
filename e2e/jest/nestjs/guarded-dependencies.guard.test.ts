@@ -2,6 +2,12 @@ import 'reflect-metadata';
 import { expect, it, jest } from '@jest/globals';
 import { Injectable } from '@nestjs/common';
 import { TestBed } from '@suites/unit';
+import { appendFileSync } from 'node:fs';
+import { env } from 'node:process';
+
+function recordStep(step: string): void {
+  if (env.SUITES_GUARD_STEPS_FILE) appendFileSync(env.SUITES_GUARD_STEPS_FILE, `${step}\n`);
+}
 
 @Injectable()
 class Inventory {
@@ -59,13 +65,15 @@ it.skip('does not verify a skipped test', async () => {
 it('fails even when an exception assertion catches the guard', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
-  expect(() => unit.available()).toThrow();
+  expect(() => unit.available()).toThrow(/an undeclared dependency was used/i);
+  recordStep('jest:immediate-error-asserted');
 });
 
 it('fails even when application code catches the guard', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
   expect(unit.availableOrFallback()).toBe(false);
+  recordStep('jest:application-catch-asserted');
 });
 
 it.failing('fails despite the expected-failure annotation', async () => {
@@ -79,7 +87,10 @@ it('fails when a clean retry follows a caught guard', async () => {
   if (++attempts === 1) {
     const { unit } = await TestBed.sociable(Checkout).compile();
     expect(unit.availableOrFallback()).toBe(false);
+    recordStep('jest:retry-first-caught');
+    throw new Error('Force a retry after the caught dependency guard');
   } else {
     expect(true).toBe(true);
+    recordStep('jest:retry-second-clean');
   }
 });
