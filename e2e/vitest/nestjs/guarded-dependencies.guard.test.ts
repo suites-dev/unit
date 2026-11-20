@@ -18,6 +18,8 @@ class Inventory {
 
 @Injectable()
 class Checkout {
+  caughtError: unknown;
+
   constructor(private readonly inventory: Inventory) {}
 
   available(): boolean {
@@ -27,10 +29,20 @@ class Checkout {
   availableOrFallback(): boolean {
     try {
       return this.available();
-    } catch {
+    } catch (error) {
+      this.caughtError = error;
       return false;
     }
   }
+}
+
+function expectCaughtGuard(unit: Checkout): void {
+  expect(unit.availableOrFallback()).toBe(false);
+  const caught = unit.caughtError;
+  expect(caught).toBeInstanceOf(Error);
+  if (!(caught instanceof Error)) throw new Error('Checkout did not catch an error');
+  expect(caught.message).toMatch(/Cannot read available on undeclared dependency 'Inventory'/i);
+  expect(caught.message).toMatch(/Dependency path:\s*Checkout\s*->\s*Inventory/i);
 }
 
 it('allows a dependency to be injected without being used', async () => {
@@ -70,7 +82,7 @@ it('fails even when an exception assertion catches the guard', async () => {
 it('fails even when application code catches the guard', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
-  expect(unit.availableOrFallback()).toBe(false);
+  expectCaughtGuard(unit);
   recordStep('vitest:application-catch-asserted');
 });
 
@@ -84,7 +96,7 @@ let attempts = 0;
 it('fails when a clean retry follows a caught guard', { retry: 1 }, async () => {
   if (++attempts === 1) {
     const { unit } = await TestBed.sociable(Checkout).compile();
-    expect(unit.availableOrFallback()).toBe(false);
+    expectCaughtGuard(unit);
     recordStep('vitest:retry-first-caught');
     throw new Error('Force a retry after the caught dependency guard');
   } else {
@@ -96,7 +108,7 @@ it('fails when a clean retry follows a caught guard', { retry: 1 }, async () => 
 it('fails when a caught guard is followed by a dynamic skip', async (context) => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
-  expect(unit.availableOrFallback()).toBe(false);
+  expectCaughtGuard(unit);
   recordStep('vitest:dynamic-skip-after-guard');
   context.skip();
 });
