@@ -16,7 +16,7 @@
     "@types/node": "^26.6.6"
   },
   "scripts": {
-    "test": "tsc --noEmit && jest"
+    "test": "tsc --noEmit && node ../../check-unit-declarations.cjs && jest"
   },
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || ^26.0.0"

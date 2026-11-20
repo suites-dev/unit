@@ -143,11 +143,3 @@ async function rejectsInvalidConstructorArgumentsAndMockValues(): Promise<void> 
   // @ts-expect-error Dependencies preserve their individual types and tuple order.
   logger.findName('user-1');
 }
-
-// Resolve the packed CommonJS declaration directly. The package's top-level
-// "types" condition currently selects its ESM declaration for normal imports.
-function checksPackedCjsDeclaration(): void {
-  const cjsTestBed: typeof import('./node_modules/@suites/unit/dist/cjs/index.js').TestBed =
-    TestBed;
-  cjsTestBed.manual.solitary(UserService);
-}
