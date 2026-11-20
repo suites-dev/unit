@@ -73,10 +73,18 @@ it.fails('fails despite the expected-failure annotation', async () => {
 });
 
 let attempts = 0;
-it('fails when a retry catches a guard', { retry: 1 }, async () => {
-  if (++attempts === 1) throw new Error('Retry the checkout test');
+it('fails when a clean retry follows a caught guard', { retry: 1 }, async () => {
+  if (++attempts === 1) {
+    const { unit } = await TestBed.sociable(Checkout).compile();
+    expect(unit.availableOrFallback()).toBe(false);
+  } else {
+    expect(true).toBe(true);
+  }
+});
 
+it('fails when a caught guard is followed by a dynamic skip', async (context) => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
   expect(unit.availableOrFallback()).toBe(false);
+  context.skip();
 });
