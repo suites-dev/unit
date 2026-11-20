@@ -25,6 +25,15 @@ jobs:
     with:
       commit: ${{ inputs.commit || github.sha }}
 
+  manual-solitary:
+    name: Verify packed manual solitary consumers
+    uses: ./.github/workflows/run-consumer-e2e.yml
+    with:
+      target-kind: candidate
+      target: ${{ inputs.commit || github.sha }}
+      projects: '["jest/manual", "vitest/manual", "esm/jest/manual", "esm/vitest/manual"]'
+      artifact-name: manual-solitary-release
+
   e2e-full:
     name: Full E2E (${{ matrix.e2e-project }}, Node ${{ matrix.node-version }})
     env:
