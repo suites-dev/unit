@@ -1,0 +1,25 @@
+{
+  "name": "suites-esm-jest-manual",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "@suites/unit": "e2e",
+    "@suites/doubles.jest": "e2e"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.15",
+    "typescript": "~6.0.3",
+    "@jest/globals": "^30.5.2",
+    "@types/node": "^26.6.6"
+  },
+  "scripts": {
+    "test": "tsc --noEmit && NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" NODE_NO_WARNINGS=1 jest"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
+  },
+  "packageManager": "pnpm@12.16.1"
+}

@@ -1,0 +1,4 @@
+# Install published packages independently of the source workspace.
+packages: []
+minimumReleaseAgeExclude:
+  - '@suites/*'
