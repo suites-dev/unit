@@ -9,6 +9,7 @@ const process = require('node:process');
 const runner = process.argv[2];
 const directory = mkdtempSync(join(tmpdir(), 'suites-guard-report-'));
 const outputFile = join(directory, 'results.json');
+const stepsFile = join(directory, 'steps.txt');
 
 try {
   const args =
@@ -25,6 +26,7 @@ try {
 
   const result = spawnSync('pnpm', ['exec', runner, ...args], {
     encoding: 'utf8',
+    env: { ...process.env, SUITES_GUARD_STEPS_FILE: stepsFile },
     timeout: 60_000,
   });
   assert.ifError(result.error);
@@ -56,6 +58,10 @@ try {
 
   const skipped = findTest('does not verify a skipped test');
   assert.match(skipped.status, /^(pending|skipped)$/, skipped.title);
+  if (runner === 'vitest') {
+    const cleanDynamicSkip = findTest('allows a clean dynamic skip');
+    assert.match(cleanDynamicSkip.status, /^(pending|skipped)$/, cleanDynamicSkip.title);
+  }
 
   for (const title of failing) {
     const test = findTest(title);
@@ -65,7 +71,21 @@ try {
     assert.match(messages, /Dependency path:[^\n]*\bCheckout\b[^\n]*\bInventory\b/i, messages);
   }
 
-  assert.equal(tests.length, passing.length + failing.length + 1, output);
+  assert.ok(existsSync(stepsFile), `${runner} did not record completed assertions.\n${output}`);
+  const recordedSteps = readFileSync(stepsFile, 'utf8').trim().split('\n');
+  for (const step of [
+    `${runner}:immediate-error-asserted`,
+    `${runner}:application-catch-asserted`,
+    `${runner}:retry-first-caught`,
+    `${runner}:retry-second-clean`,
+  ]) {
+    assert.ok(recordedSteps.includes(step), `Missing completed step ${step}.\n${output}`);
+  }
+  if (runner === 'vitest') {
+    assert.ok(recordedSteps.includes('vitest:dynamic-skip-after-guard'), output);
+  }
+
+  assert.equal(tests.length, passing.length + failing.length + (runner === 'vitest' ? 2 : 1), output);
   console.log(`${runner}: verified guarded dependencies in consumer tests`);
 } finally {
   rmSync(directory, { recursive: true, force: true });
