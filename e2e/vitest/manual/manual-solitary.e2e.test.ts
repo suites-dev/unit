@@ -16,12 +16,30 @@ interface Logger {
 }
 
 class UserService {
-  constructor(private readonly repository: UserRepository, private readonly logger: Logger) {}
+  constructor(
+    private readonly repository: UserRepository,
+    private readonly logger: Logger
+  ) {}
 
   async getName(id: string): Promise<string> {
     const name = await this.repository.findName(id);
     this.logger.info(`Found ${id}`);
     return name;
+  }
+}
+
+class InheritedUserService extends UserService {}
+
+class OverloadedLookup {
+  constructor(id: string);
+  constructor(id: number, source: string);
+  constructor(
+    private readonly id: string | number,
+    private readonly source = 'primary'
+  ) {}
+
+  key(): string {
+    return `${this.source}:${this.id}`;
   }
 }
 
@@ -72,8 +90,42 @@ it('supports default, optional, and rest constructor parameters', async () => {
   expect(titledGreeting.greet()).toBe('Hello, Countess Dr. Ada?');
 });
 
+it('uses the inherited constructor with typed callback mocks', async () => {
+  const {
+    unit,
+    dependencies: [repository, logger],
+  } = await TestBed.manual
+    .solitary(InheritedUserService)
+    .inject(({ mock }) => [mock<UserRepository>(), mock<Logger>()])
+    .compile();
+
+  repository.findName.mockResolvedValue('Ada');
+  await expect(unit.getName('user-1')).resolves.toBe('Ada');
+  expect(unit).toBeInstanceOf(InheritedUserService);
+  expect(logger.info).toHaveBeenCalledWith('Found user-1');
+});
+
+it('accepts either declared constructor overload', async () => {
+  const { unit: byName } = await TestBed.manual
+    .solitary(OverloadedLookup)
+    .inject(() => ['ada'])
+    .compile();
+  const { unit: byId } = await TestBed.manual
+    .solitary(OverloadedLookup)
+    .inject(() => [42, 'archive'])
+    .compile();
+
+  expect(byName.key()).toBe('primary:ada');
+  expect(byId.key()).toBe('archive:42');
+});
+
 // Checked by tsc without running invalid calls.
 async function rejectsInvalidConstructorArgumentsAndMockValues(): Promise<void> {
+  // @ts-expect-error The numeric overload requires its source argument.
+  TestBed.manual.solitary(OverloadedLookup).inject(() => [42]);
+  // @ts-expect-error The string overload accepts only the name.
+  TestBed.manual.solitary(OverloadedLookup).inject(() => ['ada', 'archive']);
+
   // @ts-expect-error Elements in the rest parameter must match the constructor type.
   TestBed.manual.solitary(GreetingService).inject(() => ['Ada', undefined, undefined, 42]);
 
@@ -90,4 +142,12 @@ async function rejectsInvalidConstructorArgumentsAndMockValues(): Promise<void> 
   repository.findName.mockResolvedValue(42);
   // @ts-expect-error Dependencies preserve their individual types and tuple order.
   logger.findName('user-1');
+}
+
+// Resolve the packed CommonJS declaration directly. The package's top-level
+// "types" condition currently selects its ESM declaration for normal imports.
+function checksPackedCjsDeclaration(): void {
+  const cjsTestBed: typeof import('./node_modules/@suites/unit/dist/cjs/index.js').TestBed =
+    TestBed;
+  cjsTestBed.manual.solitary(UserService);
 }
