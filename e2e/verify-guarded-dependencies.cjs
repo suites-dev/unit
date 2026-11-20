@@ -1,8 +1,10 @@
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
+const console = require('node:console');
 const { existsSync, mkdtempSync, readFileSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
+const process = require('node:process');
 
 const runner = process.argv[2];
 const directory = mkdtempSync(join(tmpdir(), 'suites-guard-report-'));
@@ -41,8 +43,9 @@ try {
     'fails even when an exception assertion catches the guard',
     'fails even when application code catches the guard',
     'fails despite the expected-failure annotation',
-    'fails when a retry catches a guard',
+    'fails when a clean retry follows a caught guard',
   ];
+  if (runner === 'vitest') failing.push('fails when a caught guard is followed by a dynamic skip');
   const findTest = (title) => {
     const test = tests.find((entry) => entry.title === title);
     assert.ok(test, `Missing test "${title}" from ${runner} report.\n${output}`);
