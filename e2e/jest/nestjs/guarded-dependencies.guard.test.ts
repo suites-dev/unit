@@ -18,6 +18,8 @@ class Inventory {
 
 @Injectable()
 class Checkout {
+  caughtError: unknown;
+
   constructor(private readonly inventory: Inventory) {}
 
   available(): boolean {
@@ -27,10 +29,20 @@ class Checkout {
   availableOrFallback(): boolean {
     try {
       return this.available();
-    } catch {
+    } catch (error) {
+      this.caughtError = error;
       return false;
     }
   }
+}
+
+function expectCaughtGuard(unit: Checkout): void {
+  expect(unit.availableOrFallback()).toBe(false);
+  const caught = unit.caughtError;
+  expect(caught).toBeInstanceOf(Error);
+  if (!(caught instanceof Error)) throw new Error('Checkout did not catch an error');
+  expect(caught.message).toMatch(/Cannot read available on undeclared dependency 'Inventory'/i);
+  expect(caught.message).toMatch(/Dependency path:\s*Checkout\s*->\s*Inventory/i);
 }
 
 jest.retryTimes(1);
@@ -72,7 +84,7 @@ it('fails even when an exception assertion catches the guard', async () => {
 it('fails even when application code catches the guard', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
-  expect(unit.availableOrFallback()).toBe(false);
+  expectCaughtGuard(unit);
   recordStep('jest:application-catch-asserted');
 });
 
@@ -86,7 +98,7 @@ let attempts = 0;
 it('fails when a clean retry follows a caught guard', async () => {
   if (++attempts === 1) {
     const { unit } = await TestBed.sociable(Checkout).compile();
-    expect(unit.availableOrFallback()).toBe(false);
+    expectCaughtGuard(unit);
     recordStep('jest:retry-first-caught');
     throw new Error('Force a retry after the caught dependency guard');
   } else {
