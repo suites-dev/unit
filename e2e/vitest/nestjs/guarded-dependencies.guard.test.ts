@@ -2,6 +2,12 @@ import 'reflect-metadata';
 import { expect, it } from 'vitest';
 import { Injectable } from '@nestjs/common';
 import { TestBed } from '@suites/unit';
+import { appendFileSync } from 'node:fs';
+import { env } from 'node:process';
+
+function recordStep(step: string): void {
+  if (env.SUITES_GUARD_STEPS_FILE) appendFileSync(env.SUITES_GUARD_STEPS_FILE, `${step}\n`);
+}
 
 @Injectable()
 class Inventory {
@@ -57,13 +63,15 @@ it.skip('does not verify a skipped test', async () => {
 it('fails even when an exception assertion catches the guard', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
-  expect(() => unit.available()).toThrow();
+  expect(() => unit.available()).toThrow(/an undeclared dependency was used/i);
+  recordStep('vitest:immediate-error-asserted');
 });
 
 it('fails even when application code catches the guard', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
   expect(unit.availableOrFallback()).toBe(false);
+  recordStep('vitest:application-catch-asserted');
 });
 
 it.fails('fails despite the expected-failure annotation', async () => {
@@ -77,8 +85,11 @@ it('fails when a clean retry follows a caught guard', { retry: 1 }, async () => 
   if (++attempts === 1) {
     const { unit } = await TestBed.sociable(Checkout).compile();
     expect(unit.availableOrFallback()).toBe(false);
+    recordStep('vitest:retry-first-caught');
+    throw new Error('Force a retry after the caught dependency guard');
   } else {
     expect(true).toBe(true);
+    recordStep('vitest:retry-second-clean');
   }
 });
 
@@ -86,5 +97,10 @@ it('fails when a caught guard is followed by a dynamic skip', async (context) =>
   const { unit } = await TestBed.sociable(Checkout).compile();
 
   expect(unit.availableOrFallback()).toBe(false);
+  recordStep('vitest:dynamic-skip-after-guard');
+  context.skip();
+});
+
+it('allows a clean dynamic skip', (context) => {
   context.skip();
 });
