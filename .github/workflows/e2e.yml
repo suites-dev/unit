@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - master
+      - 'test/v5-*'
+      - 'feat/v5-*'
   workflow_dispatch:
 
 permissions:
