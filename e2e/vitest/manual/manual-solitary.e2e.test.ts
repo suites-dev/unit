@@ -77,17 +77,32 @@ it('exercises an undecorated service with constructor mocks from the callback', 
 });
 
 it('supports default, optional, and rest constructor parameters', async () => {
-  const { unit: defaultGreeting } = await TestBed.manual
+  const defaultGreetingResult = await TestBed.manual
     .solitary(GreetingService)
     .inject(() => ['Ada'])
     .compile();
-  const { unit: titledGreeting } = await TestBed.manual
+  const {
+    unit: defaultGreeting,
+    dependencies: [defaultName],
+  } = defaultGreetingResult;
+  const titledGreetingResult = await TestBed.manual
     .solitary(GreetingService)
     .inject(() => ['Ada', undefined, '?', 'Countess', 'Dr.'])
     .compile();
+  const {
+    unit: titledGreeting,
+    dependencies: [titledName, greeting, punctuation, ...titles],
+  } = titledGreetingResult;
 
   expect(defaultGreeting.greet()).toBe('Hello, Ada!');
+  expect(defaultName.toUpperCase()).toBe('ADA');
+  expect(defaultGreetingResult.dependencies).toEqual(['Ada']);
   expect(titledGreeting.greet()).toBe('Hello, Countess Dr. Ada?');
+  expect(titledName.toUpperCase()).toBe('ADA');
+  expect(greeting).toBeUndefined();
+  expect(punctuation?.toUpperCase()).toBe('?');
+  expect(titles.map((title) => title.toUpperCase())).toEqual(['COUNTESS', 'DR.']);
+  expect(titledGreetingResult.dependencies).toEqual(['Ada', undefined, '?', 'Countess', 'Dr.']);
 });
 
 it('uses the inherited constructor with typed callback mocks', async () => {
@@ -106,17 +121,30 @@ it('uses the inherited constructor with typed callback mocks', async () => {
 });
 
 it('accepts either declared constructor overload', async () => {
-  const { unit: byName } = await TestBed.manual
+  const byNameResult = await TestBed.manual
     .solitary(OverloadedLookup)
     .inject(() => ['ada'])
     .compile();
-  const { unit: byId } = await TestBed.manual
+  const {
+    unit: byName,
+    dependencies: [name],
+  } = byNameResult;
+  const byIdResult = await TestBed.manual
     .solitary(OverloadedLookup)
     .inject(() => [42, 'archive'])
     .compile();
+  const {
+    unit: byId,
+    dependencies: [id, source],
+  } = byIdResult;
 
   expect(byName.key()).toBe('primary:ada');
+  expect(name.toUpperCase()).toBe('ADA');
+  expect(byNameResult.dependencies).toEqual(['ada']);
   expect(byId.key()).toBe('archive:42');
+  expect(id.toFixed()).toBe('42');
+  expect(source.toUpperCase()).toBe('ARCHIVE');
+  expect(byIdResult.dependencies).toEqual([42, 'archive']);
 });
 
 // Checked by tsc without running invalid calls.
