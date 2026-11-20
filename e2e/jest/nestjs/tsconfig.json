@@ -6,6 +6,7 @@
   },
   "include": [
     "*e2e.test.ts",
+    "guarded-dependencies.guard.test.ts",
     "global.d.ts"
   ],
   "exclude": [
