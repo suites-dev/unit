@@ -26,7 +26,10 @@ function candidatePackages(version, coreVersion = version) {
 
 test('automatic compatibility skips only an initial, coordinated next-major candidate', () => {
   assert.deepEqual(
-    automaticCompatibility(['3.9.0', '4.1.2', '4.1.3', '5.0.0-next.1'], candidatePackages('4.1.4-next.0')),
+    automaticCompatibility(
+      ['3.9.0', '4.1.2', '4.1.3', '5.0.0-next.1'],
+      candidatePackages('4.1.4-next.0')
+    ),
     {
       status: 'checked',
       baselineVersion: '4.1.3',
@@ -50,6 +53,14 @@ test('automatic compatibility fails closed on invalid major transitions', () => 
   assert.throws(
     () => automaticCompatibility(stable, candidatePackages('not-semver')),
     /valid exact semver/
+  );
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('5.0.0-01')),
+    /valid exact semver/
+  );
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('4.1.3-next.0')),
+    /older than latest stable/
   );
   assert.throws(
     () => automaticCompatibility(stable, candidatePackages('3.10.0')),
@@ -119,7 +130,7 @@ test('new-major preparation freezes candidate tests and persists the skipped com
   assert.equal(publishedCalls, 0);
   assert.deepEqual(snapshotRefs, [commit]);
   assert.equal(plan.schema, 2);
-  assert.equal(plan.baseline, undefined);
+  assert.equal(plan.baseline, null);
   assert.deepEqual(plan.compatibility, {
     status: 'skipped-new-major',
     candidateMajor: 5,
@@ -155,6 +166,13 @@ function fixture(t) {
 
 test('a skipped new-major baseline runs only the candidate and reports the reason', (t) => {
   const { directory, plan, workdir } = fixture(t);
+  const summary = join(directory, 'summary.md');
+  const previousSummary = process.env.GITHUB_STEP_SUMMARY;
+  process.env.GITHUB_STEP_SUMMARY = summary;
+  t.after(() => {
+    if (previousSummary === undefined) delete process.env.GITHUB_STEP_SUMMARY;
+    else process.env.GITHUB_STEP_SUMMARY = previousSummary;
+  });
   delete plan.baseline;
   plan.target = { label: 'b'.repeat(40) };
   plan.compatibility = {
@@ -166,14 +184,21 @@ test('a skipped new-major baseline runs only the candidate and reports the reaso
   };
   writeFileSync(join(directory, 'plan.json'), JSON.stringify(plan));
   const calls = [];
-  const result = runConsumer(directory, 'jest/nestjs', workdir, (_bundle, _plan, _project, target) => {
-    calls.push(target.label);
-    return { external: {} };
-  });
+  const result = runConsumer(
+    directory,
+    'jest/nestjs',
+    workdir,
+    (_bundle, _plan, _project, target) => {
+      calls.push(target.label);
+      return { external: {} };
+    }
+  );
   assert.deepEqual(calls, [plan.target.label]);
   assert.equal(result.status, 'passed');
   assert.equal(result.baselineStatus, 'skipped-new-major');
   assert.equal(result.targetStatus, 'passed');
+  assert.match(readFileSync(summary, 'utf8'), /Compatibility: \*\*skipped-new-major\*\*/);
+  assert.match(readFileSync(summary, 'utf8'), /skipped \(no stable 5\.x release\)/);
 });
 
 test('a candidate failure propagates when the new-major baseline is skipped', (t) => {
