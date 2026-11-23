@@ -370,6 +370,22 @@ describe('opt-in composition', () => {
     expect(finalized.unit.repository.client.read()).toBe('final');
   });
 
+  it('retains the initial mode choice after configuring an override', async () => {
+    const implemented = await builder()
+      .mock(Client)
+      .impl(() => ({ read: () => 'implemented before composition' }))
+      .compose()
+      .compile();
+    const finalized = await builder()
+      .mock(Client)
+      .final({ read: () => 'final before composition' })
+      .compose()
+      .compile();
+
+    expect(implemented.unit.repository.client.read()).toBe('implemented before composition');
+    expect(finalized.unit.repository.client.read()).toBe('final before composition');
+  });
+
   it('keeps variadic selective exposure mutually exclusive with composition', async () => {
     class EmptyLeaf {}
     class AnotherEmptyLeaf {}
@@ -403,6 +419,13 @@ describe('opt-in composition', () => {
     expect('expose' in composed).toBe(false);
     expect(exposed.unit.leaf).toBeInstanceOf(EmptyLeaf);
     expect(exposed.unit.anotherLeaf).toBeInstanceOf(AnotherEmptyLeaf);
+  });
+
+  it('requires selective mode to expose at least one dependency', () => {
+    expect(() => {
+      // @ts-expect-error Selective exposure cannot be selected without a dependency.
+      builder().expose();
+    }).toThrow('Selective exposure requires at least one dependency');
   });
 
   it('rejects retrieving recursively composed real dependencies', async () => {

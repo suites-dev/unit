@@ -61,9 +61,9 @@ describe('V5 opt-in composition', () => {
     const composed = TestBed.sociable(Service).compose();
     const exposed = await selective.compile();
     const overridden = await TestBed.sociable(Service)
-      .compose()
       .mock(Leaf)
       .impl((stub) => ({ prefix: stub().mockReturnValue('mock:') }))
+      .compose()
       .compile();
     // @ts-expect-error Selective mode excludes recursive composition.
     const invalidCompose = selective.compose;
@@ -71,6 +71,10 @@ describe('V5 opt-in composition', () => {
     const invalidExpose = composed.expose;
     expect(invalidCompose).toBeUndefined();
     expect(invalidExpose).toBeUndefined();
+    expect(() => {
+      // @ts-expect-error Selective mode requires at least one dependency.
+      TestBed.sociable(Service).expose();
+    }).toThrow('Selective exposure requires at least one dependency');
     expect(exposed.unit.leaf).toBeInstanceOf(EmptyLeaf);
     expect(exposed.unit.anotherLeaf).toBeInstanceOf(AnotherEmptyLeaf);
     expect(overridden.unit.repository).toBeInstanceOf(Repository);
