@@ -9,6 +9,10 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * **doubles.vitest:** preserve the composed builder type through mock overrides ([#820](https://github.com/suites-dev/unit/issues/820))
 
+### BREAKING CHANGES
+
+* **doubles.vitest:** the `/unit` declaration now augments Core's V5 builder-aware `MockOverride` contract so `impl()` and `final()` retain selective or composed mode. Upgrade this adapter together with `@suites/core.unit` and `@suites/unit`; the V5 declaration is not compatible with Core 4. ([#820](https://github.com/suites-dev/unit/issues/820))
+
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.2...%40suites%2Fdoubles.vitest%404.1.3) (2026-11-11)
 
 ### Bug Fixes
