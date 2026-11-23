@@ -39,15 +39,7 @@ jobs:
           git config user.email "e2e@suites.dev"
           git config user.name "Suites e2e"
           git switch -c e2e-v5-canary
-          pnpm exec lerna version 5.0.0-e2e.0 --yes \
-            --no-changelog \
-            --allow-branch e2e-v5-canary \
-            --no-git-tag-version \
-            --no-push \
-            --force-publish "@suites/core.unit,@suites/unit,@suites/doubles.jest,@suites/doubles.vitest" \
-            --no-commit-hooks \
-            --exact
-          git restore packages/di packages/types
+          node scripts/e2e/major-canary.cjs stage-versions .
           pnpm install --lockfile-only
           git add packages pnpm-lock.yaml
           git -c core.hooksPath=/dev/null commit -m "test(e2e): stage ephemeral v5 candidate"
