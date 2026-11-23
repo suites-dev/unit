@@ -44,9 +44,9 @@ describe('V5 opt-in composition', () => {
     const composed = TestBed.sociable(Service).compose();
     const selective = TestBed.sociable(Service).expose(Repository);
     const overridden = await TestBed.sociable(Service)
-      .compose()
       .mock(Leaf)
       .impl((stub) => ({ prefix: stub().mockReturnValue('mock:') }))
+      .compose()
       .compile();
     // @ts-expect-error Composed mode excludes selective exposure.
     const invalidExpose = composed.expose;
