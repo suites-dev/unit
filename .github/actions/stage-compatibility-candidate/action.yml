@@ -1,0 +1,48 @@
+name: Stage compatibility candidate versions
+description: Create an ephemeral conventional prerelease commit while preserving the source revision.
+inputs:
+  candidate-directory:
+    description: Candidate checkout to version.
+    default: candidate-source
+  branch:
+    description: Runner-local branch used by Lerna.
+    default: compatibility-simulation
+  preid:
+    description: Prerelease identifier for the compatibility-only versions.
+    default: compatibility
+outputs:
+  source-commit:
+    description: Original candidate source commit used to freeze consumer tests.
+    value: ${{ steps.stage.outputs.source-commit }}
+  candidate-commit:
+    description: Clean ephemeral commit whose packages are built and packed.
+    value: ${{ steps.stage.outputs.candidate-commit }}
+runs:
+  using: composite
+  steps:
+    - name: Version candidate from conventional commits
+      id: stage
+      shell: bash
+      working-directory: ${{ inputs.candidate-directory }}
+      run: |
+        source_commit=$(git rev-parse HEAD)
+        echo "source-commit=$source_commit" >> "$GITHUB_OUTPUT"
+        git config user.email "e2e@suites.dev"
+        git config user.name "Suites e2e"
+        git switch -c "${{ inputs.branch }}"
+        pnpm install --frozen-lockfile
+        pnpm exec lerna version \
+          --preid "${{ inputs.preid }}" \
+          --conventional-commits \
+          --conventional-prerelease \
+          --yes \
+          --no-git-tag-version \
+          --no-push \
+          --no-changelog \
+          --allow-branch "${{ inputs.branch }}" \
+          --no-commit-hooks
+        if ! git diff --quiet -- packages pnpm-lock.yaml; then
+          git add packages pnpm-lock.yaml
+          git -c core.hooksPath=/dev/null commit -m "test(e2e): stage compatibility candidate versions"
+        fi
+        echo "candidate-commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

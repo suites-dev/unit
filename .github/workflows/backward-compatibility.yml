@@ -17,6 +17,7 @@ jobs:
       target-kind: candidate
       target: ${{ inputs.commit || github.sha }}
       baseline-version: previous
+      stage-candidate-versions: true
       artifact-name: previous-release
 
   new-major-canary:
