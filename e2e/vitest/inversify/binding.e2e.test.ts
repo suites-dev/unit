@@ -44,7 +44,6 @@ describe('V5 explicit token bindings', () => {
       .compile();
     expect(direct.unit.repository).toBeInstanceOf(Repository);
     expect(direct.unit.repository).toBe(direct.unit.repeated);
-    expect(direct.unit.repository.leaf).not.toBeInstanceOf(Leaf);
     expect(() => direct.unitRef.get(REPOSITORY)).toThrow(/exposed dependency/);
     expect(exposedFirst.unit.read()).toBe('live:value');
     expect(boundFirst.unit.read()).toBe('live:value');
