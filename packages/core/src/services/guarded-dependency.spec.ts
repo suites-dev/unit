@@ -10,6 +10,13 @@ import {
 class Checkout {}
 class Inventory {}
 
+beforeEach(() => {
+  Reflect.defineProperty(global, dependencyVerificationKey, {
+    configurable: true,
+    value: () => undefined,
+  });
+});
+
 afterEach(() => {
   Reflect.deleteProperty(global, dependencyVerificationKey);
 });

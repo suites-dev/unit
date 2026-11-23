@@ -1,5 +1,6 @@
 import type { Type } from '@suites/types.common';
 import type { ClassInjectable, DependencyInjectionAdapter } from '@suites/types.di';
+import { dependencyVerificationKey } from '../dependency-verification.js';
 import { DependencyContainer } from './dependency-container.js';
 import { UnitMocker } from './unit-mocker.js';
 
@@ -25,6 +26,17 @@ function adapterFor(target: Type, dependencies: ClassInjectable[]): DependencyIn
     }),
   } as DependencyInjectionAdapter;
 }
+
+beforeEach(() => {
+  Reflect.defineProperty(global, dependencyVerificationKey, {
+    configurable: true,
+    value: () => undefined,
+  });
+});
+
+afterEach(() => {
+  Reflect.deleteProperty(global, dependencyVerificationKey);
+});
 
 describe('sociable dependency guards', () => {
   const adapter = adapterFor(Checkout, [
