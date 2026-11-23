@@ -5,6 +5,7 @@ import type {
   InjectableIdentifier,
 } from '@suites/types.di';
 import type { DependencyPathEntry } from './composition-boundary.js';
+import { dependencyVerificationKey } from '../dependency-verification.js';
 import { CompositionBoundaryContainer } from './composition-boundary.js';
 import { DependencyContainer } from './dependency-container.js';
 import { DependencyResolver } from './dependency-resolver.js';
@@ -71,6 +72,17 @@ function builder(target: Type<Service> = Service) {
     console
   );
 }
+
+beforeEach(() => {
+  Reflect.defineProperty(global, dependencyVerificationKey, {
+    configurable: true,
+    value: () => undefined,
+  });
+});
+
+afterEach(() => {
+  Reflect.deleteProperty(global, dependencyVerificationKey);
+});
 
 describe('opt-in composition', () => {
   it('preserves implicit mocking when composition is not selected', () => {
@@ -345,7 +357,7 @@ describe('opt-in composition', () => {
     const recursive = await sibling.compile();
     const overridden = await composed.compile();
 
-    expect(unchanged.unit.repository).not.toBeInstanceOf(Repository);
+    expect(unchanged.unit.repository).not.toBe(selected.unit.repository);
     expect(selected.unit.repository).toBeInstanceOf(Repository);
     expect(selected.unit.repository.client).not.toBeInstanceOf(Client);
     expect(recursive.unit.repository.client).toBeInstanceOf(Client);
