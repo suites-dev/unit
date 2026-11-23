@@ -138,7 +138,7 @@ A `.final()` dependency is injected as supplied and cannot be retrieved through 
 
 ## Sociable tests
 
-Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep selected class dependencies real and mock their remaining dependencies. The class under test and exposed classes must be concrete constructors; abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
+Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep selected class dependencies real. Undeclared sociable dependencies are injected as guards: leaving one unused is valid, while accessing one records a rule violation and throws. Declare intentional replacements with `.mock(identifier).impl()` or `.final()`, and configure the Jest environment or Vitest setup file once so caught violations still fail the file or suite. The class under test and exposed classes must be concrete constructors; abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 

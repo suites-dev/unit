@@ -51,6 +51,16 @@ Use one doubles adapter reference and one DI adapter reference per test TypeScri
 
 For Inversify or InjectionJS, replace the DI reference with `@suites/di.inversify/metadata` or `@suites/di.injectionjs/metadata`. Load `reflect-metadata` and configure your transformer to emit decorator metadata using the [installation guide](https://suites.dev/docs/get-started/installation/). InjectionJS with Vitest also requires externalizing `injection-js`; see its [adapter README](https://github.com/suites-dev/unit/tree/master/packages/di/injection-js#readme).
 
+Configure guarded sociable dependency verification once per Jest project:
+
+```javascript
+module.exports = {
+  testEnvironment: '@suites/doubles.jest/environment',
+};
+```
+
+To retain another environment, export `withDependencyVerification(ExistingEnvironment)` from a small environment module and reference that module from Jest. Guard violations fail the test file even when application code catches the immediate error.
+
 ## Write a test
 
 Given a decorated `UserService` that injects `UserRepository`, as in the [NestJS example](https://github.com/suites-dev/unit/tree/master/packages/di/nestjs#write-a-test):

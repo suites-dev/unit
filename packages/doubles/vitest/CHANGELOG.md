@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## Unreleased
+
+### Breaking Changes
+
+- Add `@suites/doubles.vitest/setup` for suite-level dependency verification and require Vitest 5.1 or later.
+
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.2...%40suites%2Fdoubles.vitest%404.1.3) (2026-11-11)
 
 ### Bug Fixes

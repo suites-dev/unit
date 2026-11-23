@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## Unreleased
+
+### Breaking Changes
+
+- Guard undeclared sociable dependencies and record path-aware violations when they are used.
+- Expose the internal file/suite verification ledger used by supported runner adapters.
+
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.2...%40suites%2Fcore.unit%404.1.3) (2026-11-11)
 
 ### Bug Fixes

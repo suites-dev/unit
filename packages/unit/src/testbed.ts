@@ -63,16 +63,16 @@ export class TestBed {
   /**
    * Creates a test environment that selectively uses real implementations alongside mocks.
    *
-   * In sociable mode, you explicitly choose which dependencies run real code
-   * while everything else remains mocked. This allows to:
+   * In sociable mode, you explicitly choose which dependencies run real code.
+   * Undeclared dependencies remain guarded until intentionally configured. This allows to:
    * - Test interactions between multiple real components
    * - Catch integration bugs while maintaining test speed
    * - Validate business logic flows across boundaries
-   * - Keep external I/O dependencies mocked
+   * - Keep external I/O dependencies behind explicit test boundaries
    *
    * @template TClass The type of the class under test
    * @param targetClass - The class constructor to test with selective real dependencies
-   * @returns A builder requiring `.expose()` to specify real implementations
+   * @returns A builder for real exposures and intentional dependency replacements
    *
    * @example
    * ```ts
