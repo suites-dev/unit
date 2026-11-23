@@ -5,6 +5,13 @@ const { prepare } = require('./cli.cjs');
 const { revision } = require('./source.cjs');
 const { automaticCompatibility } = require('./targets.cjs');
 
+const v5ReleaseGroup = new Set([
+  '@suites/core.unit',
+  '@suites/doubles.jest',
+  '@suites/doubles.vitest',
+  '@suites/unit',
+]);
+
 function prepareBundle(destination, repository) {
   repository = resolve(repository);
   return prepare(
@@ -42,10 +49,16 @@ function verifyPlan(bundle, repository) {
   assert.deepEqual(plan.matrix.include, [
     { project: 'jest/nestjs', node: '26.x', id: 'jest-nestjs-26-x' },
   ]);
+  const releaseGroup = plan.target.packages.filter((pkg) => v5ReleaseGroup.has(pkg.name));
+  const supporting = plan.target.packages.filter((pkg) => !v5ReleaseGroup.has(pkg.name));
+  assert.equal(releaseGroup.length, v5ReleaseGroup.size);
   assert(
-    plan.target.packages.length > 0 &&
-      plan.target.packages.every((pkg) => pkg.version === '5.0.0-e2e.0'),
-    'Canary tarballs must all use the coordinated V5 version'
+    releaseGroup.every((pkg) => pkg.version === '5.0.0-e2e.0'),
+    'Canary declaration packages must use the coordinated V5 version'
+  );
+  assert(
+    supporting.length > 0 && supporting.every((pkg) => pkg.version.startsWith('4.')),
+    'Canary supporting packages must remain independently versioned on V4'
   );
 }
 
