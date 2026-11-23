@@ -51,6 +51,10 @@ Use one doubles adapter reference and one DI adapter reference per test TypeScri
 
 For Inversify or InjectionJS, replace the DI reference with `@suites/di.inversify/metadata` or `@suites/di.injectionjs/metadata`. Load `reflect-metadata` and configure your transformer to emit decorator metadata using the [installation guide](https://suites.dev/docs/get-started/installation/). InjectionJS with Vitest also requires externalizing `injection-js`; see its [adapter README](https://github.com/suites-dev/unit/tree/master/packages/di/injection-js#readme).
 
+### V5 compatibility
+
+The V5 `/unit` declaration preserves the active sociable builder state when `.mock(...).impl(...)` or `.mock(...).final(...)` is chained before or after choosing selective or composed mode. It augments Core's V5 builder-aware `MockOverride` contract and is not declaration-compatible with `@suites/core.unit` 4. Upgrade `@suites/doubles.vitest`, `@suites/core.unit`, and `@suites/unit` to the same major version.
+
 ## Write a test
 
 Given a decorated `UserService` that injects `UserRepository`, as in the [NestJS example](https://github.com/suites-dev/unit/tree/master/packages/di/nestjs#write-a-test):
