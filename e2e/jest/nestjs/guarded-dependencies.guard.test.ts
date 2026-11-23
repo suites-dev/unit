@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { afterAll, expect, it, jest } from '@jest/globals';
+import { afterAll, describe, expect, it, jest } from '@jest/globals';
 import { Injectable } from '@nestjs/common';
 import { TestBed } from '@suites/unit';
 import { appendFileSync } from 'node:fs';
@@ -83,6 +83,26 @@ it('fails even when application code catches the guard', async () => {
 
   expectCaughtGuard(unit);
   recordStep('jest:application-catch-asserted');
+});
+
+describe('nested guard verification', () => {
+  describe('an earlier sibling suite', () => {
+    it('records a violation in a nested sibling suite', async () => {
+      const { unit } = await TestBed.sociable(Checkout).compile();
+
+      expectCaughtGuard(unit);
+      recordStep('jest:nested-sibling-caught');
+    });
+  });
+
+  describe('a later sibling suite', () => {
+    it('keeps verification installed for a later sibling suite', async () => {
+      const { unit } = await TestBed.sociable(Checkout).compile();
+
+      expectCaughtGuard(unit);
+      recordStep('jest:later-sibling-caught');
+    });
+  });
 });
 
 it.failing('fails despite the expected-failure annotation', async () => {
