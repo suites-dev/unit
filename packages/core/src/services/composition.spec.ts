@@ -56,7 +56,7 @@ function resolver(options = {}) {
   );
 }
 
-function builder(target: Type<Service> = Service) {
+function createBuilder<TClass>(target: Type<TClass>, currentAdapter: DependencyInjectionAdapter) {
   const doubles = Promise.resolve({
     mock: jest.fn((implementation: unknown) => implementation ?? {}),
     stub: jest.fn,
@@ -65,11 +65,15 @@ function builder(target: Type<Service> = Service) {
     doubles,
     new UnitMocker(
       doubles.then((value) => value.mock),
-      Promise.resolve(adapter)
+      Promise.resolve(currentAdapter)
     ),
     target,
     console
   );
+}
+
+function builder(target: Type<Service> = Service) {
+  return createBuilder(target, adapter);
 }
 
 describe('opt-in composition', () => {
@@ -314,6 +318,117 @@ describe('opt-in composition', () => {
     const instance = current.instantiateClass(Root) as Root;
     expect(instance.repository).toBeInstanceOf(Repository);
     expect(instance.repository.client).toBeInstanceOf(Client);
+  });
+
+  it('shares explicit bindings across selective and composed builder states', async () => {
+    const token = Symbol('repository');
+    class BoundRoot {
+      constructor(
+        readonly repository: Repository,
+        readonly repeated: Repository
+      ) {}
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(token), parameter(token)]],
+      [Repository, [parameter(Client)]],
+      [Client, []],
+    ]);
+    const fresh = () => createBuilder(BoundRoot, currentAdapter);
+
+    const direct = await fresh().bind(token, Repository).compile();
+    const exposedFirst = await fresh().expose(Client).bind(token, Repository).compile();
+    const boundFirst = await fresh().bind(token, Repository).expose(Client).compile();
+    const composedFirst = await fresh().compose().bind(token, Repository).compile();
+    const composedLast = await fresh().bind(token, Repository).compose().compile();
+
+    expect(direct.unit.repository).toBeInstanceOf(Repository);
+    expect(direct.unit.repository).toBe(direct.unit.repeated);
+    expect(direct.unit.repository.client).not.toBeInstanceOf(Client);
+    expect(() => direct.unitRef.get(token)).toThrow('exposed dependency');
+    expect(exposedFirst.unit.repository.client).toBeInstanceOf(Client);
+    expect(boundFirst.unit.repository.client).toBeInstanceOf(Client);
+    expect(composedFirst.unit.repository.client).toBeInstanceOf(Client);
+    expect(composedLast.unit.repository.client).toBeInstanceOf(Client);
+  });
+
+  it('keeps requested token identities distinct when implementations match', async () => {
+    const first = Symbol('repository');
+    const second = Symbol('repository');
+    class BoundRoot {
+      constructor(
+        readonly first: Repository,
+        readonly repeated: Repository,
+        readonly second: Repository
+      ) {}
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(first), parameter(first), parameter(second)]],
+      [Repository, [parameter(Client)]],
+      [Client, []],
+    ]);
+
+    const { unit } = await createBuilder(BoundRoot, currentAdapter)
+      .bind(first, Repository)
+      .bind(second, Repository)
+      .compose()
+      .compile();
+
+    expect(unit.first).toBe(unit.repeated);
+    expect(unit.first).not.toBe(unit.second);
+  });
+
+  it('lets configured boundaries win over a binding', async () => {
+    const token = Symbol('repository');
+    class BoundRoot {
+      constructor(readonly repository: Repository) {}
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(token)]],
+      [Repository, [parameter(Client)]],
+      [Client, []],
+    ]);
+    const supplied = { client: { read: () => 'supplied' } };
+
+    const { unit } = await createBuilder(BoundRoot, currentAdapter)
+      .bind(token, Repository)
+      .mock<Repository>(token)
+      .final(supplied)
+      .compose()
+      .compile();
+
+    expect(unit.repository).toBe(supplied);
+  });
+
+  it('rejects contradictory bindings after any builder transition', async () => {
+    const token = Symbol('repository');
+    class AlternativeRepository extends Repository {}
+    class BoundRoot {
+      constructor(readonly repository: Repository) {}
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(token)]],
+      [Repository, [parameter(Client)]],
+      [AlternativeRepository, [parameter(Client)]],
+      [Client, []],
+    ]);
+    const fresh = () => createBuilder(BoundRoot, currentAdapter);
+
+    await expect(
+      fresh().bind(token, Repository).bind(token, AlternativeRepository).compile()
+    ).rejects.toThrow(/Conflicting bindings.*repository/);
+    await expect(
+      fresh().bind(token, Repository).compose().bind(token, AlternativeRepository).compile()
+    ).rejects.toThrow(/Conflicting bindings.*repository/);
+    await expect(
+      fresh().bind(token, Repository).expose(Client).bind(token, Repository).compile()
+    ).resolves.toBeDefined();
+  });
+
+  it('rejects a binding without a runtime implementation', () => {
+    const current = builder();
+    expect(() => Reflect.apply(current.bind, current, ['repository', undefined])).toThrow(
+      'requires a concrete implementation'
+    );
   });
 
   it('reports constructor cycles with their dependency path', () => {

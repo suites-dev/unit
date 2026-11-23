@@ -47,6 +47,21 @@ export interface SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
    * @see {@link https://suites.dev/docs/api-reference/testbed-sociable | TestBed.sociable() API Reference}
    */
   expose(dependency: Type, ...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
+  /**
+   * Constructs a real implementation for a string or symbol dependency token.
+   *
+   * String and symbol tokens do not encode their value type. Supply the generic argument
+   * explicitly when the implementation type should be checked against an application contract.
+   */
+  bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): SociableTestBedBuilder<TClass>;
+  /** Constructs a compatible real implementation for an abstract or concrete class token. */
+  bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SociableTestBedBuilder<TClass>;
   compose(): ComposedTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
@@ -55,6 +70,14 @@ export interface SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 }
 
 interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
+  bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): ComposedTestBedBuilder<TClass>;
+  bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): ComposedTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
@@ -63,6 +86,14 @@ interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 
 interface SelectiveTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   expose(dependency: Type, ...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
+  bind<TDependency>(
+    identifier: string | symbol,
+    implementation: Type<TDependency>
+  ): SelectiveTestBedBuilder<TClass>;
+  bind<TToken extends AbstractType>(
+    identifier: TToken,
+    implementation: Type<InstanceType<TToken>>
+  ): SelectiveTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata

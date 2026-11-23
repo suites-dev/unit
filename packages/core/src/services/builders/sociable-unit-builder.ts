@@ -1,3 +1,4 @@
+import { DependencyResolutionError } from '@suites/types.common';
 import type { AbstractType, DeepPartial, FinalValue, Type } from '@suites/types.common';
 import type { ArgsType, DoublesAdapter, Stub, StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
@@ -6,6 +7,7 @@ import type { IdentifierToMockOrFinal } from '../dependency-container.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
 import { CompositionBoundaryContainer } from '../composition-boundary.js';
+import { stringifyIdentifier } from '../functions.static.js';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 import { TestBedBuilder } from './testbed-builder.js';
@@ -61,6 +63,7 @@ interface SelectiveTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
   protected readonly classesToExpose: Type[] = [];
   protected readonly exposedBindings = new Map<InjectableIdentifier, Type>();
+  protected readonly conflictingBindings = new Map<InjectableIdentifier, readonly [Type, Type]>();
 
   public constructor(
     protected readonly doublesAdapter: Promise<DoublesAdapter>,
@@ -81,11 +84,24 @@ abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
     this.exposedBindings.forEach((implementation, identifier) => {
       builder.exposedBindings.set(identifier, implementation);
     });
+    this.conflictingBindings.forEach((implementations, identifier) => {
+      builder.conflictingBindings.set(identifier, implementations);
+    });
     builder.identifiersToBeMocked.push(...this.identifiersToBeMocked);
     builder.identifiersToBeFinalized.push(...this.identifiersToBeFinalized);
   }
 
   protected setExposedBinding(identifier: InjectableIdentifier, implementation: Type): void {
+    if (typeof implementation !== 'function') {
+      throw new TypeError('Binding a dependency token requires a concrete implementation');
+    }
+
+    const existing = this.exposedBindings.get(identifier);
+    if (existing !== undefined && existing !== implementation) {
+      this.conflictingBindings.set(identifier, [existing, implementation]);
+      return;
+    }
+
     this.exposedBindings.set(identifier, implementation);
   }
 
@@ -112,6 +128,13 @@ abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
   }
 
   public async compile(): Promise<UnitTestBed<TClass>> {
+    for (const [identifier, [existing, conflicting]] of this.conflictingBindings) {
+      throw new DependencyResolutionError(
+        `Conflicting bindings for ${stringifyIdentifier(identifier, undefined)}: ` +
+          `${existing.name} and ${conflicting.name}. Bind each requested token to one implementation.`
+      );
+    }
+
     const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
     const stubCb = await this.doublesAdapter.then((adapter) => adapter.stub);
 
