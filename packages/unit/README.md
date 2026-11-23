@@ -152,6 +152,25 @@ See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests]
 
 ## Migration
 
+### Upgrade sociable builder extensions to V5
+
+`TestBed.sociable()` now returns the full initial sociable builder. Choose selective mode with `.expose(first, ...rest)` or composed mode with `.compose()`; the modes are mutually exclusive and cannot be chained together.
+
+Custom `TestBed` subclasses must no longer narrow `sociable()` to an expose-only `Pick`. Return the full initial builder instead:
+
+```typescript
+import { TestBed, type SociableTestBedBuilder } from '@suites/unit';
+import type { Type } from '@suites/types.common';
+
+class CustomTestBed extends TestBed {
+  static override sociable<T>(target: Type<T>): SociableTestBedBuilder<T> {
+    return super.sociable(target);
+  }
+}
+```
+
+Helpers that accept a builder before its mode is chosen should also use `SociableTestBedBuilder<T>`. After `.expose(...)` or `.compose()`, let TypeScript retain the inferred mode-specific return type instead of annotating it as the initial builder. Upgrade `@suites/unit`, `@suites/core.unit`, and the selected doubles adapter to the same major version.
+
 - [Upgrade from Suites 3 to 4](https://github.com/suites-dev/unit/blob/master/docs/migration-v4.md)
 - [Migrate from Automock](https://suites.dev/docs/migration-guides/from-automock/)
 
