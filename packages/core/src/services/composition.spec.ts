@@ -359,7 +359,9 @@ describe('opt-in composition', () => {
 
     expect(unchanged.unit.repository).not.toBe(selected.unit.repository);
     expect(selected.unit.repository).toBeInstanceOf(Repository);
-    expect(selected.unit.repository.client).not.toBeInstanceOf(Client);
+    expect(() => selected.unit.repository.client.read()).toThrow(
+      /undeclared dependency 'Client'.*Service' -> 'Repository' -> 'Client/i
+    );
     expect(recursive.unit.repository.client).toBeInstanceOf(Client);
     expect(overridden.unit.repository).not.toBeInstanceOf(Repository);
   });
