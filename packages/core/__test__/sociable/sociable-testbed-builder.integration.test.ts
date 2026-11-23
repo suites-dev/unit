@@ -159,6 +159,8 @@ describe('Social TestBed Builder Integration Tests', () => {
     await unitBuilder
       .mock('non-existing-dep')
       .impl(() => ({}))
+      .mock(TestLogger)
+      .final({ log: jest.fn() })
       .compile();
 
     expect(loggerMock.warn).toHaveBeenCalledWith(
@@ -170,6 +172,8 @@ describe('Social TestBed Builder Integration Tests', () => {
     await unitBuilder
       .mock(UserDal)
       .impl(() => ({}))
+      .mock(TestLogger)
+      .final({ log: jest.fn() })
       .compile();
 
     expect(loggerMock.warn).toHaveBeenCalledWith(
