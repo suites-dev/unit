@@ -7,7 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Breaking Changes
 
-- Return the full V5 sociable builder and guard undeclared collaborators instead of automatically mocking them.
+- Guard undeclared collaborators in bare sociable tests instead of automatically mocking them.
 
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.1.2...%40suites%2Funit%404.1.3) (2026-11-15)
 
