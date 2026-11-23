@@ -13,12 +13,12 @@
   },
   "devDependencies": {
     "@swc/core": "^1.16.2",
-    "@vitest/coverage-v8": "5.1.0",
+    "@vitest/coverage-v8": "5.1.1",
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3",
     "unplugin-swc": "^2.0.0",
-    "vitest": "5.1.0",
-    "@vitest/spy": "5.1.0",
+    "vitest": "5.1.1",
+    "@vitest/spy": "5.1.1",
     "@types/node": "^26.6.6",
     "@suites/types.common": "e2e"
   },
