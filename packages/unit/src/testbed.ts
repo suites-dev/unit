@@ -8,7 +8,8 @@ import {
   SociableTestBedBuilder as SociableTestBedBuilderCore,
   SolitaryTestBedBuilder as SolitaryTestBedBuilderCore,
 } from '@suites/core.unit';
-import type { SociableTestBedBuilder, SolitaryTestBedBuilder } from '@suites/core.unit';
+import type { SolitaryTestBedBuilder } from '@suites/core.unit';
+import type { SociableTestBedBuilder } from './types.js';
 
 /**
  * The main entry point for creating isolated test environments with Suites.

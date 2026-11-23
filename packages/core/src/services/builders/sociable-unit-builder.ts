@@ -11,28 +11,39 @@ import type { UnitMocker } from '../unit-mocker.js';
 import { TestBedBuilder } from './testbed-builder.js';
 
 export interface SociableTestBedBuilder<TClass> {
-  expose(dependency: Type, ...dependencies: Type[]): SelectiveSociableTestBedBuilder<TClass>;
-  compose(): ComposedSociableTestBedBuilder<TClass>;
+  expose(
+    dependency: Type,
+    ...dependencies: Type[]
+  ): SociableTestBedBuilderState<TClass, 'selective'>;
+  compose(): SociableTestBedBuilderState<TClass, 'composed'>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
   ): MockOverride<TDependency, TClass, SociableTestBedBuilder<TClass>>;
 }
 
-interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
-  mock<TDependency>(
-    identifier: InjectableIdentifier<TDependency>,
-    identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, ComposedTestBedBuilder<TClass>>;
-}
-
-interface SelectiveTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
-  expose(dependency: Type, ...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
-  mock<TDependency>(
-    identifier: InjectableIdentifier<TDependency>,
-    identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, SelectiveTestBedBuilder<TClass>>;
-}
+export type SociableTestBedBuilderState<
+  TClass,
+  TMode extends 'initial' | 'selective' | 'composed',
+> = Omit<TestBedBuilder<TClass>, 'mock'> &
+  (TMode extends 'initial' | 'selective'
+    ? {
+        expose(
+          dependency: Type,
+          ...dependencies: Type[]
+        ): SociableTestBedBuilderState<TClass, 'selective'>;
+      }
+    : Record<never, never>) &
+  (TMode extends 'initial'
+    ? {
+        compose(): SociableTestBedBuilderState<TClass, 'composed'>;
+      }
+    : Record<never, never>) & {
+    mock<TDependency>(
+      identifier: InjectableIdentifier<TDependency>,
+      identifierMetadata?: IdentifierMetadata
+    ): MockOverride<TDependency, TClass, SociableTestBedBuilderState<TClass, TMode>>;
+  };
 
 abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
   protected readonly classesToExpose: Type[] = [];
@@ -160,7 +171,7 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
   public expose(
     dependency: Type,
     ...dependencies: Type[]
-  ): SelectiveSociableTestBedBuilder<TClass> {
+  ): SociableTestBedBuilderState<TClass, 'selective'> {
     if (!dependency) {
       throw new TypeError('Selective exposure requires at least one dependency');
     }
@@ -182,7 +193,7 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
     return this.createMockOverride(identifier, identifierMetadata, this);
   }
 
-  public compose(): ComposedSociableTestBedBuilder<TClass> {
+  public compose(): SociableTestBedBuilderState<TClass, 'composed'> {
     const composed = new ComposedSociableTestBedBuilder<TClass>(
       this.doublesAdapter,
       this.unitMocker,
@@ -196,12 +207,12 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
 
 class ComposedSociableTestBedBuilder<TClass>
   extends SociableBuilderBase<TClass>
-  implements ComposedTestBedBuilder<TClass>
+  implements SociableTestBedBuilderState<TClass, 'composed'>
 {
   public override mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, ComposedTestBedBuilder<TClass>> {
+  ): MockOverride<TDependency, TClass, ComposedSociableTestBedBuilder<TClass>> {
     return this.createMockOverride(identifier, identifierMetadata, this);
   }
 
@@ -216,7 +227,7 @@ class ComposedSociableTestBedBuilder<TClass>
 
 class SelectiveSociableTestBedBuilder<TClass>
   extends SociableBuilderBase<TClass>
-  implements SelectiveTestBedBuilder<TClass>
+  implements SociableTestBedBuilderState<TClass, 'selective'>
 {
   public expose(
     dependency: Type,
@@ -239,7 +250,7 @@ class SelectiveSociableTestBedBuilder<TClass>
   public override mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, SelectiveTestBedBuilder<TClass>> {
+  ): MockOverride<TDependency, TClass, SelectiveSociableTestBedBuilder<TClass>> {
     return this.createMockOverride(identifier, identifierMetadata, this);
   }
 

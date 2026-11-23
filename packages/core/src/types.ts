@@ -61,7 +61,7 @@ export interface UnitTestBed<TClass> {
 export interface MockOverride<
   TDependency,
   TClass,
-  TBuilder extends TestBedBuilder<TClass> = TestBedBuilder<TClass>,
+  TBuilder extends Pick<TestBedBuilder<TClass>, 'compile'> = TestBedBuilder<TClass>,
 > {
   /**
    * Configures mocks with stubs that can be retrieved and modified later via `unitRef.get()`.

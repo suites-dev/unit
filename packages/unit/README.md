@@ -171,6 +171,8 @@ class CustomTestBed extends TestBed {
 
 Helpers that accept a builder before its mode is chosen should also use `SociableTestBedBuilder<T>`. After `.expose(...)` or `.compose()`, let TypeScript retain the inferred mode-specific return type instead of annotating it as the initial builder. Upgrade `@suites/unit`, `@suites/core.unit`, and the selected doubles adapter to the same major version.
 
+The optional second type parameter names a selected mode when a library API must make it explicit: `SociableTestBedBuilder<T, 'selective'>` or `SociableTestBedBuilder<T, 'composed'>`.
+
 - [Upgrade from Suites 3 to 4](https://github.com/suites-dev/unit/blob/master/docs/migration-v4.md)
 - [Migrate from Automock](https://suites.dev/docs/migration-guides/from-automock/)
 

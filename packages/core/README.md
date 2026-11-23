@@ -72,6 +72,8 @@ class CustomBuilder<T> extends SociableTestBedBuilder<T> {
 
 Custom `mock()` overrides and declaration augmentations must likewise retain the selected builder type through `impl()` and `final()`. Upgrade `@suites/core.unit`, `@suites/unit`, and the selected doubles adapter to the same major version so their builder declarations agree.
 
+Libraries that explicitly name a post-selection Core builder can use the exported `SociableTestBedBuilderState<T, 'selective' | 'composed'>` type. Most application code should keep the inferred return type.
+
 ## Adapter development
 
 DI adapters implement contracts from `@suites/types.di`; doubles adapters implement contracts from `@suites/types.doubles`. Use `@suites/types.common` for shared constructor types. Read the [DI adapter contracts](https://github.com/suites-dev/unit/tree/master/packages/types/di#readme) before building an integration.
