@@ -43,6 +43,20 @@ export class DependencyResolver {
     );
   }
 
+  private isComposableClass(identifier: InjectableIdentifier): identifier is Type {
+    if (typeof identifier !== 'function') {
+      return false;
+    }
+
+    const type = identifier as Type;
+    const hasInjectableMetadata = this.adapter.inspect(type).list().length > 0;
+    const hasRuntimeImplementation = Reflect.ownKeys(type.prototype).some(
+      (property) => property !== 'constructor'
+    );
+
+    return hasInjectableMetadata || hasRuntimeImplementation;
+  }
+
   private resolveBoundary(
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
@@ -104,8 +118,8 @@ export class DependencyResolver {
       return instance;
     }
 
-    if (this.options.compose && typeof identifier === 'function') {
-      const instance = this.instantiateClass(identifier as Type, metadata);
+    if (this.options.compose && this.isComposableClass(identifier)) {
+      const instance = this.instantiateClass(identifier, metadata);
       this.composedDependencies.push({ identifier, metadata });
       return instance;
     }

@@ -83,6 +83,25 @@ describe('opt-in composition', () => {
     expect(instance.repository.client.read()).toBe('live');
   });
 
+  it('leaves an unbound abstract-only function token unresolved', () => {
+    abstract class Port {
+      abstract read(): string;
+    }
+    class Root {
+      constructor(readonly port: Port) {}
+    }
+    const current = new DependencyResolver(
+      [],
+      new DependencyContainer([]),
+      registry([[Root, [parameter(Port)]]]),
+      jest.fn(() => ({})),
+      { compose: true }
+    );
+
+    const instance = current.instantiateClass(Root) as Root;
+    expect(instance.port).not.toBeInstanceOf(Port);
+  });
+
   it('resolves boundaries before inspecting their implementation graph', () => {
     const supplied = { read: jest.fn(() => 'mock') };
     const createGuard = jest.fn((path: readonly DependencyPathEntry[]) => {
