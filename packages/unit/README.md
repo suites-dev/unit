@@ -138,7 +138,7 @@ A `.final()` dependency is injected as supplied and cannot be retrieved through 
 
 ## Sociable tests
 
-Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep selected class dependencies real and mock their remaining dependencies. The class under test and exposed classes must be concrete constructors; abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
+Use `TestBed.sociable(UserService).expose(Repository, ConcreteDependency).compile()` to keep selected class dependencies real and mock their remaining dependencies. Exposure is variadic, and the class under test and exposed classes must be concrete constructors. Abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
 
 V5 composition is explicitly opt in:
 
@@ -146,7 +146,7 @@ V5 composition is explicitly opt in:
 const { unit } = await TestBed.sociable(UserService).compose().compile();
 ```
 
-Composition recursively constructs a class only when the selected DI adapter positively identifies it as constructable by that framework. Suites does not infer constructibility from a function token or implemented prototype members. Unmarked classes, including ambiguous concrete leaves, remain unresolved unless a concrete class is explicitly exposed or a token-to-implementation binding is supplied. TypeScript erases the `abstract` modifier, so a framework decorator applied directly to an abstract class can still make it indistinguishable from a concrete class at runtime; use an explicit implementation binding or boundary for that case. Forbidden boundaries and token-to-implementation exposure are delivered separately.
+Selective exposure and recursive composition are mutually exclusive choices: neither `.expose(...).compose()` nor `.compose().expose(...)` is available. Composition recursively constructs a class only when the selected DI adapter positively identifies it as constructable by that framework. Suites does not infer constructibility from a function token or implemented prototype members. Unmarked classes, including ambiguous concrete leaves, remain unresolved in composed mode until a token-to-implementation binding or explicit boundary is supplied. TypeScript erases the `abstract` modifier, so a framework decorator applied directly to an abstract class can still make it indistinguishable from a concrete class at runtime. Shared token bindings and forbidden boundaries are delivered separately.
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 

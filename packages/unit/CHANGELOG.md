@@ -7,7 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Features
 
-* **unit:** expose opt-in `.compose()` while retaining class exposure and typed override chains ([#820](https://github.com/suites-dev/unit/issues/820))
+* **unit:** expose opt-in `.compose()` as a distinct mode from variadic selective exposure while retaining typed override chains ([#820](https://github.com/suites-dev/unit/issues/820))
 
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.1.2...%40suites%2Funit%404.1.3) (2026-11-15)
 
