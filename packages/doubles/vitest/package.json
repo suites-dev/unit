@@ -68,9 +68,9 @@
     "@suites/types.doubles": "workspace:^4.0.2"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "5.1.0",
-    "@vitest/spy": "5.1.0",
-    "vitest": "5.1.0"
+    "@vitest/coverage-v8": "5.1.1",
+    "@vitest/spy": "5.1.1",
+    "vitest": "5.1.1"
   },
   "publishConfig": {
     "access": "public",
