@@ -7,6 +7,5 @@ export default defineConfig({
     ...config.test,
     include: ['**/guarded-dependencies.guard.test.ts'],
     setupFiles: ['@suites/doubles.vitest/setup'],
-    runner: '@suites/doubles.vitest/runner',
   },
 });
