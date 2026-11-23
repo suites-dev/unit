@@ -5,6 +5,7 @@ const { join } = require('node:path');
 const test = require('node:test');
 const { configure, verifyInstalled, runConsumer } = require('./e2e/consumer.cjs');
 const { prepare } = require('./e2e/cli.cjs');
+const { stageVersions } = require('./e2e/major-canary.cjs');
 const { hashFile, verifySnapshot } = require('./e2e/source.cjs');
 const { automaticCompatibility, selectPreviousVersion } = require('./e2e/targets.cjs');
 
@@ -34,6 +35,40 @@ function candidatePackages(
     { name: '@suites/types.common', version: supportingVersion },
   ];
 }
+
+test('V5 canary staging keeps supporting packages and their dependency ranges on V4', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'suites-e2e-canary-versions-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const manifests = [
+    ['packages/core/package.json', '@suites/core.unit', { '@suites/types.di': 'workspace:^4.1.2' }],
+    ['packages/doubles/jest/package.json', '@suites/doubles.jest', { '@suites/core.unit': 'workspace:^4.1.3' }],
+    ['packages/doubles/vitest/package.json', '@suites/doubles.vitest', { '@suites/core.unit': 'workspace:^4.1.3' }],
+    ['packages/unit/package.json', '@suites/unit', { '@suites/core.unit': 'workspace:^4.1.3' }],
+    ['packages/di/injection-js/package.json', '@suites/di.injectionjs', {}],
+    ['packages/di/inversify/package.json', '@suites/di.inversify', {}],
+    ['packages/di/nestjs/package.json', '@suites/di.nestjs', {}],
+    ['packages/types/common/package.json', '@suites/types.common', {}],
+    ['packages/types/di/package.json', '@suites/types.di', { '@suites/types.common': 'workspace:^4.0.2' }],
+    ['packages/types/doubles/package.json', '@suites/types.doubles', {}],
+  ];
+  for (const [path, name, dependencies] of manifests) {
+    const file = join(root, path);
+    mkdirSync(join(file, '..'), { recursive: true });
+    writeFileSync(file, `${JSON.stringify({ name, version: '4.1.3', dependencies }, null, 2)}\n`);
+  }
+  stageVersions(root);
+  const readManifest = (path) => JSON.parse(readFileSync(join(root, path), 'utf8'));
+  assert.equal(readManifest('packages/core/package.json').version, '5.0.0-e2e.0');
+  assert.equal(
+    readManifest('packages/core/package.json').dependencies['@suites/types.di'],
+    'workspace:^4.1.2'
+  );
+  assert.equal(readManifest('packages/types/di/package.json').version, '4.1.3');
+  assert.equal(
+    readManifest('packages/unit/package.json').dependencies['@suites/core.unit'],
+    'workspace:^5.0.0-e2e.0'
+  );
+});
 
 test('automatic compatibility skips only an initial, coordinated next-major candidate', () => {
   assert.deepEqual(
