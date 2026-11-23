@@ -10,6 +10,7 @@ const runner = process.argv[2];
 const directory = mkdtempSync(join(tmpdir(), 'suites-guard-report-'));
 const outputFile = join(directory, 'results.json');
 const customOutputFile = join(directory, 'custom-environment-results.json');
+const missingOutputFile = join(directory, 'missing-integration-results.json');
 const stepsFile = join(directory, 'steps.txt');
 
 try {
@@ -46,6 +47,8 @@ try {
   const guarded = [
     'fails even when an exception assertion catches the guard',
     'fails even when application code catches the guard',
+    'records a violation in a nested sibling suite',
+    'keeps verification installed for a later sibling suite',
     'fails despite the expected-failure annotation',
     'fails when a clean retry follows a caught guard',
   ];
@@ -77,6 +80,8 @@ try {
   for (const step of [
     `${runner}:immediate-error-asserted`,
     `${runner}:application-catch-asserted`,
+    `${runner}:nested-sibling-caught`,
+    `${runner}:later-sibling-caught`,
     `${runner}:retry-first-caught`,
     `${runner}:retry-second-clean`,
     `${runner}:teardown-caught`,
@@ -88,6 +93,36 @@ try {
   }
 
   assert.equal(tests.length, passing.length + guarded.length + (runner === 'vitest' ? 3 : 1), output);
+
+  const missingArgs =
+    runner === 'jest'
+      ? [
+          '--config',
+          'jest.missing-guards.config.cjs',
+          '--runInBand',
+          '--json',
+          '--outputFile',
+          missingOutputFile,
+        ]
+      : [
+          'run',
+          '--config',
+          'vitest.missing-guards.config.ts',
+          '--reporter=json',
+          '--outputFile',
+          missingOutputFile,
+        ];
+  const missingResult = spawnSync('pnpm', ['exec', runner, ...missingArgs], {
+    encoding: 'utf8',
+    env: process.env,
+    timeout: 60_000,
+  });
+  assert.ifError(missingResult.error);
+  const missingOutput = missingResult.stdout + missingResult.stderr;
+  assert.equal(missingResult.status, 1, missingOutput);
+  assert.match(missingOutput, /dependency verification is not configured/i);
+  assert.match(missingOutput, runner === 'jest' ? /testEnvironment/i : /setupFiles/i);
+  assert.ok(existsSync(missingOutputFile), `${runner} did not produce a missing-setup report.`);
 
   if (runner === 'jest') {
     const customResult = spawnSync(
