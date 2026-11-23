@@ -9,10 +9,7 @@ import type {
   InjectableIdentifier,
   WithMetadata,
 } from '@suites/types.di';
-import type {
-  CompositionBoundaryLookup,
-  DependencyPathEntry,
-} from './composition-boundary.js';
+import type { CompositionBoundaryLookup, DependencyPathEntry } from './composition-boundary.js';
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyMap } from './dependency-map.js';
 
@@ -23,6 +20,7 @@ export interface ResolverOptions {
 }
 
 type ResolvedDependency = Type | FinalValue | StubbedInstance<unknown>;
+type ResolvedBoundary = { value: ResolvedDependency };
 
 export class DependencyResolver {
   private readonly dependencyMap = new DependencyMap();
@@ -48,11 +46,13 @@ export class DependencyResolver {
   private resolveBoundary(
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
-  ): ResolvedDependency | undefined {
+  ): ResolvedBoundary | undefined {
     const boundary = this.options.boundaries?.resolve(identifier, metadata);
     if (boundary !== undefined) {
       if (boundary.kind === 'guard') {
-        return boundary.create([...this.constructionPath, { identifier, metadata }]);
+        return {
+          value: boundary.create([...this.constructionPath, { identifier, metadata }]),
+        };
       }
 
       const selectedEntry = this.mockedFromBeforeContainer.resolveEntry(
@@ -62,13 +62,13 @@ export class DependencyResolver {
       if (selectedEntry !== undefined) {
         this.usedMockEntries.add(selectedEntry);
       }
-      return boundary.value;
+      return { value: boundary.value };
     }
 
     const existingEntry = this.mockedFromBeforeContainer.resolveEntry(identifier, metadata);
-    if (existingEntry !== undefined && existingEntry[1] !== undefined) {
+    if (existingEntry !== undefined) {
       this.usedMockEntries.add(existingEntry);
-      return existingEntry[1];
+      return { value: existingEntry[1] };
     }
 
     return undefined;
@@ -89,10 +89,10 @@ export class DependencyResolver {
       return this.dependencyMap.get(identifier, metadata) as ResolvedDependency;
     }
 
-    const boundaryValue = this.resolveBoundary(identifier, metadata);
-    if (boundaryValue !== undefined) {
-      this.dependencyMap.set(identifier, boundaryValue, metadata as never);
-      return boundaryValue;
+    const boundary = this.resolveBoundary(identifier, metadata);
+    if (boundary !== undefined) {
+      this.dependencyMap.set(identifier, boundary.value, metadata as never);
+      return boundary.value;
     }
 
     const exposedImplementation = this.options.exposedBindings?.get(identifier);

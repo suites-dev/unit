@@ -114,6 +114,26 @@ describe('opt-in composition', () => {
     expect(createGuard).toHaveBeenCalledTimes(1);
   });
 
+  it('retains a boundary that deliberately resolves to undefined', () => {
+    const inspect = jest.fn((type: Type) => adapter.inspect(type));
+    const current = new DependencyResolver(
+      [],
+      new DependencyContainer([]),
+      { inspect },
+      jest.fn(() => ({})),
+      {
+        compose: true,
+        boundaries: new CompositionBoundaryContainer([
+          { kind: 'guard', identifier: Client, create: () => undefined },
+        ]),
+      }
+    );
+
+    const instance = current.instantiateClass(Service) as Service;
+    expect(instance.repository.client).toBeUndefined();
+    expect(inspect).not.toHaveBeenCalledWith(Client);
+  });
+
   it('prefers qualified boundaries and lets an unqualified boundary cover variants', () => {
     class Root {
       constructor(
