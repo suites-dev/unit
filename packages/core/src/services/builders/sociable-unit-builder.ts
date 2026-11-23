@@ -12,7 +12,7 @@ import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 import { TestBedBuilder } from './testbed-builder.js';
 
-export interface SociableTestBedBuilder<TClass> {
+export interface SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   expose(dependency: Type, ...dependencies: Type[]): SelectiveSociableTestBedBuilder<TClass>;
   compose(): ComposedSociableTestBedBuilder<TClass>;
   bind<TDependency>(
@@ -202,7 +202,7 @@ For detailed instructions and best practices, refer to our documentation: https:
 
 export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> {
   protected resolverOptions(): ResolverOptions {
-    return { exposedBindings: this.exposedBindings };
+    return { exposedBindings: this.exposedBindings, guardUndeclared: true };
   }
 
   public expose(
@@ -290,6 +290,7 @@ class ComposedSociableTestBedBuilder<TClass>
       compose: true,
       boundaries,
       exposedBindings: this.exposedBindings,
+      guardUndeclared: true,
     };
   }
 }
@@ -340,6 +341,6 @@ class SelectiveSociableTestBedBuilder<TClass>
   }
 
   protected resolverOptions(): ResolverOptions {
-    return { exposedBindings: this.exposedBindings };
+    return { exposedBindings: this.exposedBindings, guardUndeclared: true };
   }
 }

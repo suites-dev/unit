@@ -12,11 +12,13 @@ import type {
 import type { CompositionBoundaryLookup, DependencyPathEntry } from './composition-boundary.js';
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyMap } from './dependency-map.js';
+import { createGuardedDependency } from './guarded-dependency.js';
 
 export interface ResolverOptions {
   compose?: boolean;
   boundaries?: CompositionBoundaryLookup;
   exposedBindings?: ReadonlyMap<InjectableIdentifier, Type>;
+  guardUndeclared?: boolean;
 }
 
 type ResolvedDependency = Type | FinalValue | StubbedInstance<unknown>;
@@ -117,6 +119,17 @@ export class DependencyResolver {
       return instance;
     }
 
+    if (this.options.guardUndeclared && !this.isExposedClass(identifier)) {
+      const guarded = createGuardedDependency(
+        'undeclared dependency',
+        identifier,
+        metadata,
+        [...this.constructionPath, { identifier, metadata }]
+      );
+      this.dependencyMap.set(identifier, guarded, metadata as never);
+      return guarded;
+    }
+
     if (this.isLeafOrPrimitive(identifier)) {
       if (this.isExposedClass(identifier)) {
         return this.instantiateClass(identifier, metadata);
@@ -145,7 +158,10 @@ export class DependencyResolver {
       return this.dependencyMap.get(identifier, metadata) as ResolvedDependency;
     }
 
-    const tracksCycles = this.options.compose || (this.options.exposedBindings?.size ?? 0) > 0;
+    const tracksCycles =
+      this.options.compose ||
+      this.options.guardUndeclared ||
+      (this.options.exposedBindings?.size ?? 0) > 0;
     if (
       tracksCycles &&
       this.constructionPath.some(
