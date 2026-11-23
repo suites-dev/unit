@@ -12,6 +12,38 @@ const v5ReleaseGroup = new Set([
   '@suites/unit',
 ]);
 
+const packageManifestPaths = [
+  'packages/core/package.json',
+  'packages/di/injection-js/package.json',
+  'packages/di/inversify/package.json',
+  'packages/di/nestjs/package.json',
+  'packages/doubles/jest/package.json',
+  'packages/doubles/vitest/package.json',
+  'packages/types/common/package.json',
+  'packages/types/di/package.json',
+  'packages/types/doubles/package.json',
+  'packages/unit/package.json',
+];
+
+function stageVersions(repository) {
+  repository = resolve(repository);
+  const manifests = packageManifestPaths.map((path) => {
+    const file = join(repository, path);
+    const manifest = JSON.parse(readFileSync(file, 'utf8'));
+    return { file, manifest };
+  });
+  for (const { manifest } of manifests) {
+    if (v5ReleaseGroup.has(manifest.name)) manifest.version = '5.0.0-e2e.0';
+    for (const field of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+      for (const name of Object.keys(manifest[field] || {})) {
+        if (v5ReleaseGroup.has(name)) manifest[field][name] = 'workspace:^5.0.0-e2e.0';
+      }
+    }
+  }
+  for (const { file, manifest } of manifests)
+    writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 function prepareBundle(destination, repository) {
   repository = resolve(repository);
   return prepare(
@@ -82,14 +114,15 @@ function injectFailure(repository) {
 }
 
 if (require.main === module) {
-  if (process.argv[2] === 'prepare') prepareBundle(process.argv[3], process.argv[4]);
+  if (process.argv[2] === 'stage-versions') stageVersions(process.argv[3]);
+  else if (process.argv[2] === 'prepare') prepareBundle(process.argv[3], process.argv[4]);
   else if (process.argv[2] === 'verify-plan') verifyPlan(process.argv[3], process.argv[4]);
   else if (process.argv[2] === 'verify-result') verifyResult(process.argv[3], process.argv[4]);
   else if (process.argv[2] === 'inject-failure') injectFailure(process.argv[3]);
   else
     throw new Error(
-      'Use prepare <bundle> <repository>, verify-plan <bundle> <repository>, verify-result <workdir> <status>, or inject-failure <repository>'
+      'Use stage-versions <repository>, prepare <bundle> <repository>, verify-plan <bundle> <repository>, verify-result <workdir> <status>, or inject-failure <repository>'
     );
 }
 
-module.exports = { injectFailure, prepareBundle, verifyPlan, verifyResult };
+module.exports = { injectFailure, prepareBundle, stageVersions, verifyPlan, verifyResult };
