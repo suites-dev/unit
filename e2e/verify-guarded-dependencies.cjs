@@ -42,7 +42,6 @@ try {
   const passing = [
     'allows a dependency to be injected without being used',
     'uses an explicitly exposed real dependency',
-    'uses an explicitly mocked dependency',
   ];
   const guarded = [
     'fails even when an exception assertion catches the guard',

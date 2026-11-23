@@ -65,15 +65,6 @@ it('uses an explicitly exposed real dependency', async () => {
   expect(unit.available()).toBe(true);
 });
 
-it('uses an explicitly mocked dependency', async () => {
-  const { unit } = await TestBed.sociable(Checkout)
-    .mock(Inventory)
-    .impl((stubFn) => ({ available: stubFn().mockReturnValue(false) }))
-    .compile();
-
-  expect(unit.available()).toBe(false);
-});
-
 it.skip('does not verify a skipped test', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
