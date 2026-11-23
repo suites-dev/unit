@@ -355,7 +355,9 @@ describe('opt-in composition', () => {
 
     expect(direct.unit.repository).toBeInstanceOf(Repository);
     expect(direct.unit.repository).toBe(direct.unit.repeated);
-    expect(direct.unit.repository.client).not.toBeInstanceOf(Client);
+    expect(() => direct.unit.repository.client.read()).toThrow(
+      /undeclared dependency 'Client'.*BoundRoot' -> 'Symbol\(repository\)' -> 'Client'/i
+    );
     expect(() => direct.unitRef.get(token)).toThrow('exposed dependency');
     expect(exposedFirst.unit.repository.client).toBeInstanceOf(Client);
     expect(boundFirst.unit.repository.client).toBeInstanceOf(Client);
