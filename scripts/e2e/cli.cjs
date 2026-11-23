@@ -24,12 +24,10 @@ function prepare({
       ? publishedTarget(repository, target, join(destination, 'packages'))
       : candidateTarget(candidateRepository, join(destination, 'packages'));
   const unitVersion = selected.packages.find((pkg) => pkg.name === '@suites/unit').version;
-  const baseline = baselineVersion
-    ? publishedTarget(
-        repository,
-        baselineVersion === 'previous' ? previousVersion(repository, unitVersion) : baselineVersion,
-        join(destination, 'packages')
-      )
+  const requestedBaseline =
+    baselineVersion === 'previous' ? previousVersion(repository, unitVersion) : baselineVersion;
+  const baseline = requestedBaseline
+    ? publishedTarget(repository, requestedBaseline, join(destination, 'packages'))
     : undefined;
   const tests = snapshot(
     repository,
@@ -68,15 +66,26 @@ function prepare({
       }))
     ),
   };
+  const compatibility = !baselineVersion
+    ? 'not-requested'
+    : baseline
+      ? 'checked'
+      : 'skipped-new-major';
   const plan = { schema: 1, tests, target: selected, baseline, matrix };
   writeFileSync(join(destination, 'plan.json'), JSON.stringify(plan, null, 2));
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify(matrix)}\n`);
+  if (compatibility === 'skipped-new-major' && process.env.GITHUB_STEP_SUMMARY)
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `No published stable @suites/unit ${unitVersion.split('.')[0]}.x release exists. Previous-release comparison is skipped; candidate consumers still run.\n`
+    );
   console.log(
     JSON.stringify({
       tests: tests.commit,
       target: selected.label,
       baseline: baseline?.label,
+      compatibility,
       jobs: matrix.include.length,
     })
   );

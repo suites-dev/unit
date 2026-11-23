@@ -14,11 +14,7 @@ function selectPreviousVersion(versions, candidateVersion) {
     .map((version) => version.split('.').map(Number))
     .filter((version) => version[0] === candidate[0] && compare(version, candidate) <= 0)
     .sort(compare);
-  assert(
-    eligible.length,
-    `No published stable baseline exists for candidate ${candidateVersion}; use the standalone runner for a major-version assessment`
-  );
-  return eligible.at(-1).join('.');
+  return eligible.at(-1)?.join('.');
 }
 
 function previousVersion(repository, candidateVersion) {
