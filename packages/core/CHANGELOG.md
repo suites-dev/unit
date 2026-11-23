@@ -9,6 +9,10 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * **core.unit:** add opt-in recursive sociable composition with pre-inspection boundaries ([#820](https://github.com/suites-dev/unit/issues/820))
 
+### BREAKING CHANGES
+
+* **core.unit:** sociable builders now branch into mutually exclusive selective and composed states. Custom `SociableTestBedBuilder` subclasses must update `expose()` overrides to accept variadic dependencies and preserve the selective return type; custom mock overrides must preserve the active builder subtype. ([#820](https://github.com/suites-dev/unit/issues/820))
+
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.2...%40suites%2Fcore.unit%404.1.3) (2026-11-11)
 
 ### Bug Fixes
