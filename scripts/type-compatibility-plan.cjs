@@ -13,37 +13,69 @@ const fullCombinations = [
   ['old-adapters', ['@suites/core.unit', '@suites/unit']],
   ['aligned', declarationPackages],
 ];
+const versionPattern =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+const stableVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
-function parseVersion(version, { stable = false } = {}) {
-  const pattern = stable ? /^(\d+)\.(\d+)\.(\d+)$/ : /^(\d+)\.(\d+)\.(\d+)(?:-.+)?$/;
-  const match = pattern.exec(version);
-  assert(match, `Invalid ${stable ? 'stable ' : ''}version: ${version}`);
-  return match.slice(1).map(Number);
+function parseVersion(version, description = 'Version') {
+  assert(
+    typeof version === 'string' && versionPattern.test(version),
+    `${description} must be valid exact semver`
+  );
+  const separator = version.indexOf('-');
+  const base = separator < 0 ? version : version.slice(0, separator);
+  const prerelease = separator < 0 ? [] : version.slice(separator + 1).split('.');
+  assert(
+    prerelease.every((identifier) => !/^\d+$/.test(identifier) || !/^0\d/.test(identifier)),
+    `${description} must be valid exact semver`
+  );
+  const [major, minor, patch] = base.split('.').map(Number);
+  return { version, major, minor, patch, prerelease };
 }
 
 function compare(left, right) {
-  for (let index = 0; index < 3; index += 1) {
-    if (left[index] !== right[index]) return left[index] - right[index];
+  const core = left.major - right.major || left.minor - right.minor || left.patch - right.patch;
+  if (core) return core;
+  if (!left.prerelease.length || !right.prerelease.length) {
+    return Number(!left.prerelease.length) - Number(!right.prerelease.length);
+  }
+  for (
+    let index = 0;
+    index < Math.max(left.prerelease.length, right.prerelease.length);
+    index += 1
+  ) {
+    const leftIdentifier = left.prerelease[index];
+    const rightIdentifier = right.prerelease[index];
+    if (leftIdentifier === undefined || rightIdentifier === undefined) {
+      return Number(leftIdentifier !== undefined) - Number(rightIdentifier !== undefined);
+    }
+    if (leftIdentifier === rightIdentifier) continue;
+    const leftNumeric = /^\d+$/.test(leftIdentifier);
+    const rightNumeric = /^\d+$/.test(rightIdentifier);
+    if (leftNumeric && rightNumeric) return Number(leftIdentifier) - Number(rightIdentifier);
+    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+    return leftIdentifier.localeCompare(rightIdentifier);
   }
   return 0;
 }
 
 function latestStable(versions, major) {
   return versions
-    .filter((version) => /^\d+\.\d+\.\d+$/.test(version))
-    .map((version) => ({ raw: version, parsed: parseVersion(version, { stable: true }) }))
-    .filter(({ parsed }) => parsed[0] === major)
-    .sort((left, right) => compare(left.parsed, right.parsed))
-    .at(-1)?.raw;
+    .filter((version) => stableVersionPattern.test(version))
+    .map((version) => parseVersion(version, 'Published version'))
+    .filter((version) => version.major === major)
+    .sort(compare)
+    .at(-1);
 }
 
 function compatibilityPlan({ candidateVersions, publishedVersions }) {
-  const candidateMajors = new Set(
+  const candidates = Object.fromEntries(
     declarationPackages.map((name) => {
       assert(candidateVersions[name], `Missing candidate version for ${name}`);
-      return parseVersion(candidateVersions[name])[0];
+      return [name, parseVersion(candidateVersions[name], `${name} candidate version`)];
     })
   );
+  const candidateMajors = new Set(Object.values(candidates).map(({ major }) => major));
   assert.equal(
     candidateMajors.size,
     1,
@@ -51,14 +83,37 @@ function compatibilityPlan({ candidateVersions, publishedVersions }) {
   );
   const candidateMajor = [...candidateMajors][0];
 
-  const latestPublishedMajor = Math.max(
-    ...declarationPackages.flatMap((name) => {
+  const latestPublished = Object.fromEntries(
+    declarationPackages.map((name) => {
       assert(Array.isArray(publishedVersions[name]), `Missing published versions for ${name}`);
-      return publishedVersions[name]
-        .filter((version) => /^\d+\.\d+\.\d+$/.test(version))
-        .map((version) => parseVersion(version, { stable: true })[0]);
+      const stable = publishedVersions[name]
+        .filter((version) => stableVersionPattern.test(version))
+        .map((version) => parseVersion(version, 'Published version'))
+        .sort(compare);
+      assert(stable.length > 0, `${name} has no published stable releases`);
+      return [name, stable.at(-1)];
     })
   );
+
+  const baselines = Object.fromEntries(
+    declarationPackages.flatMap((name) => {
+      const version = latestStable(publishedVersions[name], candidateMajor);
+      return version ? [[name, version.version]] : [];
+    })
+  );
+  const baselineCount = Object.keys(baselines).length;
+  assert(
+    baselineCount === 0 || baselineCount === declarationPackages.length,
+    'Expected same-major baselines for every declaration-coupled package or none'
+  );
+
+  const latestPublishedMajors = new Set(Object.values(latestPublished).map(({ major }) => major));
+  assert.equal(
+    latestPublishedMajors.size,
+    1,
+    'Declaration-coupled packages must have the same latest published stable major'
+  );
+  const latestPublishedMajor = [...latestPublishedMajors][0];
   assert(
     candidateMajor >= latestPublishedMajor,
     `Candidate major ${candidateMajor} is older than the latest published major ${latestPublishedMajor}`
@@ -68,19 +123,28 @@ function compatibilityPlan({ candidateVersions, publishedVersions }) {
     `Type compatibility supports candidate majors 4 and 5, received ${candidateMajor}`
   );
 
-  const baselines = Object.fromEntries(
-    declarationPackages.flatMap((name) => {
-      const version = latestStable(publishedVersions[name], candidateMajor);
-      return version ? [[name, version]] : [];
-    })
-  );
-  const baselineCount = Object.keys(baselines).length;
-  assert(
-    baselineCount === 0 || baselineCount === declarationPackages.length,
-    'Expected same-major baselines for every declaration-coupled package or none'
-  );
-
   const sameMajor = baselineCount === declarationPackages.length;
+  if (sameMajor) {
+    for (const name of declarationPackages) {
+      assert(
+        compare(candidates[name], latestPublished[name]) >= 0,
+        `${name} candidate ${candidates[name].version} is older than latest stable ${latestPublished[name].version}`
+      );
+    }
+  } else {
+    assert.equal(
+      candidateMajor,
+      latestPublishedMajor + 1,
+      `A first-major compatibility check must advance exactly one major from ${latestPublishedMajor}`
+    );
+    for (const candidate of Object.values(candidates)) {
+      assert(
+        candidate.minor === 0 && candidate.patch === 0,
+        `A new major must start at ${candidateMajor}.0.0`
+      );
+    }
+  }
+
   return {
     mode: sameMajor ? 'same-major' : 'first-major',
     candidateMajor,
