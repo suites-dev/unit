@@ -11,8 +11,12 @@ import type { UnitMocker } from '../unit-mocker.js';
 import { TestBedBuilder } from './testbed-builder.js';
 
 export interface SociableTestBedBuilder<TClass> {
-  expose(...dependencies: Type[]): SelectiveSociableTestBedBuilder<TClass>;
+  expose(dependency: Type, ...dependencies: Type[]): SelectiveSociableTestBedBuilder<TClass>;
   compose(): ComposedSociableTestBedBuilder<TClass>;
+  mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    identifierMetadata?: IdentifierMetadata
+  ): MockOverride<TDependency, TClass, SociableTestBedBuilder<TClass>>;
 }
 
 interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
@@ -23,7 +27,7 @@ interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 }
 
 interface SelectiveTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
-  expose(...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
+  expose(dependency: Type, ...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
@@ -153,15 +157,29 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
     return { exposedBindings: this.exposedBindings };
   }
 
-  public expose(...dependencies: Type[]): SelectiveSociableTestBedBuilder<TClass> {
+  public expose(
+    dependency: Type,
+    ...dependencies: Type[]
+  ): SelectiveSociableTestBedBuilder<TClass> {
+    if (!dependency) {
+      throw new TypeError('Selective exposure requires at least one dependency');
+    }
+
     const selective = new SelectiveSociableTestBedBuilder<TClass>(
       this.doublesAdapter,
       this.unitMocker,
       this.targetClass,
       this.logger
     );
-    this.copyConfigurationTo(selective, dependencies);
+    this.copyConfigurationTo(selective, [dependency, ...dependencies]);
     return selective;
+  }
+
+  public override mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    identifierMetadata?: IdentifierMetadata
+  ): MockOverride<TDependency, TClass, SociableTestBedBuilder<TClass>> {
+    return this.createMockOverride(identifier, identifierMetadata, this);
   }
 
   public compose(): ComposedSociableTestBedBuilder<TClass> {
@@ -200,14 +218,21 @@ class SelectiveSociableTestBedBuilder<TClass>
   extends SociableBuilderBase<TClass>
   implements SelectiveTestBedBuilder<TClass>
 {
-  public expose(...dependencies: Type[]): SelectiveSociableTestBedBuilder<TClass> {
+  public expose(
+    dependency: Type,
+    ...dependencies: Type[]
+  ): SelectiveSociableTestBedBuilder<TClass> {
+    if (!dependency) {
+      throw new TypeError('Selective exposure requires at least one dependency');
+    }
+
     const selective = new SelectiveSociableTestBedBuilder<TClass>(
       this.doublesAdapter,
       this.unitMocker,
       this.targetClass,
       this.logger
     );
-    this.copyConfigurationTo(selective, dependencies);
+    this.copyConfigurationTo(selective, [dependency, ...dependencies]);
     return selective;
   }
 

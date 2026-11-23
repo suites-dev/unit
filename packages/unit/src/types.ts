@@ -46,8 +46,12 @@ export interface SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
    * ```
    * @see {@link https://suites.dev/docs/api-reference/testbed-sociable | TestBed.sociable() API Reference}
    */
-  expose(...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
+  expose(dependency: Type, ...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
   compose(): ComposedTestBedBuilder<TClass>;
+  mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    identifierMetadata?: IdentifierMetadata
+  ): MockOverride<TDependency, TClass, SociableTestBedBuilder<TClass>>;
 }
 
 interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
@@ -58,7 +62,7 @@ interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
 }
 
 interface SelectiveTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
-  expose(...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
+  expose(dependency: Type, ...dependencies: Type[]): SelectiveTestBedBuilder<TClass>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
