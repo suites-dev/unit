@@ -48,13 +48,7 @@ export class DependencyResolver {
       return false;
     }
 
-    const type = identifier as Type;
-    const hasInjectableMetadata = this.adapter.inspect(type).list().length > 0;
-    const hasRuntimeImplementation = Reflect.ownKeys(type.prototype).some(
-      (property) => property !== 'constructor'
-    );
-
-    return hasInjectableMetadata || hasRuntimeImplementation;
+    return this.adapter.isConstructable?.(identifier as Type) === true;
   }
 
   private resolveBoundary(
