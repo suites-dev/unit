@@ -1,5 +1,5 @@
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
-import { reportDependencyViolation } from '../dependency-verification.js';
+import { reportDependencyViolation } from '../dependency-verification-internal.js';
 import { stringifyIdentifier } from './functions.static.js';
 
 export type DependencyViolationCategory = 'undeclared dependency' | 'forbidden dependency';

@@ -1,6 +1,6 @@
 import type { Type } from '@suites/types.common';
 import type { ClassInjectable, DependencyInjectionAdapter } from '@suites/types.di';
-import { dependencyVerificationKey } from '../dependency-verification.js';
+import { dependencyVerificationKey } from '../dependency-verification-internal.js';
 import { DependencyContainer } from './dependency-container.js';
 import { UnitMocker } from './unit-mocker.js';
 

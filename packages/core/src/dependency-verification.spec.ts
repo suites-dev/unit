@@ -3,7 +3,8 @@ import {
   DependencyViolationLedger,
   dependencyVerificationKey,
   reportDependencyViolation,
-} from './dependency-verification.js';
+} from './dependency-verification-internal.js';
+import { DependencyVerification } from './dependency-verification.js';
 
 const missingDependencyVerificationKey = Symbol.for(
   '@suites/dependency-verification-missing-reported'
@@ -15,6 +16,22 @@ afterEach(() => {
 });
 
 describe('dependency violation verification', () => {
+  it('exposes one adapter lifecycle that installs, finishes, and uninstalls reporting', () => {
+    const verification = DependencyVerification.install(global);
+    const violation = new Error('guarded access');
+
+    expect(() => reportDependencyViolation(violation)).toThrow(violation);
+    expect(verification.finish()).toEqual(
+      expect.objectContaining({
+        name: 'DependencyVerificationError',
+        violations: [violation],
+      })
+    );
+
+    verification.uninstall();
+    expect(Reflect.has(global, dependencyVerificationKey)).toBe(false);
+  });
+
   it('records a violation before the immediate error is thrown', () => {
     const ledger = new DependencyViolationLedger();
     const violation = new Error('guarded access');

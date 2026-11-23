@@ -5,7 +5,7 @@ import type {
   InjectableIdentifier,
 } from '@suites/types.di';
 import type { DependencyPathEntry } from './composition-boundary.js';
-import { dependencyVerificationKey } from '../dependency-verification.js';
+import { dependencyVerificationKey } from '../dependency-verification-internal.js';
 import { CompositionBoundaryContainer } from './composition-boundary.js';
 import { DependencyContainer } from './dependency-container.js';
 import { DependencyResolver } from './dependency-resolver.js';

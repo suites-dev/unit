@@ -8,11 +8,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Features
 
 * **core.unit:** add opt-in recursive sociable composition with pre-inspection boundaries ([#820](https://github.com/suites-dev/unit/issues/820))
+- Add the adapter-only `@suites/core.unit/verification` subpath. Its sole named export,
+  `DependencyVerification`, installs, finishes, and uninstalls one native file/suite reporter;
+  ledger, error, key, and violation-reporting internals are not exported.
 
 ### Breaking Changes
 
 - Guard undeclared sociable dependencies and record path-aware violations when they are used.
-- Expose the internal file/suite verification ledger used by supported runner adapters.
 - Fail closed with runner setup guidance when a guard is used without verification integration.
 
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fcore.unit%404.1.2...%40suites%2Fcore.unit%404.1.3) (2026-11-11)

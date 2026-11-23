@@ -1,15 +1,7 @@
 import { aroundAll } from 'vitest';
-import {
-  DependencyViolationLedger,
-  dependencyVerificationKey,
-} from '@suites/core.unit/verification';
+import { DependencyVerification } from '@suites/core.unit/verification';
 
-const dependencyViolations = new DependencyViolationLedger();
-
-Reflect.defineProperty(global, dependencyVerificationKey, {
-  configurable: true,
-  value: (error: Error) => dependencyViolations.record(error),
-});
+const dependencyVerification = DependencyVerification.install(global);
 
 aroundAll(async (runSuite) => {
   let suiteFailure: unknown;
@@ -17,11 +9,10 @@ aroundAll(async (runSuite) => {
     await runSuite();
   } catch (error) {
     suiteFailure = error;
-  } finally {
-    Reflect.deleteProperty(global, dependencyVerificationKey);
   }
 
-  const verificationFailure = dependencyViolations.finish(suiteFailure);
+  const verificationFailure = dependencyVerification.finish(suiteFailure);
+  dependencyVerification.uninstall();
   if (verificationFailure !== undefined) {
     throw verificationFailure;
   }

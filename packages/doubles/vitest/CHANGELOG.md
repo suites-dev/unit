@@ -11,7 +11,10 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Breaking Changes
 
-- Add `@suites/doubles.vitest/setup` for suite-level dependency verification and require Vitest 5.1 or later.
+- Add the side-effect-only public `@suites/doubles.vitest/setup` entry point for suite-level
+  dependency verification; it has no named exports.
+- Narrow the supported Vitest peer range from `>=1.0` to `^5.1.0`. The setup uses Vitest's
+  public `aroundAll` lifecycle and is verified against Vitest 5.1.
 
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.2...%40suites%2Fdoubles.vitest%404.1.3) (2026-11-11)
 
