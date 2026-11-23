@@ -19,6 +19,11 @@
     },
     "./unit": {
       "types": "./unit.d.ts"
+    },
+    "./setup": {
+      "types": "./dist/cjs/setup.d.ts",
+      "import": "./dist/esm/setup.js",
+      "require": "./dist/cjs/setup.js"
     }
   },
   "keywords": [
@@ -59,7 +64,7 @@
   ],
   "peerDependencies": {
     "@vitest/spy": ">= 1.0",
-    "vitest": ">= 1.0"
+    "vitest": "^5.1.0"
   },
   "dependencies": {
     "@suites/core.unit": "workspace:^4.1.3",
@@ -76,5 +81,12 @@
     "access": "public",
     "provenance": true
   },
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.16.1",
+  "typesVersions": {
+    "*": {
+      "setup": [
+        "dist/cjs/setup.d.ts"
+      ]
+    }
+  }
 }
