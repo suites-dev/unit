@@ -50,6 +50,28 @@ Follow the [unit package README](https://github.com/suites-dev/unit/tree/master/
 
 Abstract classes are accepted as dependency tokens. The class under test and exposed dependencies must be concrete because Suites instantiates them.
 
+## V5 builder migration
+
+V5 makes the sociable builder's mode part of its public type. Calling `expose(first, ...rest)` enters selective mode, while calling `compose()` enters composed mode. The two choices cannot be combined in one chain.
+
+Most tests only need to choose a mode. Code that subclasses `SociableTestBedBuilder` must either remove its `expose()` override or preserve the variadic input and selective return type:
+
+```typescript
+import { SociableTestBedBuilder } from '@suites/core.unit';
+import type { Type } from '@suites/types.common';
+
+class CustomBuilder<T> extends SociableTestBedBuilder<T> {
+  override expose(
+    first: Type,
+    ...rest: Type[]
+  ): ReturnType<SociableTestBedBuilder<T>['expose']> {
+    return super.expose(first, ...rest);
+  }
+}
+```
+
+Custom `mock()` overrides and declaration augmentations must likewise retain the selected builder type through `impl()` and `final()`. Upgrade `@suites/core.unit`, `@suites/unit`, and the selected doubles adapter to the same major version so their builder declarations agree.
+
 ## Adapter development
 
 DI adapters implement contracts from `@suites/types.di`; doubles adapters implement contracts from `@suites/types.doubles`. Use `@suites/types.common` for shared constructor types. Read the [DI adapter contracts](https://github.com/suites-dev/unit/tree/master/packages/types/di#readme) before building an integration.
