@@ -45,6 +45,34 @@ class IdentityRoot {
   ) {}
 }
 
+abstract class RepositoryPort {
+  abstract read(): string;
+}
+
+@Injectable()
+class PortRepository extends RepositoryPort {
+  constructor(readonly leaf: Leaf) {
+    super();
+  }
+
+  read(): string {
+    return this.leaf.prefix() + 'port';
+  }
+}
+
+@Injectable()
+class TokenKindsRoot {
+  constructor(
+    @Inject('repository') readonly stringToken: RepositoryPort,
+    @Inject(RepositoryPort) readonly abstractToken: RepositoryPort
+  ) {}
+}
+
+@Injectable()
+class PropertyRoot {
+  @Inject(REPOSITORY) repository!: Repository;
+}
+
 describe('V5 explicit token bindings', () => {
   it('constructs a bound implementation in selective mode in every supported order', async () => {
     const direct = await TestBed.sociable(Root).bind(REPOSITORY, Repository).compile();
@@ -103,6 +131,25 @@ describe('V5 explicit token bindings', () => {
     expect(unit.primary).toBeInstanceOf(Repository);
     expect(unit.secondary).toBeInstanceOf(Repository);
     expect(unit.primary).not.toBe(unit.secondary);
+  });
+
+  it('supports string, abstract-class, and property token bindings', async () => {
+    const tokenKinds = await TestBed.sociable(TokenKindsRoot)
+      .bind('repository', PortRepository)
+      .bind(RepositoryPort, PortRepository)
+      .compose()
+      .compile();
+    const property = await TestBed.sociable(PropertyRoot)
+      .compose()
+      .bind(REPOSITORY, Repository)
+      .compile();
+
+    expect(tokenKinds.unit.stringToken).toBeInstanceOf(PortRepository);
+    expect(tokenKinds.unit.abstractToken).toBeInstanceOf(PortRepository);
+    expect(tokenKinds.unit.stringToken).not.toBe(tokenKinds.unit.abstractToken);
+    expect(tokenKinds.unit.stringToken.read()).toBe('live:port');
+    expect(property.unit.repository).toBeInstanceOf(Repository);
+    expect(property.unit.repository.leaf).toBeInstanceOf(Leaf);
   });
 
   it('lets an explicit final override win and rejects contradictory bindings', async () => {
