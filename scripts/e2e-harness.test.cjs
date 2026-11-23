@@ -17,10 +17,21 @@ test('automatic baselines use published stable versions in the candidate major',
   assert.equal(selectPreviousVersion(['9.9.0', '10.0.0-beta.0'], '10.0.0'), undefined);
 });
 
-function candidatePackages(version, coreVersion = version) {
+function candidatePackages(
+  version,
+  {
+    coreVersion = version,
+    jestVersion = version,
+    vitestVersion = version,
+    supportingVersion = version,
+  } = {}
+) {
   return [
     { name: '@suites/unit', version },
     { name: '@suites/core.unit', version: coreVersion },
+    { name: '@suites/doubles.jest', version: jestVersion },
+    { name: '@suites/doubles.vitest', version: vitestVersion },
+    { name: '@suites/types.common', version: supportingVersion },
   ];
 }
 
@@ -38,7 +49,10 @@ test('automatic compatibility skips only an initial, coordinated next-major cand
     }
   );
   assert.deepEqual(
-    automaticCompatibility(['3.9.0', '4.1.3', '5.0.0-next.1'], candidatePackages('5.0.0-e2e.0')),
+    automaticCompatibility(
+      ['3.9.0', '4.1.3', '5.0.0-next.1'],
+      candidatePackages('5.0.0-e2e.0', { supportingVersion: '4.0.3-e2e.0' })
+    ),
     {
       status: 'skipped-new-major',
       candidateMajor: 5,
@@ -75,7 +89,8 @@ test('automatic compatibility fails closed on invalid major transitions', () => 
     /start at 5\.0\.0/
   );
   assert.throws(
-    () => automaticCompatibility(stable, candidatePackages('5.0.0-next.0', '4.1.3')),
+    () =>
+      automaticCompatibility(stable, candidatePackages('5.0.0-next.0', { coreVersion: '4.1.3' })),
     /same major/
   );
   assert.throws(
