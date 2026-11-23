@@ -185,7 +185,16 @@ function phase(bundle, plan, project, target, directory, baseline) {
 function runConsumer(bundle, project, workdir, runPhase = phase) {
   bundle = resolve(bundle);
   const plan = JSON.parse(readFileSync(join(bundle, 'plan.json'), 'utf8'));
-  assert.equal(plan.schema, 1);
+  assert.equal(plan.schema, 2);
+  assert(
+    ['checked', 'not-requested', 'skipped-new-major'].includes(plan.compatibility?.status),
+    'Plan has no supported compatibility decision'
+  );
+  assert.equal(
+    Boolean(plan.baseline),
+    plan.compatibility.status === 'checked',
+    'Compatibility decision and baseline target disagree'
+  );
   assert(
     plan.tests.projects.includes(project),
     'Project must be present in the frozen test snapshot'
@@ -199,7 +208,7 @@ function runConsumer(bundle, project, workdir, runPhase = phase) {
     testCommit: plan.tests.commit,
     target: plan.target.label,
     baseline: plan.baseline?.label,
-    baselineStatus: plan.baseline ? 'not-run' : 'not-requested',
+    baselineStatus: plan.baseline ? 'not-run' : plan.compatibility.status,
     targetStatus: 'not-run',
     status: 'baseline-unavailable',
   };
@@ -227,9 +236,14 @@ function runConsumer(bundle, project, workdir, runPhase = phase) {
   } finally {
     writeFileSync(join(workdir, 'result.json'), JSON.stringify(result, null, 2));
     if (process.env.GITHUB_STEP_SUMMARY) {
+      const baselineLabel =
+        plan.baseline?.label ||
+        (plan.compatibility.status === 'skipped-new-major'
+          ? `skipped (no stable ${plan.compatibility.candidateMajor}.x release)`
+          : 'not requested');
       require('node:fs').appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
-        `### Consumer verification: ${project}\n\n- Tests: \`${plan.tests.commit}\`\n- Node: \`${process.version}\`\n- Result: **${result.status}**\n\n| Execution | Package target | Result |\n| --- | --- | --- |\n| Baseline | ${plan.baseline?.label || 'not requested'} | ${result.baselineStatus} |\n| Candidate / target | ${plan.target.label} | ${result.targetStatus} |\n`
+        `### Consumer verification: ${project}\n\n- Tests: \`${plan.tests.commit}\` (${plan.compatibility.testSource})\n- Compatibility: **${plan.compatibility.status}**\n- Node: \`${process.version}\`\n- Result: **${result.status}**\n\n| Execution | Package target | Result |\n| --- | --- | --- |\n| Baseline | ${baselineLabel} | ${result.baselineStatus} |\n| Candidate / target | ${plan.target.label} | ${result.targetStatus} |\n`
       );
     }
   }

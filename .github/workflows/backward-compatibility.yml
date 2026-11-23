@@ -17,4 +17,72 @@ jobs:
       target-kind: candidate
       target: ${{ inputs.commit || github.sha }}
       baseline-version: previous
+      stage-candidate-versions: true
       artifact-name: previous-release
+
+  new-major-canary:
+    name: Packed V5 candidate-only canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-e2e-tools
+        with:
+          node-version: '26.x'
+      - run: pnpm install --frozen-lockfile
+      - name: Stage a coordinated V5 candidate without publishing
+        run: |
+          git config user.email "e2e@suites.dev"
+          git config user.name "Suites e2e"
+          git switch -c e2e-v5-canary
+          node scripts/e2e/major-canary.cjs stage-versions .
+          pnpm install --lockfile-only
+          git add packages pnpm-lock.yaml
+          git -c core.hooksPath=/dev/null commit -m "test(e2e): stage ephemeral v5 candidate"
+      - name: Build and pack the V5 candidate
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          node scripts/e2e/major-canary.cjs prepare "$RUNNER_TEMP/new-major-pass" .
+      - name: Verify candidate-only plan
+        run: node scripts/e2e/major-canary.cjs verify-plan "$RUNNER_TEMP/new-major-pass" .
+      - uses: ./.github/actions/run-e2e-consumer
+        with:
+          bundle: ${{ runner.temp }}/new-major-pass
+          project: jest/nestjs
+          work-directory: ${{ runner.temp }}/new-major-pass-consumer
+      - name: Verify no V4 baseline ran
+        run: node scripts/e2e/major-canary.cjs verify-result "$RUNNER_TEMP/new-major-pass-consumer" passed
+      - name: Commit a candidate-side negative control
+        run: |
+          node scripts/e2e/major-canary.cjs inject-failure .
+          git add e2e/jest/nestjs/package.json
+          git -c core.hooksPath=/dev/null commit -m "test(e2e): stage failing candidate consumer"
+      - name: Prepare failing candidate-only bundle
+        run: node scripts/e2e/major-canary.cjs prepare "$RUNNER_TEMP/new-major-failure" .
+      - name: Verify candidate failure propagates
+        run: |
+          if node scripts/e2e/cli.cjs run "$RUNNER_TEMP/new-major-failure" jest/nestjs "$RUNNER_TEMP/new-major-failure-consumer"; then
+            echo "Expected the staged V5 consumer failure to propagate"
+            exit 1
+          fi
+          node scripts/e2e/major-canary.cjs verify-plan "$RUNNER_TEMP/new-major-failure" .
+          node scripts/e2e/major-canary.cjs verify-result "$RUNNER_TEMP/new-major-failure-consumer" failed
+      - name: Preserve canary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: new-major-packed-canary
+          path: |
+            ${{ runner.temp }}/new-major-pass/plan.json
+            ${{ runner.temp }}/new-major-pass-consumer/result.json
+            ${{ runner.temp }}/new-major-pass-consumer/target/installed.json
+            ${{ runner.temp }}/new-major-failure/plan.json
+            ${{ runner.temp }}/new-major-failure-consumer/result.json
+            ${{ runner.temp }}/new-major-failure-consumer/target/installed.json
+          if-no-files-found: warn
+          retention-days: 7

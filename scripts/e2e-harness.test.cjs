@@ -4,8 +4,10 @@ const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const test = require('node:test');
 const { configure, verifyInstalled, runConsumer } = require('./e2e/consumer.cjs');
+const { prepare } = require('./e2e/cli.cjs');
+const { stageVersions } = require('./e2e/major-canary.cjs');
 const { hashFile, verifySnapshot } = require('./e2e/source.cjs');
-const { selectPreviousVersion } = require('./e2e/targets.cjs');
+const { automaticCompatibility, selectPreviousVersion } = require('./e2e/targets.cjs');
 
 test('automatic baselines use published stable versions in the candidate major', () => {
   assert.equal(
@@ -13,10 +15,279 @@ test('automatic baselines use published stable versions in the candidate major',
     '10.3.0'
   );
   assert.equal(selectPreviousVersion(['10.3.0', '10.4.0', '10.5.0'], '10.4.0'), '10.4.0');
-  assert.throws(
-    () => selectPreviousVersion(['9.9.0', '10.0.0-beta.0'], '10.0.0'),
-    /No published stable baseline/
+  assert.equal(selectPreviousVersion(['9.9.0', '10.0.0-beta.0'], '10.0.0'), undefined);
+});
+
+function candidatePackages(
+  version,
+  {
+    coreVersion = version,
+    jestVersion = version,
+    vitestVersion = version,
+    supportingVersion = version,
+  } = {}
+) {
+  return [
+    { name: '@suites/unit', version },
+    { name: '@suites/core.unit', version: coreVersion },
+    { name: '@suites/doubles.jest', version: jestVersion },
+    { name: '@suites/doubles.vitest', version: vitestVersion },
+    { name: '@suites/types.common', version: supportingVersion },
+  ];
+}
+
+test('V5 canary staging keeps supporting packages and their dependency ranges on V4', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'suites-e2e-canary-versions-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const manifests = [
+    ['packages/core/package.json', '@suites/core.unit', { '@suites/types.di': 'workspace:^4.1.2' }],
+    ['packages/doubles/jest/package.json', '@suites/doubles.jest', { '@suites/core.unit': 'workspace:^4.1.3' }],
+    ['packages/doubles/vitest/package.json', '@suites/doubles.vitest', { '@suites/core.unit': 'workspace:^4.1.3' }],
+    ['packages/unit/package.json', '@suites/unit', { '@suites/core.unit': 'workspace:^4.1.3' }],
+    ['packages/di/injection-js/package.json', '@suites/di.injectionjs', {}],
+    ['packages/di/inversify/package.json', '@suites/di.inversify', {}],
+    ['packages/di/nestjs/package.json', '@suites/di.nestjs', {}],
+    ['packages/types/common/package.json', '@suites/types.common', {}],
+    ['packages/types/di/package.json', '@suites/types.di', { '@suites/types.common': 'workspace:^4.0.2' }],
+    ['packages/types/doubles/package.json', '@suites/types.doubles', {}],
+  ];
+  for (const [path, name, dependencies] of manifests) {
+    const file = join(root, path);
+    mkdirSync(join(file, '..'), { recursive: true });
+    writeFileSync(file, `${JSON.stringify({ name, version: '4.1.3', dependencies }, null, 2)}\n`);
+  }
+  stageVersions(root);
+  const readManifest = (path) => JSON.parse(readFileSync(join(root, path), 'utf8'));
+  assert.equal(readManifest('packages/core/package.json').version, '5.0.0-e2e.0');
+  assert.equal(
+    readManifest('packages/core/package.json').dependencies['@suites/types.di'],
+    'workspace:^4.1.2'
   );
+  assert.equal(readManifest('packages/types/di/package.json').version, '4.1.3');
+  assert.equal(
+    readManifest('packages/unit/package.json').dependencies['@suites/core.unit'],
+    'workspace:^5.0.0-e2e.0'
+  );
+});
+
+test('automatic compatibility skips only an initial, coordinated next-major candidate', () => {
+  assert.deepEqual(
+    automaticCompatibility(
+      ['3.9.0', '4.1.2', '4.1.3', '5.0.0-next.1'],
+      candidatePackages('4.1.4-next.0')
+    ),
+    {
+      status: 'checked',
+      baselineVersion: '4.1.3',
+      candidateMajor: 4,
+      latestStableVersion: '4.1.3',
+    }
+  );
+  assert.deepEqual(
+    automaticCompatibility(
+      ['3.9.0', '4.1.3', '5.0.0-next.1'],
+      candidatePackages('5.0.0-e2e.0', { supportingVersion: '4.0.3-e2e.0' })
+    ),
+    {
+      status: 'skipped-new-major',
+      candidateMajor: 5,
+      previousMajor: 4,
+      latestStableVersion: '4.1.3',
+    }
+  );
+});
+
+test('automatic compatibility fails closed on invalid major transitions', () => {
+  const stable = ['3.9.0', '4.1.3'];
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('not-semver')),
+    /valid exact semver/
+  );
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('5.0.0-01')),
+    /valid exact semver/
+  );
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('4.1.3-next.0')),
+    /older than latest stable/
+  );
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('3.10.0')),
+    /older than the latest stable major/
+  );
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('6.0.0-next.0')),
+    /exactly one major/
+  );
+  assert.throws(
+    () => automaticCompatibility(stable, candidatePackages('5.1.0-next.0')),
+    /start at 5\.0\.0/
+  );
+  assert.throws(
+    () =>
+      automaticCompatibility(stable, candidatePackages('5.0.0-next.0', { coreVersion: '4.1.3' })),
+    /same major/
+  );
+  assert.throws(
+    () => automaticCompatibility(['5.0.0-next.1'], candidatePackages('5.0.0-next.2')),
+    /no stable releases/
+  );
+});
+
+test('new-major preparation freezes candidate tests and persists the skipped comparison', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'suites-e2e-new-major-plan-'));
+  const destination = join(root, 'bundle');
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const commit = 'b'.repeat(40);
+  const target = {
+    kind: 'candidate',
+    label: commit,
+    commit,
+    packages: candidatePackages('5.0.0-e2e.0'),
+  };
+  const snapshotRefs = [];
+  let publishedCalls = 0;
+  const plan = prepare(
+    {
+      repository: '/source',
+      candidateRepository: '/candidate',
+      destination,
+      kind: 'candidate',
+      target: commit,
+      testRef: '',
+      baselineVersion: 'previous',
+      projects: [],
+      nodes: ['26.x'],
+    },
+    {
+      candidateTarget: () => target,
+      automaticCompatibility: () => ({
+        status: 'skipped-new-major',
+        candidateMajor: 5,
+        previousMajor: 4,
+        latestStableVersion: '4.1.3',
+      }),
+      publishedTarget: () => {
+        publishedCalls += 1;
+        throw new Error('V4 baseline must not be prepared');
+      },
+      snapshot: (_repository, ref) => {
+        snapshotRefs.push(ref);
+        return { commit: ref, projects: ['jest/nestjs'], hashes: {} };
+      },
+    }
+  );
+  assert.equal(publishedCalls, 0);
+  assert.deepEqual(snapshotRefs, [commit]);
+  assert.equal(plan.schema, 2);
+  assert.equal(plan.baseline, null);
+  assert.deepEqual(plan.compatibility, {
+    status: 'skipped-new-major',
+    candidateMajor: 5,
+    previousMajor: 4,
+    latestStableVersion: '4.1.3',
+    testSource: 'candidate',
+  });
+  assert.deepEqual(plan.matrix.include, [
+    { project: 'jest/nestjs', node: '26.x', id: 'jest-nestjs-26-x' },
+  ]);
+  assert.deepEqual(JSON.parse(readFileSync(join(destination, 'plan.json'))), plan);
+});
+
+test('a first-major ephemeral candidate selects its fetched candidate snapshot', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'suites-e2e-versioned-candidate-plan-'));
+  const destination = join(root, 'bundle');
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const candidateCommit = 'b'.repeat(40);
+  const snapshotRefs = [];
+  const plan = prepare(
+    {
+      repository: '/source',
+      candidateRepository: '/candidate',
+      destination,
+      kind: 'candidate',
+      target: candidateCommit,
+      testRef: '',
+      baselineVersion: 'previous',
+      projects: [],
+      nodes: ['26.x'],
+    },
+    {
+      candidateTarget: () => ({
+        kind: 'candidate',
+        label: candidateCommit,
+        commit: candidateCommit,
+        packages: candidatePackages('5.0.0-compatibility.0', {
+          supportingVersion: '4.0.3-compatibility.0',
+        }),
+      }),
+      automaticCompatibility: () => ({
+        status: 'skipped-new-major',
+        candidateMajor: 5,
+        previousMajor: 4,
+        latestStableVersion: '4.1.3',
+      }),
+      snapshot: (_repository, ref) => {
+        snapshotRefs.push(ref);
+        return { commit: ref, projects: ['jest/nestjs'], hashes: {} };
+      },
+    }
+  );
+  assert.deepEqual(snapshotRefs, [candidateCommit]);
+  assert.equal(plan.tests.commit, candidateCommit);
+  assert.equal(plan.target.commit, candidateCommit);
+  assert.equal(plan.compatibility.testSource, 'candidate');
+});
+
+test('a same-major ephemeral candidate keeps selecting the published baseline snapshot', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'suites-e2e-versioned-same-major-plan-'));
+  const destination = join(root, 'bundle');
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const candidateCommit = 'b'.repeat(40);
+  const baselineCommit = 'a'.repeat(40);
+  const snapshotRefs = [];
+  const plan = prepare(
+    {
+      repository: '/source',
+      candidateRepository: '/candidate',
+      destination,
+      kind: 'candidate',
+      target: candidateCommit,
+      testRef: '',
+      baselineVersion: 'previous',
+      projects: [],
+      nodes: ['26.x'],
+    },
+    {
+      candidateTarget: () => ({
+        kind: 'candidate',
+        label: candidateCommit,
+        commit: candidateCommit,
+        packages: candidatePackages('4.1.4-compatibility.0'),
+      }),
+      automaticCompatibility: () => ({
+        status: 'checked',
+        baselineVersion: '4.1.3',
+        candidateMajor: 4,
+        latestStableVersion: '4.1.3',
+      }),
+      publishedTarget: () => ({
+        kind: 'npm',
+        label: '4.1.3',
+        commit: baselineCommit,
+        packages: candidatePackages('4.1.3'),
+      }),
+      snapshot: (_repository, ref) => {
+        snapshotRefs.push(ref);
+        return { commit: ref, projects: ['jest/nestjs'], hashes: {} };
+      },
+    }
+  );
+  assert.deepEqual(snapshotRefs, [baselineCommit]);
+  assert.equal(plan.tests.commit, baselineCommit);
+  assert.equal(plan.target.commit, candidateCommit);
+  assert.equal(plan.baseline.commit, baselineCommit);
+  assert.equal(plan.compatibility.testSource, 'baseline');
 });
 
 function fixture(t) {
@@ -25,7 +296,7 @@ function fixture(t) {
   mkdirSync(join(directory, 'tests'));
   writeFileSync(join(directory, 'tests', 'consumer.test.ts'), 'original test');
   const plan = {
-    schema: 1,
+    schema: 2,
     tests: {
       commit: 'a'.repeat(40),
       projects: ['jest/nestjs'],
@@ -33,10 +304,73 @@ function fixture(t) {
     },
     baseline: { label: '10.3.0' },
     target: { label: '10.4.0' },
+    compatibility: { status: 'checked', testSource: 'baseline' },
   };
   writeFileSync(join(directory, 'plan.json'), JSON.stringify(plan));
   return { directory, plan, workdir: join(directory, 'consumer') };
 }
+
+test('a skipped new-major baseline runs only the candidate and reports the reason', (t) => {
+  const { directory, plan, workdir } = fixture(t);
+  const summary = join(directory, 'summary.md');
+  const previousSummary = process.env.GITHUB_STEP_SUMMARY;
+  process.env.GITHUB_STEP_SUMMARY = summary;
+  t.after(() => {
+    if (previousSummary === undefined) delete process.env.GITHUB_STEP_SUMMARY;
+    else process.env.GITHUB_STEP_SUMMARY = previousSummary;
+  });
+  delete plan.baseline;
+  plan.target = { label: 'b'.repeat(40) };
+  plan.compatibility = {
+    status: 'skipped-new-major',
+    candidateMajor: 5,
+    previousMajor: 4,
+    latestStableVersion: '4.1.3',
+    testSource: 'candidate',
+  };
+  writeFileSync(join(directory, 'plan.json'), JSON.stringify(plan));
+  const calls = [];
+  const result = runConsumer(
+    directory,
+    'jest/nestjs',
+    workdir,
+    (_bundle, _plan, _project, target) => {
+      calls.push(target.label);
+      return { external: {} };
+    }
+  );
+  assert.deepEqual(calls, [plan.target.label]);
+  assert.equal(result.status, 'passed');
+  assert.equal(result.baselineStatus, 'skipped-new-major');
+  assert.equal(result.targetStatus, 'passed');
+  assert.match(readFileSync(summary, 'utf8'), /Compatibility: \*\*skipped-new-major\*\*/);
+  assert.match(readFileSync(summary, 'utf8'), /skipped \(no stable 5\.x release\)/);
+});
+
+test('a candidate failure propagates when the new-major baseline is skipped', (t) => {
+  const { directory, plan, workdir } = fixture(t);
+  delete plan.baseline;
+  plan.target = { label: 'b'.repeat(40) };
+  plan.compatibility = {
+    status: 'skipped-new-major',
+    candidateMajor: 5,
+    previousMajor: 4,
+    latestStableVersion: '4.1.3',
+    testSource: 'candidate',
+  };
+  writeFileSync(join(directory, 'plan.json'), JSON.stringify(plan));
+  assert.throws(
+    () =>
+      runConsumer(directory, 'jest/nestjs', workdir, () => {
+        throw new Error('V5 candidate assertion failed');
+      }),
+    /V5 candidate assertion failed/
+  );
+  const result = JSON.parse(readFileSync(join(workdir, 'result.json')));
+  assert.equal(result.status, 'target-failed');
+  assert.equal(result.baselineStatus, 'skipped-new-major');
+  assert.equal(result.targetStatus, 'failed');
+});
 
 test('a failing baseline blocks target execution and reports unavailable verification', (t) => {
   const { directory, workdir } = fixture(t);

@@ -1,37 +1,47 @@
 const assert = require('node:assert/strict');
 const { appendFileSync, existsSync, mkdirSync, writeFileSync } = require('node:fs');
 const { join, resolve } = require('node:path');
-const { candidateTarget, publishedTarget, previousVersion } = require('./targets.cjs');
+const { candidateTarget, previousCompatibility, publishedTarget } = require('./targets.cjs');
 const { snapshot } = require('./source.cjs');
 const { runConsumer } = require('./consumer.cjs');
 
-function prepare({
-  repository,
-  candidateRepository,
-  destination,
-  kind,
-  target,
-  testRef,
-  baselineVersion,
-  projects,
-  nodes,
-}) {
+function prepare(
+  {
+    repository,
+    candidateRepository,
+    destination,
+    kind,
+    target,
+    testRef,
+    baselineVersion,
+    projects,
+    nodes,
+  },
+  operations = {}
+) {
+  const createCandidateTarget = operations.candidateTarget || candidateTarget;
+  const createPublishedTarget = operations.publishedTarget || publishedTarget;
+  const resolvePreviousCompatibility = operations.automaticCompatibility || previousCompatibility;
+  const freezeSnapshot = operations.snapshot || snapshot;
   assert(['npm', 'candidate'].includes(kind), 'Target kind must be npm or candidate');
   assert(!existsSync(destination), 'Use a fresh bundle directory');
   mkdirSync(destination, { recursive: true });
   const selected =
     kind === 'npm'
-      ? publishedTarget(repository, target, join(destination, 'packages'))
-      : candidateTarget(candidateRepository, join(destination, 'packages'));
+      ? createPublishedTarget(repository, target, join(destination, 'packages'))
+      : createCandidateTarget(candidateRepository, join(destination, 'packages'));
   const unitVersion = selected.packages.find((pkg) => pkg.name === '@suites/unit').version;
-  const baseline = baselineVersion
-    ? publishedTarget(
-        repository,
-        baselineVersion === 'previous' ? previousVersion(repository, unitVersion) : baselineVersion,
-        join(destination, 'packages')
-      )
+  const automatic =
+    baselineVersion === 'previous'
+      ? resolvePreviousCompatibility(repository, selected.packages)
+      : undefined;
+  const requestedBaseline =
+    automatic?.baselineVersion || (baselineVersion === 'previous' ? undefined : baselineVersion);
+  const baseline = requestedBaseline
+    ? createPublishedTarget(repository, requestedBaseline, join(destination, 'packages'))
     : undefined;
-  const tests = snapshot(
+  const testSource = testRef ? 'explicit' : baseline ? 'baseline' : 'candidate';
+  const tests = freezeSnapshot(
     repository,
     testRef || baseline?.commit || selected.commit,
     join(destination, 'tests')
@@ -68,15 +78,39 @@ function prepare({
       }))
     ),
   };
-  const plan = { schema: 1, tests, target: selected, baseline, matrix };
+  const compatibility = {
+    ...(automatic ||
+      (baseline
+        ? {
+            status: 'checked',
+            baselineVersion: baseline.packages.find((pkg) => pkg.name === '@suites/unit').version,
+            candidateMajor: Number(unitVersion.split('.')[0]),
+          }
+        : { status: 'not-requested', candidateMajor: Number(unitVersion.split('.')[0]) })),
+    testSource,
+  };
+  const plan = {
+    schema: 2,
+    tests,
+    target: selected,
+    baseline: baseline || null,
+    compatibility,
+    matrix,
+  };
   writeFileSync(join(destination, 'plan.json'), JSON.stringify(plan, null, 2));
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify(matrix)}\n`);
+  if (compatibility.status === 'skipped-new-major' && process.env.GITHUB_STEP_SUMMARY)
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `No published stable @suites/unit ${unitVersion.split('.')[0]}.x release exists. Previous-release comparison is skipped; candidate consumers still run.\n`
+    );
   console.log(
     JSON.stringify({
       tests: tests.commit,
       target: selected.label,
       baseline: baseline?.label,
+      compatibility: compatibility.status,
       jobs: matrix.include.length,
     })
   );
