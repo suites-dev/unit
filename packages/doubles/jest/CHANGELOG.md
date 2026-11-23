@@ -8,6 +8,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Features
 
 * **doubles.jest:** preserve the composed builder type through mock overrides ([#820](https://github.com/suites-dev/unit/issues/820))
+- Add the composable `@suites/doubles.jest/environment` entry point for file-level dependency verification.
 
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.jest%404.1.2...%40suites%2Fdoubles.jest%404.1.3) (2026-11-11)
 

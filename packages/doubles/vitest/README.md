@@ -36,7 +36,7 @@ pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.vitest
 
 Replace `@suites/di.nestjs` with `@suites/di.inversify` or `@suites/di.injectionjs` for your DI framework. Install one doubles adapter per test project.
 
-Declares `vitest` and `@vitest/spy` peer dependencies at `>=1.0`. Use matching versions of those two packages. Suites 4 supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and ESM package entry points.
+Declares `vitest` at `^5.1.0` and `@vitest/spy` at `>=1.0`. Use matching versions of those two packages. Suites 4 supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and ESM package entry points.
 
 ## Configuration
 
@@ -50,6 +50,18 @@ Create `suites.d.ts` and include it in your test `tsconfig.json`:
 Use one doubles adapter reference and one DI adapter reference per test TypeScript project. These declarations load module augmentations directly; no postinstall script is needed.
 
 For Inversify or InjectionJS, replace the DI reference with `@suites/di.inversify/metadata` or `@suites/di.injectionjs/metadata`. Load `reflect-metadata` and configure your transformer to emit decorator metadata using the [installation guide](https://suites.dev/docs/get-started/installation/). InjectionJS with Vitest also requires externalizing `injection-js`; see its [adapter README](https://github.com/suites-dev/unit/tree/master/packages/di/injection-js#readme).
+
+Configure guarded sociable dependency verification once per Vitest project:
+
+```typescript
+export default {
+  test: {
+    setupFiles: ['@suites/doubles.vitest/setup'],
+  },
+};
+```
+
+The setup uses Vitest's public suite lifecycle. No custom runner or per-test wrapper is required. Guard violations fail the suite even when application code catches the immediate error.
 
 ## Write a test
 
