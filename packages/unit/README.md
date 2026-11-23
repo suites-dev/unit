@@ -146,7 +146,7 @@ V5 composition is explicitly opt in:
 const { unit } = await TestBed.sociable(UserService).compose().compile();
 ```
 
-Composition recursively constructs class dependencies when the selected DI adapter exposes injection metadata or the class has an implemented runtime prototype member. TypeScript erases the `abstract` modifier, so an empty function token cannot be proven concrete at runtime and remains unresolved unless a concrete class is explicitly exposed or a token-to-implementation binding is supplied. This conservative rule also means an empty concrete leaf may require `.expose(ConcreteLeaf)`. String, symbol, object, and abstract-only tokens are not treated as constructable classes merely because they are injectable identifiers.
+Composition recursively constructs a class only when the selected DI adapter positively identifies it as constructable by that framework. Suites does not infer constructibility from a function token or implemented prototype members. Unmarked classes, including ambiguous concrete leaves, remain unresolved unless a concrete class is explicitly exposed or a token-to-implementation binding is supplied. TypeScript erases the `abstract` modifier, so a framework decorator applied directly to an abstract class can still make it indistinguishable from a concrete class at runtime; use an explicit implementation binding or boundary for that case. Forbidden boundaries and token-to-implementation exposure are delivered separately.
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
