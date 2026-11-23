@@ -5,8 +5,13 @@ import {
   reportDependencyViolation,
 } from './dependency-verification.js';
 
+const missingDependencyVerificationKey = Symbol.for(
+  '@suites/dependency-verification-missing-reported'
+);
+
 afterEach(() => {
   Reflect.deleteProperty(global, dependencyVerificationKey);
+  Reflect.deleteProperty(global, missingDependencyVerificationKey);
 });
 
 describe('dependency violation verification', () => {
@@ -27,10 +32,29 @@ describe('dependency violation verification', () => {
     );
   });
 
-  it('does not require runner integration to throw the immediate violation', () => {
+  it('schedules a one-time setup failure when runner integration is missing', () => {
     const violation = new Error('guarded access');
+    const scheduledFailures: Array<() => void> = [];
+    const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const queue = jest
+      .spyOn(global, 'queueMicrotask')
+      .mockImplementation((callback) => scheduledFailures.push(callback));
 
-    expect(() => reportDependencyViolation(violation)).toThrow(violation);
+    try {
+      expect(() => reportDependencyViolation(violation)).toThrow(violation);
+      expect(stderr).toHaveBeenCalledWith(
+        expect.stringMatching(/dependency verification is not configured.*setupFiles/i)
+      );
+      expect(scheduledFailures).toHaveLength(1);
+      expect(scheduledFailures[0]).toThrow(/dependency verification is not configured/i);
+
+      expect(() => reportDependencyViolation(violation)).toThrow(violation);
+      expect(stderr).toHaveBeenCalledTimes(1);
+      expect(scheduledFailures).toHaveLength(1);
+    } finally {
+      queue.mockRestore();
+      stderr.mockRestore();
+    }
   });
 
   it('retains an ordinary suite failure alongside violations', () => {

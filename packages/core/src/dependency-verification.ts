@@ -1,4 +1,7 @@
 export const dependencyVerificationKey = Symbol.for('@suites/dependency-verification');
+const missingDependencyVerificationKey = Symbol.for(
+  '@suites/dependency-verification-missing-reported'
+);
 
 export type DependencyViolationReporter = (error: Error) => void;
 
@@ -44,6 +47,20 @@ export function reportDependencyViolation(error: Error): never {
   const reporter = Reflect.get(global, dependencyVerificationKey);
   if (typeof reporter === 'function') {
     reporter(error);
+  } else {
+    if (Reflect.get(global, missingDependencyVerificationKey) !== true) {
+      Reflect.defineProperty(global, missingDependencyVerificationKey, {
+        configurable: true,
+        value: true,
+      });
+      const configurationError = new Error(
+        "Suites Unit dependency verification is not configured. For Jest, set testEnvironment to '@suites/doubles.jest/environment'. For Vitest, add '@suites/doubles.vitest/setup' to setupFiles. The test process must fail because the immediate dependency violation may be caught."
+      );
+      process.stderr.write(`${configurationError.message}\n`);
+      queueMicrotask(() => {
+        throw configurationError;
+      });
+    }
   }
 
   throw error;
