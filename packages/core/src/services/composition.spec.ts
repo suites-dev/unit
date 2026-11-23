@@ -337,13 +337,15 @@ describe('opt-in composition', () => {
     const original = builder();
     const composed = original.compose();
     const sibling = original.compose();
-    original.expose(Repository);
+    const selective = original.expose(Repository);
     composed.mock(Repository).final({ client: { read: () => 'supplied' } });
 
-    const selected = await original.compile();
+    const unchanged = await original.compile();
+    const selected = await selective.compile();
     const recursive = await sibling.compile();
     const overridden = await composed.compile();
 
+    expect(unchanged.unit.repository).not.toBeInstanceOf(Repository);
     expect(selected.unit.repository).toBeInstanceOf(Repository);
     expect(selected.unit.repository.client).not.toBeInstanceOf(Client);
     expect(recursive.unit.repository.client).toBeInstanceOf(Client);
@@ -368,12 +370,16 @@ describe('opt-in composition', () => {
     expect(finalized.unit.repository.client.read()).toBe('final');
   });
 
-  it('exposes an otherwise ambiguous empty class before or after composition', async () => {
+  it('keeps variadic selective exposure mutually exclusive with composition', async () => {
     class EmptyLeaf {}
+    class AnotherEmptyLeaf {}
     class Root {
-      constructor(readonly leaf: EmptyLeaf) {}
+      constructor(
+        readonly leaf: EmptyLeaf,
+        readonly anotherLeaf: AnotherEmptyLeaf
+      ) {}
     }
-    const currentAdapter = registry([[Root, [parameter(EmptyLeaf)]]]);
+    const currentAdapter = registry([[Root, [parameter(EmptyLeaf), parameter(AnotherEmptyLeaf)]]]);
     const doubles = Promise.resolve({
       mock: jest.fn((implementation: unknown) => implementation ?? {}),
       stub: jest.fn,
@@ -389,11 +395,14 @@ describe('opt-in composition', () => {
         console
       );
 
-    const before = await createBuilder().expose(EmptyLeaf).compose().compile();
-    const after = await createBuilder().compose().expose(EmptyLeaf).compile();
+    const selective = createBuilder().expose(EmptyLeaf, AnotherEmptyLeaf);
+    const composed = createBuilder().compose();
+    const exposed = await selective.compile();
 
-    expect(before.unit.leaf).toBeInstanceOf(EmptyLeaf);
-    expect(after.unit.leaf).toBeInstanceOf(EmptyLeaf);
+    expect('compose' in selective).toBe(false);
+    expect('expose' in composed).toBe(false);
+    expect(exposed.unit.leaf).toBeInstanceOf(EmptyLeaf);
+    expect(exposed.unit.anotherLeaf).toBeInstanceOf(AnotherEmptyLeaf);
   });
 
   it('rejects retrieving recursively composed real dependencies', async () => {
