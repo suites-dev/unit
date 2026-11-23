@@ -9,15 +9,11 @@ const packages = [
   '@suites/doubles.vitest',
 ];
 const versions = (version) => Object.fromEntries(packages.map((name) => [name, version]));
-const published = (...available) =>
-  Object.fromEntries(packages.map((name) => [name, available]));
+const published = (...available) => Object.fromEntries(packages.map((name) => [name, available]));
 const combinations = [
   ['published', []],
   ['core-only', ['@suites/core.unit']],
-  [
-    'old-unit',
-    ['@suites/core.unit', '@suites/doubles.jest', '@suites/doubles.vitest'],
-  ],
+  ['old-unit', ['@suites/core.unit', '@suites/doubles.jest', '@suites/doubles.vitest']],
   ['old-adapters', ['@suites/core.unit', '@suites/unit']],
   ['aligned', packages],
 ];
@@ -49,7 +45,7 @@ test('a first V5 candidate compiles aligned V5 declarations without a cross-majo
       mode: 'first-major',
       candidateMajor: 5,
       fixtureSet: 'v5',
-      compilerProfiles: ['current'],
+      compilerProfiles: ['current', '5.2.2'],
       baselines: {},
       combinations: [['aligned', packages]],
     }
@@ -66,7 +62,7 @@ test('V5 patch and minor candidates restore the full matrix against published V5
       mode: 'same-major',
       candidateMajor: 5,
       fixtureSet: 'v5',
-      compilerProfiles: ['current'],
+      compilerProfiles: ['current', '5.2.2'],
       baselines: versions('5.0.1'),
       combinations,
     }

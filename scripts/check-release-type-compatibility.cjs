@@ -13,6 +13,10 @@ const {
 } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join, resolve } = require('node:path');
+const {
+  compatibilityPlan,
+  declarationPackages: releases,
+} = require('./type-compatibility-plan.cjs');
 
 // Exercise published declarations together with packed candidates; workspace links
 // alone always align package versions and cannot reproduce these failures.
@@ -20,9 +24,10 @@ const root = process.cwd();
 const scratch = mkdtempSync(join(tmpdir(), 'suites-type-compatibility-'));
 const candidate = join(scratch, 'candidate');
 const published = join(scratch, 'published');
-const fixtures = join(__dirname, 'fixtures', 'release-type-compatibility');
+const fixtureRoot = join(__dirname, 'fixtures', 'release-type-compatibility');
 const results = [];
-const publishedVersion = '4.1.3';
+let plan;
+const registry = process.env.SUITES_TYPE_COMPAT_REGISTRY || 'https://registry.npmjs.org';
 const packages = [
   ['@suites/core.unit', 'packages/core'],
   ['@suites/unit', 'packages/unit'],
@@ -31,19 +36,6 @@ const packages = [
   ['@suites/types.common', 'packages/types/common'],
   ['@suites/types.di', 'packages/types/di'],
   ['@suites/types.doubles', 'packages/types/doubles'],
-];
-const releases = [
-  '@suites/core.unit',
-  '@suites/unit',
-  '@suites/doubles.jest',
-  '@suites/doubles.vitest',
-];
-const matrix = [
-  ['published', []],
-  ['core-only', ['@suites/core.unit']],
-  ['old-unit', ['@suites/core.unit', '@suites/doubles.jest', '@suites/doubles.vitest']],
-  ['old-adapters', ['@suites/core.unit', '@suites/unit']],
-  ['aligned', releases],
 ];
 const run = (command, args, cwd = root) =>
   execFileSync(command, args, {
@@ -75,35 +67,61 @@ function dependencies(destination) {
 try {
   mkdirSync(candidate);
   mkdirSync(published);
+  const candidateVersions = {};
   for (const [name, folder] of packages) {
     if (!existsSync(join(root, folder, 'dist')) && releases.includes(name)) {
       throw new Error('Build the workspace before running type compatibility checks.');
     }
+    candidateVersions[name] = JSON.parse(readFileSync(join(root, folder, 'package.json'))).version;
     run('pnpm', ['pack', '--pack-destination', candidate], join(root, folder));
   }
-  run('npm', [
-    'pack',
-    ...releases.map((name) => `${name}@${publishedVersion}`),
-    'typescript@5.2.2',
-    '--ignore-scripts',
-    '--registry=https://registry.npmjs.org',
-    '--cache',
-    join(scratch, 'npm-cache'),
-    '--pack-destination',
-    published,
-  ]);
-  unpack(join(published, 'typescript-5.2.2.tgz'), join(scratch, 'typescript-5.2.2'));
+  const publishedVersions = Object.fromEntries(
+    releases.map((name) => {
+      const prefix = `${name}@`;
+      const versions = run('git', ['tag', '-l', `${prefix}*`])
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map((tag) => tag.slice(prefix.length));
+      return [name, versions];
+    })
+  );
+  plan = compatibilityPlan({ candidateVersions, publishedVersions });
+  const fixtures = plan.fixtureSet === 'v4' ? fixtureRoot : join(fixtureRoot, plan.fixtureSet);
+  const packTargets = [
+    ...Object.entries(plan.baselines).map(([name, version]) => `${name}@${version}`),
+    ...(plan.compilerProfiles.includes('5.2.2') ? ['typescript@5.2.2'] : []),
+  ];
+  if (packTargets.length > 0) {
+    run('npm', [
+      'pack',
+      ...packTargets,
+      '--ignore-scripts',
+      '--registry',
+      registry,
+      '--cache',
+      join(scratch, 'npm-cache'),
+      '--pack-destination',
+      published,
+    ]);
+  }
 
   const compilers = [
     ['current', join(root, 'node_modules/typescript/bin/tsc'), 'NodeNext', 'NodeNext'],
-    // Published Vitest rejects TS 5.2 NodeNext's CJS/ESM checks. Keep its
-    // supported classic resolver in this baseline comparison.
-    ['5.2.2', join(scratch, 'typescript-5.2.2/lib/tsc.js'), 'CommonJS', 'Node10'],
   ];
+  if (plan.compilerProfiles.includes('5.2.2')) {
+    unpack(join(published, 'typescript-5.2.2.tgz'), join(scratch, 'typescript-5.2.2'));
+    // Published Vitest rejects TS 5.2 NodeNext's CJS/ESM checks. Keep its
+    // supported classic resolver in the V4 baseline comparison.
+    compilers.push(['5.2.2', join(scratch, 'typescript-5.2.2/lib/tsc.js'), 'CommonJS', 'Node10']);
+  }
   const currentCompiler = JSON.parse(
     readFileSync(join(root, 'node_modules/typescript/package.json'), 'utf8')
   ).version;
-  for (const [label, current] of matrix) {
+  console.log(
+    `Compatibility mode: ${plan.mode}; candidate major ${plan.candidateMajor}; fixtures ${plan.fixtureSet}.`
+  );
+  for (const [label, current] of plan.combinations) {
     for (const framework of ['jest', 'vitest']) {
       const consumer = join(scratch, `${label}-${framework}`);
       const modules = join(consumer, 'node_modules');
@@ -111,9 +129,8 @@ try {
       dependencies(modules);
       const selectedPackages = {};
       for (const [name, folder] of packages) {
-        const manifest = JSON.parse(readFileSync(join(root, folder, 'package.json'), 'utf8'));
-        const usePublished = releases.includes(name) && !current.includes(name);
-        const version = usePublished ? publishedVersion : manifest.version;
+        const usePublished = plan.baselines[name] !== undefined && !current.includes(name);
+        const version = usePublished ? plan.baselines[name] : candidateVersions[name];
         selectedPackages[name] = { version, source: usePublished ? 'published' : 'candidate' };
         const filename = `${name.replace('@', '').replace('/', '-')}-${version}.tgz`;
         unpack(join(usePublished ? published : candidate, filename), join(modules, name));
@@ -218,8 +235,8 @@ try {
   process.exitCode = 1;
 } finally {
   writeFileSync(join(scratch, 'results.json'), JSON.stringify(results, null, 2));
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    const packageRows = matrix.map(([label]) => {
+  if (process.env.GITHUB_STEP_SUMMARY && plan) {
+    const packageRows = plan.combinations.map(([label]) => {
       const result = results.find((entry) => entry.label === label);
       if (!result) return `| ${label} | not prepared | | | |`;
       const versions = releases.map((name) => {
@@ -237,7 +254,13 @@ try {
       [
         '### Published and candidate type compatibility',
         '',
-        'The same legacy consumer fixtures, including TestBed subclass overrides, are compiled against each package combination. Candidate Unit also checks fluent APIs and declaration emission/consumption. Compiler failures remain release-blocking.',
+        `Mode: **${plan.mode}** for candidate major **${plan.candidateMajor}** using **${plan.fixtureSet}** fixtures.`,
+        '',
+        plan.mode === 'same-major'
+          ? 'Published same-major baselines exist for all declaration-coupled packages, so the complete published, mixed-package, and aligned matrix remains release-blocking.'
+          : 'No declaration-coupled package has a published stable baseline in this candidate major. Cross-major combinations are inapplicable; aligned candidate declarations remain release-blocking.',
+        '',
+        'Candidate Unit checks fluent APIs and declaration emission/consumption. Compiler failures remain release-blocking.',
         '',
         '| Combination | Core | Unit | Jest doubles | Vitest doubles |',
         '| --- | --- | --- | --- | --- |',
