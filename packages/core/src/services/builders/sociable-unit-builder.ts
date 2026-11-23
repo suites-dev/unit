@@ -1,7 +1,7 @@
-import type { FinalValue, Type } from '@suites/types.common';
-import type { DoublesAdapter, StubbedInstance } from '@suites/types.doubles';
+import type { DeepPartial, FinalValue, Type } from '@suites/types.common';
+import type { ArgsType, DoublesAdapter, Stub, StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
-import type { UnitTestBed } from '../../types.js';
+import type { MockOverride, UnitTestBed } from '../../types.js';
 import type { IdentifierToMockOrFinal } from '../dependency-container.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
@@ -11,12 +11,16 @@ import type { UnitMocker } from '../unit-mocker.js';
 import { TestBedBuilder } from './testbed-builder.js';
 
 export interface SociableTestBedBuilder<TClass> {
-  expose(dependency: Type): this;
+  expose(dependency: Type): SociableTestBedBuilder<TClass>;
   compose(): ComposedSociableTestBedBuilder<TClass>;
 }
 
 interface ComposedTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
-  expose(dependency: Type): this;
+  expose(dependency: Type): ComposedTestBedBuilder<TClass>;
+  mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    identifierMetadata?: IdentifierMetadata
+  ): MockOverride<TDependency, TClass, ComposedTestBedBuilder<TClass>>;
 }
 
 abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
@@ -47,7 +51,7 @@ abstract class SociableBuilderBase<TClass> extends TestBedBuilder<TClass> {
     this.exposedBindings.set(identifier, implementation);
   }
 
-  public expose(dependency: Type): this {
+  public expose(dependency: Type): SociableBuilderBase<TClass> {
     this.classesToExpose.push(dependency);
     return this;
   }
@@ -122,6 +126,13 @@ export class SociableTestBedBuilder<TClass> extends SociableBuilderBase<TClass> 
     return { exposedBindings: this.exposedBindings };
   }
 
+  public override expose(
+    dependency: Type
+  ): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
+    super.expose(dependency);
+    return this;
+  }
+
   public compose(): ComposedSociableTestBedBuilder<TClass> {
     const composed = new ComposedSociableTestBedBuilder<TClass>(
       this.doublesAdapter,
@@ -138,6 +149,32 @@ class ComposedSociableTestBedBuilder<TClass>
   extends SociableBuilderBase<TClass>
   implements ComposedTestBedBuilder<TClass>
 {
+  public override expose(dependency: Type): ComposedSociableTestBedBuilder<TClass> {
+    super.expose(dependency);
+    return this;
+  }
+
+  public override mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    identifierMetadata?: IdentifierMetadata
+  ): MockOverride<TDependency, TClass, ComposedTestBedBuilder<TClass>> {
+    const override = super.mock<TDependency>(identifier, identifierMetadata);
+    return {
+      impl: (
+        mockImplementation: (
+          stubFn: () => Stub<TDependency, ArgsType<TDependency>>
+        ) => DeepPartial<TDependency>
+      ) => {
+        override.impl(mockImplementation);
+        return this;
+      },
+      final: (finalImplementation: DeepPartial<TDependency>) => {
+        override.final(finalImplementation);
+        return this;
+      },
+    };
+  }
+
   protected resolverOptions(boundaries: CompositionBoundaryContainer): ResolverOptions {
     return {
       compose: true,

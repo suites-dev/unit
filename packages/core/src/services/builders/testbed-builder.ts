@@ -9,37 +9,35 @@ export abstract class TestBedBuilder<TClass> implements TestBedBuilder<TClass> {
   protected readonly identifiersToBeMocked: IdentifierToMockImplWithCb[] = [];
   protected readonly identifiersToBeFinalized: IdentifierToFinal[] = [];
 
-  public mock<TDependency>(
-    type: AbstractType<TDependency>
-  ): MockOverride<TDependency, TClass, this>;
+  public mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass>;
   public mock<TDependency>(
     type: AbstractType<TDependency>,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
-  public mock<TDependency>(token: string): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
+  public mock<TDependency>(token: string): MockOverride<TDependency, TClass>;
   public mock<TDependency>(
     token: string,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
-  public mock<TDependency>(token: symbol): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
+  public mock<TDependency>(token: symbol): MockOverride<TDependency, TClass>;
   public mock<TDependency>(
     token: symbol,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
   public mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
   public mock<TDependency>(
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this> {
+  ): MockOverride<TDependency, TClass> {
     return {
       impl: (
         mockImplementation: (
           stubFn: () => Stub<TDependency, ArgsType<TDependency>>
         ) => DeepPartial<TDependency>
-      ): this => {
+      ): TestBedBuilder<TClass> => {
         this.identifiersToBeMocked.push([
           normalizeIdentifier(identifier, metadata as never),
           mockImplementation,
@@ -47,7 +45,7 @@ export abstract class TestBedBuilder<TClass> implements TestBedBuilder<TClass> {
 
         return this;
       },
-      final: (finalImplementation: FinalValue<TDependency>): this => {
+      final: (finalImplementation: FinalValue<TDependency>): TestBedBuilder<TClass> => {
         this.identifiersToBeFinalized.push([
           normalizeIdentifier(identifier, metadata as never),
           finalImplementation,
@@ -100,7 +98,7 @@ export interface TestBedBuilder<TClass> {
    * const mockOverride = testBedBuilder.mock<MyService>(MyService);
    * ```
    */
-  mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass, this>;
+  mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using its type along with a corresponding metadata object.
@@ -119,7 +117,7 @@ export interface TestBedBuilder<TClass> {
   mock<TDependency>(
     type: AbstractType<TDependency>,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using a string-based token.
@@ -134,7 +132,7 @@ export interface TestBedBuilder<TClass> {
    * const mockOverride = testBedBuilder.mock<MyService>('MyService');
    * ```
    */
-  mock<TDependency>(token: string): MockOverride<TDependency, TClass, this>;
+  mock<TDependency>(token: string): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using a string-based token along with a corresponding metadata object.
@@ -153,7 +151,7 @@ export interface TestBedBuilder<TClass> {
   mock<TDependency>(
     token: string,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using a symbol-based token.
@@ -168,7 +166,7 @@ export interface TestBedBuilder<TClass> {
    * const mockOverride = testBedBuilder.mock<MyService>(MY_SERVICE_SYMBOL);
    * ```
    */
-  mock<TDependency>(token: symbol): MockOverride<TDependency, TClass, this>;
+  mock<TDependency>(token: symbol): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using a symbol-based token along with a corresponding metadata object.
@@ -187,7 +185,7 @@ export interface TestBedBuilder<TClass> {
   mock<TDependency>(
     token: symbol,
     identifierMetadata: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using its type, string-based token, or symbol-based token,
@@ -211,7 +209,7 @@ export interface TestBedBuilder<TClass> {
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
 }
 
 /**
@@ -232,7 +230,7 @@ export interface TestBedBuilder<TClass> {
    * const mockOverride = testBedBuilder.mock<MyService>(MyService);
    * ```
    */
-  mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass, this>;
+  mock<TDependency>(type: AbstractType<TDependency>): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using a string-based token.
@@ -246,7 +244,7 @@ export interface TestBedBuilder<TClass> {
    * const mockOverride = testBedBuilder.mock<MyService>('MyService');
    * ```
    */
-  mock<TDependency>(token: string): MockOverride<TDependency, TClass, this>;
+  mock<TDependency>(token: string): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using a symbol-based token.
@@ -260,7 +258,7 @@ export interface TestBedBuilder<TClass> {
    * const mockOverride = testBedBuilder.mock<MyService>(MY_SERVICE_SYMBOL);
    * ```
    */
-  mock<TDependency>(token: symbol): MockOverride<TDependency, TClass, this>;
+  mock<TDependency>(token: symbol): MockOverride<TDependency, TClass>;
 
   /**
    * Declares a dependency to be mocked using its type, string-based token, or symbol-based token.
@@ -282,5 +280,5 @@ export interface TestBedBuilder<TClass> {
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     identifierMetadata?: IdentifierMetadata
-  ): MockOverride<TDependency, TClass, this>;
+  ): MockOverride<TDependency, TClass>;
 }

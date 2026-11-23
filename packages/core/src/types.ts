@@ -58,7 +58,11 @@ export interface UnitTestBed<TClass> {
  * @since 3.0.0
  * @see {@link https://suites.dev/docs/api-reference/mock-configuration | Mock Configuration}
  */
-export interface MockOverride<TDependency, TClass, TBuilder = TestBedBuilder<TClass>> {
+export interface MockOverride<
+  TDependency,
+  TClass,
+  TBuilder extends TestBedBuilder<TClass> = TestBedBuilder<TClass>,
+> {
   /**
    * Configures mocks with stubs that can be retrieved and modified later via `unitRef.get()`.
    *

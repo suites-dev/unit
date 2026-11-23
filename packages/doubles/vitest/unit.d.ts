@@ -181,7 +181,7 @@ declare module '@suites/core.unit' {
   export interface MockOverride<
     TDependency,
     TClass,
-    TBuilder = TestBedBuilder<TClass>,
+    TBuilder extends TestBedBuilder<TClass> = TestBedBuilder<TClass>,
   > {
     /**
      * Provides a mock implementation using stub functions for methods.
