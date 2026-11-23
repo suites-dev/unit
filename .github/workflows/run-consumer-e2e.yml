@@ -55,12 +55,15 @@ jobs:
       - uses: ./.github/actions/stage-compatibility-candidate
         id: candidate-version
         if: inputs.target-kind == 'candidate' && inputs.stage-candidate-versions
+      - name: Make the staged candidate revision available to test selection
+        if: inputs.target-kind == 'candidate' && inputs.stage-candidate-versions
+        run: git fetch ./candidate-source HEAD
       - uses: ./.github/actions/prepare-e2e-target
         id: prepare
         with:
           target-kind: ${{ inputs.target-kind }}
           target: ${{ inputs.target }}
-          test-ref: ${{ inputs.test-ref || steps.candidate-version.outputs.source-commit }}
+          test-ref: ${{ inputs.test-ref }}
           baseline-version: ${{ inputs.baseline-version }}
           projects: ${{ inputs.projects }}
           node-versions: ${{ inputs.node-versions }}
