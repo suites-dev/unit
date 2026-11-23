@@ -146,7 +146,28 @@ Choose one mode before configuring or compiling a sociable test. Replace repeate
 const { unit } = await TestBed.sociable(UserService).compose().compile();
 ```
 
-Selective exposure and recursive composition are mutually exclusive choices: neither `.expose(...).compose()` nor `.compose().expose(...)` is available. Composition recursively constructs a class only when the selected DI adapter positively identifies it as constructable by that framework. Suites does not infer constructibility from a function token or implemented prototype members. Unmarked classes, including ambiguous concrete leaves, remain unresolved in composed mode until a token-to-implementation binding or explicit boundary is supplied. TypeScript erases the `abstract` modifier, so a framework decorator applied directly to an abstract class can still make it indistinguishable from a concrete class at runtime.
+Map a requested injection token to a real implementation with `.bind()`:
+
+```typescript
+const USER_REPOSITORY = Symbol('USER_REPOSITORY');
+
+const selective = await TestBed.sociable(UserService)
+  .expose(DatabaseConnection)
+  .bind<UserRepository>(USER_REPOSITORY, SqlUserRepository)
+  .compile();
+
+const composed = await TestBed.sociable(UserService)
+  .compose()
+  .bind<UserRepository>(USER_REPOSITORY, SqlUserRepository)
+  .compile();
+```
+
+Selective exposure constructs the bound implementation and the classes passed to `.expose()`. Composition follows its injectable dependencies recursively. Each token and qualifier pair receives its own instance, so two tokens bound to the same implementation remain distinct. An explicit mock or final override takes precedence. Conflicting bindings for one token fail compilation.
+
+Class tokens check the implementation's instance type. Use `.bind<Contract>(TOKEN, Implementation)` for string, symbol, and InjectionJS tokens when you want TypeScript to check the implementation against a specific contract. Third-party adapters can register additional token types through their type declarations.
+
+Composition constructs a class when the DI adapter identifies it as constructable. For an unmarked class or an abstract token, select a real implementation with `.bind()` or configure a mock. TypeScript erases the abstract modifier, so a framework decorator on an abstract class can make it indistinguishable from a concrete class at runtime.
+
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
