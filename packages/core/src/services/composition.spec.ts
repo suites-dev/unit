@@ -13,6 +13,7 @@ import { UnitMocker } from './unit-mocker.js';
 
 function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdapter {
   return {
+    isConstructable: (type: Type) => entries.some(([target]) => type === target),
     inspect: (type: Type) => ({
       list: () => entries.find(([target]) => type === target)?.[1] ?? [],
       resolve: () => undefined,
@@ -42,6 +43,7 @@ class Service {
 const adapter = registry([
   [Service, [parameter(Repository)]],
   [Repository, [parameter(Client)]],
+  [Client, []],
 ]);
 
 function resolver(options = {}) {
@@ -102,6 +104,46 @@ describe('opt-in composition', () => {
     expect(instance.port).not.toBeInstanceOf(Port);
   });
 
+  it('does not compose an unbound abstract token with concrete members', () => {
+    abstract class PartiallyImplementedPort {
+      label(): string {
+        return 'base';
+      }
+
+      abstract read(): string;
+    }
+    class Root {
+      constructor(readonly port: PartiallyImplementedPort) {}
+    }
+    const current = new DependencyResolver(
+      [],
+      new DependencyContainer([]),
+      registry([[Root, [parameter(PartiallyImplementedPort)]]]),
+      jest.fn(() => ({})),
+      { compose: true }
+    );
+
+    const instance = current.instantiateClass(Root) as Root;
+    expect(instance.port).not.toBeInstanceOf(PartiallyImplementedPort);
+  });
+
+  it('never treats a native constructor as a composable collaborator', () => {
+    class Root {
+      constructor(readonly value: unknown) {}
+    }
+    const mock = { marker: 'mock' };
+    const current = new DependencyResolver(
+      [],
+      new DependencyContainer([]),
+      registry([[Root, [parameter(Object)]]]),
+      jest.fn(() => mock),
+      { compose: true }
+    );
+
+    const instance = current.instantiateClass(Root) as Root;
+    expect(instance.value).toBe(mock);
+  });
+
   it('resolves boundaries before inspecting their implementation graph', () => {
     const supplied = { read: jest.fn(() => 'mock') };
     const createGuard = jest.fn((path: readonly DependencyPathEntry[]) => {
@@ -117,7 +159,7 @@ describe('opt-in composition', () => {
     const current = new DependencyResolver(
       [],
       new DependencyContainer([]),
-      { inspect },
+      { inspect, isConstructable: adapter.isConstructable },
       jest.fn(() => ({})),
       {
         compose: true,
@@ -138,7 +180,7 @@ describe('opt-in composition', () => {
     const current = new DependencyResolver(
       [],
       new DependencyContainer([]),
-      { inspect },
+      { inspect, isConstructable: adapter.isConstructable },
       jest.fn(() => ({})),
       {
         compose: true,
@@ -237,6 +279,7 @@ describe('opt-in composition', () => {
           ],
         ],
         [Repository, [parameter(Client)]],
+        [Client, []],
       ]),
       jest.fn(() => ({})),
       { compose: true }
@@ -259,6 +302,7 @@ describe('opt-in composition', () => {
       registry([
         [Root, [parameter(repositoryToken)]],
         [Repository, [parameter(Client)]],
+        [Client, []],
       ]),
       jest.fn(() => ({})),
       {
@@ -306,15 +350,13 @@ describe('opt-in composition', () => {
     expect(overridden.unit.repository).not.toBeInstanceOf(Repository);
   });
 
-  it('retains composed mode through exposure and both override forms', async () => {
+  it('retains composed mode through both override forms', async () => {
     const implemented = await builder()
       .compose()
       .mock(Client)
       .impl(() => ({ read: () => 'implemented' }))
-      .expose(Repository)
       .compile();
     const finalized = await builder()
-      .expose(Repository)
       .compose()
       .mock(Client)
       .final({ read: () => 'final' })
@@ -324,6 +366,34 @@ describe('opt-in composition', () => {
     expect(implemented.unit.repository.client.read()).toBe('implemented');
     expect(finalized.unit.repository).toBeInstanceOf(Repository);
     expect(finalized.unit.repository.client.read()).toBe('final');
+  });
+
+  it('exposes an otherwise ambiguous empty class before or after composition', async () => {
+    class EmptyLeaf {}
+    class Root {
+      constructor(readonly leaf: EmptyLeaf) {}
+    }
+    const currentAdapter = registry([[Root, [parameter(EmptyLeaf)]]]);
+    const doubles = Promise.resolve({
+      mock: jest.fn((implementation: unknown) => implementation ?? {}),
+      stub: jest.fn,
+    });
+    const createBuilder = () =>
+      new SociableTestBedBuilder(
+        doubles,
+        new UnitMocker(
+          doubles.then((value) => value.mock),
+          Promise.resolve(currentAdapter)
+        ),
+        Root,
+        console
+      );
+
+    const before = await createBuilder().expose(EmptyLeaf).compose().compile();
+    const after = await createBuilder().compose().expose(EmptyLeaf).compile();
+
+    expect(before.unit.leaf).toBeInstanceOf(EmptyLeaf);
+    expect(after.unit.leaf).toBeInstanceOf(EmptyLeaf);
   });
 
   it('rejects retrieving recursively composed real dependencies', async () => {

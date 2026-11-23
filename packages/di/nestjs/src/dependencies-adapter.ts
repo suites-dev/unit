@@ -1,4 +1,5 @@
 import type { Type } from '@suites/types.common';
+import { INJECTABLE_WATERMARK } from '@nestjs/common/constants';
 import type {
   DependencyInjectionAdapter,
   ClassInjectable,
@@ -26,5 +27,9 @@ export function DependenciesAdapter(
     };
   }
 
-  return { inspect };
+  return {
+    inspect,
+    isConstructable: (targetClass: Type): boolean =>
+      Reflect.getOwnMetadata(INJECTABLE_WATERMARK, targetClass) === true,
+  };
 }
