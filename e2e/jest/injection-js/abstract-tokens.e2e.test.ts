@@ -76,7 +76,11 @@ describe('abstract class dependency tokens', () => {
   });
 
   it('keeps an abstract dependency mocked when exposing its concrete consumer', async () => {
-    const { unit, unitRef } = await TestBed.sociable(Service).expose(Repository).compile();
+    const { unit, unitRef } = await TestBed.sociable(Service)
+      .mock(Host)
+      .impl((stub) => ({ region: stub() }))
+      .expose(Repository)
+      .compile();
     unitRef.get(Host).region.mockReturnValue('singapore');
     expect(unit.repository).toBeInstanceOf(Repository);
     expect(unit.readRegion()).toBe('singapore');
