@@ -13,10 +13,7 @@ test('automatic baselines use published stable versions in the candidate major',
     '10.3.0'
   );
   assert.equal(selectPreviousVersion(['10.3.0', '10.4.0', '10.5.0'], '10.4.0'), '10.4.0');
-  assert.throws(
-    () => selectPreviousVersion(['9.9.0', '10.0.0-beta.0'], '10.0.0'),
-    /No published stable baseline/
-  );
+  assert.equal(selectPreviousVersion(['9.9.0', '10.0.0-beta.0'], '10.0.0'), undefined);
 });
 
 function fixture(t) {
