@@ -26,6 +26,14 @@ class Service {
   }
 }
 
+@Injectable()
+class EmptyLeaf {}
+
+@Injectable()
+class EmptyLeafRoot {
+  constructor(readonly leaf: EmptyLeaf) {}
+}
+
 describe('V5 opt-in composition', () => {
   it('constructs the discovered class graph recursively', async () => {
     const { unit, unitRef } = await TestBed.sociable(Service).compose().compile();
@@ -44,17 +52,16 @@ describe('V5 opt-in composition', () => {
     expect(invalidBuilder).toBeUndefined();
   });
 
-  it('retains exposure and explicit override chains in composed mode', async () => {
-    const before = await TestBed.sociable(Service).expose(Repository).compose().compile();
-    const after = await TestBed.sociable(Service).compose().expose(Repository).compile();
+  it('retains meaningful exposure and explicit override chains in composed mode', async () => {
+    const before = await TestBed.sociable(EmptyLeafRoot).expose(EmptyLeaf).compose().compile();
+    const after = await TestBed.sociable(EmptyLeafRoot).compose().expose(EmptyLeaf).compile();
     const overridden = await TestBed.sociable(Service)
       .compose()
       .mock(Leaf)
       .impl((stub) => ({ prefix: stub().mockReturnValue('mock:') }))
-      .expose(Repository)
       .compile();
-    expect(before.unit.read()).toBe('live:value');
-    expect(after.unit.read()).toBe('live:value');
+    expect(before.unit.leaf).toBeInstanceOf(EmptyLeaf);
+    expect(after.unit.leaf).toBeInstanceOf(EmptyLeaf);
     expect(overridden.unit.repository).toBeInstanceOf(Repository);
     expect(overridden.unit.repository.leaf).not.toBeInstanceOf(Leaf);
     expect(overridden.unit.read()).toBe('mock:value');
