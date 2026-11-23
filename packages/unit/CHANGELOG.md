@@ -13,6 +13,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### BREAKING CHANGES
 
 * **unit:** `TestBed.sociable()` now returns the full initial V5 builder. `.expose(first, ...rest)` selects variadic selective mode and `.compose()` selects composed mode; neither resulting builder exposes the other transition. Custom `TestBed` subclasses and helpers that narrowed the sociable return type must adopt the full initial builder contract. ([#820](https://github.com/suites-dev/unit/issues/820))
+- Return the full V5 sociable builder and guard undeclared collaborators instead of automatically mocking them.
 
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Funit%404.1.2...%40suites%2Funit%404.1.3) (2026-11-15)
 
