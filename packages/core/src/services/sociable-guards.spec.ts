@@ -50,7 +50,7 @@ describe('sociable dependency guards', () => {
       Checkout,
       [],
       new DependencyContainer([]),
-      true
+      { guardUndeclared: true }
     );
 
     expect(result.instance).toBeInstanceOf(Checkout);
@@ -62,7 +62,7 @@ describe('sociable dependency guards', () => {
       Checkout,
       [],
       new DependencyContainer([]),
-      true
+      { guardUndeclared: true }
     );
 
     expect(() => instance.available()).toThrow(
@@ -77,7 +77,7 @@ describe('sociable dependency guards', () => {
       Checkout,
       [],
       new DependencyContainer([[{ identifier: Inventory }, inventory]]),
-      true
+      { guardUndeclared: true }
     );
 
     expect(instance.available()).toBe(false);
@@ -90,7 +90,7 @@ describe('sociable dependency guards', () => {
       Checkout,
       [Inventory],
       new DependencyContainer([]),
-      true
+      { guardUndeclared: true }
     );
 
     expect(instance.available()).toBe(true);
