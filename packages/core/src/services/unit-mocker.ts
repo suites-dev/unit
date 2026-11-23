@@ -3,11 +3,13 @@ import type { DependencyInjectionAdapter } from '@suites/types.di';
 import type { IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyContainer } from './dependency-container.js';
 import type { Type, AbstractType } from '@suites/types.common';
+import type { ResolverOptions } from './dependency-resolver.js';
 import { DependencyResolver } from './dependency-resolver.js';
 
 export interface MockedUnit<TClass> {
   container: DependencyContainer;
   instance: TClass;
+  composedDependencies: IdentifierToMockOrFinal[0][];
   resolution: {
     notFound: IdentifierToMockOrFinal[];
     mocks: { metadata?: unknown; identifier: AbstractType }[];
@@ -24,13 +26,15 @@ export class UnitMocker {
   public async constructUnit<TClass>(
     targetClass: Type<TClass>,
     classesToExpose: Type[],
-    mockContainer: DependencyContainer
+    mockContainer: DependencyContainer,
+    resolverOptions?: ResolverOptions
   ): Promise<MockedUnit<TClass>> {
     const dependencyResolver = new DependencyResolver(
       classesToExpose,
       mockContainer,
       await this.diAdapter,
-      await this.mockFunction
+      await this.mockFunction,
+      resolverOptions
     );
 
     const instance = dependencyResolver.instantiateClass(targetClass);
@@ -43,6 +47,7 @@ export class UnitMocker {
       container: new DependencyContainer(identifierToDependency),
       instance: instance as TClass,
       resolution: dependencyResolver.getResolutionSummary(),
+      composedDependencies: dependencyResolver.getComposedDependencies(),
     };
   }
 }
