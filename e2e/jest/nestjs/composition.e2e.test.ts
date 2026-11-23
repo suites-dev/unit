@@ -34,13 +34,14 @@ describe('V5 opt-in composition', () => {
     expect(unit.read()).toBe('live:value');
     expect(() => unitRef.get(Repository)).toThrow(/exposed dependency/);
     expect(() => unitRef.get(Leaf)).toThrow(/exposed dependency/);
-    const invalid = () => {
-      // @ts-expect-error Composition preserves the subject type.
-      unit.missingMethod();
-      // @ts-expect-error Composition belongs to sociable builders only.
-      TestBed.solitary(Service).compose();
-    };
-    expect(invalid).toBeDefined();
+    const typedSubject: Service = unit;
+    // @ts-expect-error Composition preserves the subject type.
+    const invalidSubject: { missingMethod(): void } = unit;
+    // @ts-expect-error Composition belongs to sociable builders only.
+    const invalidBuilder = TestBed.solitary(Service).compose;
+    expect(typedSubject).toBe(unit);
+    expect(invalidSubject).toBe(unit);
+    expect(invalidBuilder).toBeUndefined();
   });
 
   it('retains exposure and explicit override chains in composed mode', async () => {
@@ -58,5 +59,17 @@ describe('V5 opt-in composition', () => {
     expect(overridden.unit.repository.leaf).not.toBeInstanceOf(Leaf);
     expect(overridden.unit.read()).toBe('mock:value');
     expect(overridden.unitRef.get(Leaf).prefix).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not mutate the original sociable builder', async () => {
+    const original = TestBed.sociable(Service);
+    const composed = original.compose();
+
+    const unchanged = await original.compile();
+    const recursive = await composed.compile();
+
+    expect(unchanged.unit.repository).not.toBeInstanceOf(Repository);
+    expect(recursive.unit.repository).toBeInstanceOf(Repository);
+    expect(recursive.unit.repository.leaf).toBeInstanceOf(Leaf);
   });
 });
