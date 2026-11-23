@@ -87,7 +87,7 @@ describe('V5 opt-in composition', () => {
     const original = TestBed.sociable(Service);
     const composed = original.compose();
 
-    const unchanged = await original.compile();
+    const unchanged = await original.mock(Repository).final({}).compile();
     const recursive = await composed.compile();
 
     expect(unchanged.unit.repository).not.toBeInstanceOf(Repository);
