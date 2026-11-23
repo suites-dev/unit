@@ -47,7 +47,6 @@ describe('V5 opt-in composition', () => {
       .compose()
       .mock(Leaf)
       .impl((stub) => ({ prefix: stub().mockReturnValue('mock:') }))
-      .expose(Repository)
       .compile();
     expect(before.unit.read()).toBe('live:value');
     expect(after.unit.read()).toBe('live:value');
