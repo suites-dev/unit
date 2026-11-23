@@ -30,7 +30,7 @@ permissions:
 jobs:
   preview:
     name: Preview Release
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/next'
     env:
       TARGET_BRANCH: ${{ github.ref_name }}
       RELEASE_TYPE: ${{ inputs.release_type }}
