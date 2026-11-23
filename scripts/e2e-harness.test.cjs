@@ -159,11 +159,10 @@ test('new-major preparation freezes candidate tests and persists the skipped com
   assert.deepEqual(JSON.parse(readFileSync(join(destination, 'plan.json'))), plan);
 });
 
-test('an ephemeral candidate version commit preserves the original PR test source', (t) => {
+test('a first-major ephemeral candidate selects its fetched candidate snapshot', (t) => {
   const root = mkdtempSync(join(tmpdir(), 'suites-e2e-versioned-candidate-plan-'));
   const destination = join(root, 'bundle');
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  const sourceCommit = 'a'.repeat(40);
   const candidateCommit = 'b'.repeat(40);
   const snapshotRefs = [];
   const plan = prepare(
@@ -173,7 +172,7 @@ test('an ephemeral candidate version commit preserves the original PR test sourc
       destination,
       kind: 'candidate',
       target: candidateCommit,
-      testRef: sourceCommit,
+      testRef: '',
       baselineVersion: 'previous',
       projects: [],
       nodes: ['26.x'],
@@ -199,10 +198,61 @@ test('an ephemeral candidate version commit preserves the original PR test sourc
       },
     }
   );
-  assert.deepEqual(snapshotRefs, [sourceCommit]);
-  assert.equal(plan.tests.commit, sourceCommit);
+  assert.deepEqual(snapshotRefs, [candidateCommit]);
+  assert.equal(plan.tests.commit, candidateCommit);
   assert.equal(plan.target.commit, candidateCommit);
-  assert.equal(plan.compatibility.testSource, 'explicit');
+  assert.equal(plan.compatibility.testSource, 'candidate');
+});
+
+test('a same-major ephemeral candidate keeps selecting the published baseline snapshot', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'suites-e2e-versioned-same-major-plan-'));
+  const destination = join(root, 'bundle');
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const candidateCommit = 'b'.repeat(40);
+  const baselineCommit = 'a'.repeat(40);
+  const snapshotRefs = [];
+  const plan = prepare(
+    {
+      repository: '/source',
+      candidateRepository: '/candidate',
+      destination,
+      kind: 'candidate',
+      target: candidateCommit,
+      testRef: '',
+      baselineVersion: 'previous',
+      projects: [],
+      nodes: ['26.x'],
+    },
+    {
+      candidateTarget: () => ({
+        kind: 'candidate',
+        label: candidateCommit,
+        commit: candidateCommit,
+        packages: candidatePackages('4.1.4-compatibility.0'),
+      }),
+      automaticCompatibility: () => ({
+        status: 'checked',
+        baselineVersion: '4.1.3',
+        candidateMajor: 4,
+        latestStableVersion: '4.1.3',
+      }),
+      publishedTarget: () => ({
+        kind: 'npm',
+        label: '4.1.3',
+        commit: baselineCommit,
+        packages: candidatePackages('4.1.3'),
+      }),
+      snapshot: (_repository, ref) => {
+        snapshotRefs.push(ref);
+        return { commit: ref, projects: ['jest/nestjs'], hashes: {} };
+      },
+    }
+  );
+  assert.deepEqual(snapshotRefs, [baselineCommit]);
+  assert.equal(plan.tests.commit, baselineCommit);
+  assert.equal(plan.target.commit, candidateCommit);
+  assert.equal(plan.baseline.commit, baselineCommit);
+  assert.equal(plan.compatibility.testSource, 'baseline');
 });
 
 function fixture(t) {
