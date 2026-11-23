@@ -17,6 +17,17 @@
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
       }
+    },
+    "./verification": {
+      "types": "./dist/esm/dependency-verification.d.ts",
+      "import": {
+        "types": "./dist/esm/dependency-verification.d.ts",
+        "default": "./dist/esm/dependency-verification.js"
+      },
+      "require": {
+        "types": "./dist/cjs/dependency-verification.d.ts",
+        "default": "./dist/cjs/dependency-verification.js"
+      }
     }
   },
   "repository": {
@@ -58,5 +69,12 @@
     "access": "public",
     "provenance": true
   },
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.16.1",
+  "typesVersions": {
+    "*": {
+      "verification": [
+        "dist/cjs/dependency-verification.d.ts"
+      ]
+    }
+  }
 }
