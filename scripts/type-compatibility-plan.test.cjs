@@ -111,3 +111,55 @@ test('compatibility planning rejects older and unsupported future candidate majo
     /supports candidate majors 4 and 5/
   );
 });
+
+test('compatibility planning requires published stable history', () => {
+  assert.throws(
+    () =>
+      compatibilityPlan({
+        candidateVersions: versions('5.0.0-next.0'),
+        publishedVersions: published('5.0.0-next.1'),
+      }),
+    /no published stable releases/
+  );
+});
+
+test('a first-major candidate advances exactly one major and starts at zero', () => {
+  assert.throws(
+    () =>
+      compatibilityPlan({
+        candidateVersions: versions('5.0.0-next.0'),
+        publishedVersions: published('3.9.0'),
+      }),
+    /advance exactly one major from 3/
+  );
+  assert.throws(
+    () =>
+      compatibilityPlan({
+        candidateVersions: versions('5.1.0-next.0'),
+        publishedVersions: published('4.1.3'),
+      }),
+    /start at 5\.0\.0/
+  );
+});
+
+test('same-major candidates cannot predate the latest stable release', () => {
+  assert.throws(
+    () =>
+      compatibilityPlan({
+        candidateVersions: versions('4.1.2-next.0'),
+        publishedVersions: published('4.1.3'),
+      }),
+    /candidate 4\.1\.2-next\.0 is older than latest stable 4\.1\.3/
+  );
+});
+
+test('candidate versions use strict exact semver', () => {
+  assert.throws(
+    () =>
+      compatibilityPlan({
+        candidateVersions: versions('5.0.0-next.01'),
+        publishedVersions: published('4.1.3'),
+      }),
+    /valid exact semver/
+  );
+});
