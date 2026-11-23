@@ -9,6 +9,7 @@ const process = require('node:process');
 const runner = process.argv[2];
 const directory = mkdtempSync(join(tmpdir(), 'suites-guard-report-'));
 const outputFile = join(directory, 'results.json');
+const customOutputFile = join(directory, 'custom-environment-results.json');
 const stepsFile = join(directory, 'steps.txt');
 
 try {
@@ -79,6 +80,7 @@ try {
     `${runner}:application-catch-asserted`,
     `${runner}:retry-first-caught`,
     `${runner}:retry-second-clean`,
+    `${runner}:teardown-caught`,
   ]) {
     assert.ok(recordedSteps.includes(step), `Missing completed step ${step}.\n${output}`);
   }
@@ -87,6 +89,35 @@ try {
   }
 
   assert.equal(tests.length, passing.length + guarded.length + (runner === 'vitest' ? 3 : 1), output);
+
+  if (runner === 'jest') {
+    const customResult = spawnSync(
+      'pnpm',
+      [
+        'exec',
+        'jest',
+        '--config',
+        'jest.custom-guards.config.cjs',
+        '--runInBand',
+        '--json',
+        '--outputFile',
+        customOutputFile,
+      ],
+      { encoding: 'utf8', env: process.env, timeout: 60_000 }
+    );
+    assert.ifError(customResult.error);
+    const customOutput = customResult.stdout + customResult.stderr;
+    assert.equal(customResult.status, 1, customOutput);
+    const customReport = JSON.parse(readFileSync(customOutputFile, 'utf8'));
+    assert.equal(customReport.numFailedTestSuites, 1, customOutput);
+    assert.equal(customReport.numFailedTests, 0, customOutput);
+    assert.equal(customReport.numPassedTests, 1, customOutput);
+    assert.match(
+      customReport.testResults.map((file) => file.message).join('\n'),
+      /Suites Unit rule violation:[^\n]*undeclared dependency/i
+    );
+  }
+
   console.log(`${runner}: verified guarded dependencies in consumer tests`);
 } finally {
   rmSync(directory, { recursive: true, force: true });

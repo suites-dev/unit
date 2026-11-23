@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { expect, it } from 'vitest';
+import { afterAll, expect, it } from 'vitest';
 import { Injectable } from '@nestjs/common';
 import { TestBed } from '@suites/unit';
 import { appendFileSync } from 'node:fs';
@@ -42,8 +42,14 @@ function expectCaughtGuard(unit: Checkout): void {
   expect(caught).toBeInstanceOf(Error);
   if (!(caught instanceof Error)) throw new Error('Checkout did not catch an error');
   expect(caught.message).toMatch(/Cannot read available on undeclared dependency 'Inventory'/i);
-  expect(caught.message).toMatch(/Dependency path:\s*Checkout\s*->\s*Inventory/i);
+  expect(caught.message).toMatch(/Dependency path:[^\n]*Checkout[^\n]*->[^\n]*Inventory/i);
 }
+
+afterAll(async () => {
+  const { unit } = await TestBed.sociable(Checkout).compile();
+  expectCaughtGuard(unit);
+  recordStep('vitest:teardown-caught');
+});
 
 it('allows a dependency to be injected without being used', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
@@ -75,7 +81,7 @@ it.skip('does not verify a skipped test', async () => {
 it('fails even when an exception assertion catches the guard', async () => {
   const { unit } = await TestBed.sociable(Checkout).compile();
 
-  expect(() => unit.available()).toThrow(/an undeclared dependency was used/i);
+  expect(() => unit.available()).toThrow(/Suites Unit rule violation:[^\n]*undeclared dependency/i);
   recordStep('vitest:immediate-error-asserted');
 });
 
