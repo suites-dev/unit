@@ -24,13 +24,15 @@ export class UnitMocker {
   public async constructUnit<TClass>(
     targetClass: Type<TClass>,
     classesToExpose: Type[],
-    mockContainer: DependencyContainer
+    mockContainer: DependencyContainer,
+    guardUndeclared = false
   ): Promise<MockedUnit<TClass>> {
     const dependencyResolver = new DependencyResolver(
       classesToExpose,
       mockContainer,
       await this.diAdapter,
-      await this.mockFunction
+      await this.mockFunction,
+      guardUndeclared
     );
 
     const instance = dependencyResolver.instantiateClass(targetClass);

@@ -9,17 +9,23 @@ import type {
 } from '@suites/types.di';
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyMap } from './dependency-map.js';
+import {
+  createGuardedDependency,
+  type DependencyPathEntry,
+} from './guarded-dependency.js';
 
 export class DependencyResolver {
   private readonly dependencyMap = new DependencyMap();
   private readonly usedMockEntries = new Set<IdentifierToMockOrFinal>();
   private readonly availableClassesToExpose = new Set<AbstractType>();
+  private readonly constructionPath: DependencyPathEntry[] = [];
 
   constructor(
     private readonly classesToExpose: Type[],
     private readonly mockedFromBeforeContainer: DependencyContainer,
     private readonly adapter: DependencyInjectionAdapter,
-    private readonly mockFunction: MockFunction
+    private readonly mockFunction: MockFunction,
+    private readonly guardUndeclared = false
   ) {}
 
   private isExposedClass(identifier: InjectableIdentifier): identifier is Type {
@@ -46,11 +52,22 @@ export class DependencyResolver {
 
     const existingEntry = this.mockedFromBeforeContainer.resolveEntry(identifier, metadata);
 
-    if (existingEntry !== undefined && existingEntry[1] !== undefined) {
+    if (existingEntry !== undefined) {
       const existingMock = existingEntry[1];
       this.usedMockEntries.add(existingEntry);
       this.dependencyMap.set(identifier, existingMock, metadata as never);
       return existingMock;
+    }
+
+    if (this.guardUndeclared && !this.isExposedClass(identifier)) {
+      const guarded = createGuardedDependency(
+        'undeclared dependency',
+        identifier,
+        metadata,
+        [...this.constructionPath, { identifier, metadata }]
+      );
+      this.dependencyMap.set(identifier, guarded, metadata as never);
+      return guarded;
     }
 
     if (this.isLeafOrPrimitive(identifier)) {
@@ -82,6 +99,36 @@ export class DependencyResolver {
     if (this.dependencyMap.has(type, metadata)) {
       return this.dependencyMap.get(type, metadata) as Type | FinalValue | StubbedInstance<unknown>;
     }
+
+    if (
+      this.guardUndeclared &&
+      this.constructionPath.some((entry) => entry.identifier === type)
+    ) {
+      const path = [...this.constructionPath, { identifier: type, metadata }]
+        .map(({ identifier }) =>
+          typeof identifier === 'function' ? identifier.name : String(identifier)
+        )
+        .join(' -> ');
+      throw new Error(`Circular sociable dependency: ${path}`);
+    }
+
+    if (this.guardUndeclared) {
+      this.constructionPath.push({ identifier: type, metadata });
+    }
+
+    try {
+      return this.constructClass(type, metadata);
+    } finally {
+      if (this.guardUndeclared) {
+        this.constructionPath.pop();
+      }
+    }
+  }
+
+  private constructClass(
+    type: Type,
+    metadata: IdentifierMetadata | undefined
+  ): Type | FinalValue | StubbedInstance<unknown> {
 
     const injectableRegistry = this.adapter.inspect(type);
 

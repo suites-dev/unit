@@ -7,7 +7,7 @@ import { DependencyContainer } from '../dependency-container.js';
 import type { UnitTestBed } from '../../types.js';
 import { TestBedBuilder } from './testbed-builder.js';
 
-export interface SociableTestBedBuilder<TClass> {
+export interface SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
   expose(dependency: Type): SociableTestBedBuilder<TClass>;
 }
 
@@ -47,7 +47,8 @@ export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
     const { container, instance, resolution } = await this.unitMocker.constructUnit<TClass>(
       this.targetClass,
       this.classesToExpose,
-      new DependencyContainer([...identifiersToMocks, ...identifiersToFinal])
+      new DependencyContainer([...identifiersToMocks, ...identifiersToFinal]),
+      true
     );
 
     if (resolution.mocks.length > 0) {
