@@ -26,12 +26,16 @@ class Service {
   }
 }
 
-@Injectable()
 class EmptyLeaf {}
+
+class AnotherEmptyLeaf {}
 
 @Injectable()
 class EmptyLeafRoot {
-  constructor(readonly leaf: EmptyLeaf) {}
+  constructor(
+    readonly leaf: EmptyLeaf,
+    readonly anotherLeaf: AnotherEmptyLeaf
+  ) {}
 }
 
 describe('V5 opt-in composition', () => {
@@ -52,16 +56,23 @@ describe('V5 opt-in composition', () => {
     expect(invalidBuilder).toBeUndefined();
   });
 
-  it('retains meaningful exposure and explicit override chains in composed mode', async () => {
-    const before = await TestBed.sociable(EmptyLeafRoot).expose(EmptyLeaf).compose().compile();
-    const after = await TestBed.sociable(EmptyLeafRoot).compose().expose(EmptyLeaf).compile();
+  it('keeps variadic selective exposure separate from composed overrides', async () => {
+    const selective = TestBed.sociable(EmptyLeafRoot).expose(EmptyLeaf, AnotherEmptyLeaf);
+    const composed = TestBed.sociable(Service).compose();
+    const exposed = await selective.compile();
     const overridden = await TestBed.sociable(Service)
       .compose()
       .mock(Leaf)
       .impl((stub) => ({ prefix: stub().mockReturnValue('mock:') }))
       .compile();
-    expect(before.unit.leaf).toBeInstanceOf(EmptyLeaf);
-    expect(after.unit.leaf).toBeInstanceOf(EmptyLeaf);
+    // @ts-expect-error Selective mode excludes recursive composition.
+    const invalidCompose = selective.compose;
+    // @ts-expect-error Composed mode excludes selective exposure.
+    const invalidExpose = composed.expose;
+    expect(invalidCompose).toBeUndefined();
+    expect(invalidExpose).toBeUndefined();
+    expect(exposed.unit.leaf).toBeInstanceOf(EmptyLeaf);
+    expect(exposed.unit.anotherLeaf).toBeInstanceOf(AnotherEmptyLeaf);
     expect(overridden.unit.repository).toBeInstanceOf(Repository);
     expect(overridden.unit.repository.leaf).not.toBeInstanceOf(Leaf);
     expect(overridden.unit.read()).toBe('mock:value');

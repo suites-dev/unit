@@ -40,16 +40,20 @@ describe('V5 opt-in composition', () => {
     };
     expect(invalid).toBeDefined();
   });
-  it('retains exposure and explicit override chains in composed mode', async () => {
-    const before = await TestBed.sociable(Service).expose(Repository).compose().compile();
-    const after = await TestBed.sociable(Service).compose().expose(Repository).compile();
+  it('retains explicit override chains and excludes selective exposure', async () => {
+    const composed = TestBed.sociable(Service).compose();
+    const selective = TestBed.sociable(Service).expose(Repository);
     const overridden = await TestBed.sociable(Service)
       .compose()
       .mock(Leaf)
       .impl((stub) => ({ prefix: stub().mockReturnValue('mock:') }))
       .compile();
-    expect(before.unit.read()).toBe('live:value');
-    expect(after.unit.read()).toBe('live:value');
+    // @ts-expect-error Composed mode excludes selective exposure.
+    const invalidExpose = composed.expose;
+    // @ts-expect-error Selective mode excludes recursive composition.
+    const invalidCompose = selective.compose;
+    expect(invalidExpose).toBeUndefined();
+    expect(invalidCompose).toBeUndefined();
     expect(overridden.unit.repository).toBeInstanceOf(Repository);
     expect(overridden.unit.repository.leaf).not.toBeInstanceOf(Leaf);
     expect(overridden.unit.read()).toBe('mock:value');
