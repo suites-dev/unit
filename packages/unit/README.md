@@ -140,6 +140,14 @@ A `.final()` dependency is injected as supplied and cannot be retrieved through 
 
 Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep selected class dependencies real and mock their remaining dependencies. The class under test and exposed classes must be concrete constructors; abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
 
+V5 composition is explicitly opt in:
+
+```typescript
+const { unit } = await TestBed.sociable(UserService).compose().compile();
+```
+
+Composition recursively constructs class dependencies when the selected DI adapter exposes injection metadata or the class has an implemented runtime prototype member. TypeScript erases the `abstract` modifier, so an empty function token cannot be proven concrete at runtime and remains unresolved unless a concrete class is explicitly exposed or a token-to-implementation binding is supplied. This conservative rule also means an empty concrete leaf may require `.expose(ConcreteLeaf)`. String, symbol, object, and abstract-only tokens are not treated as constructable classes merely because they are injectable identifiers.
+
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
 ## Migration
