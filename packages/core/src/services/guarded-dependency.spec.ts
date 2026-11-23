@@ -5,7 +5,7 @@ import {
 import {
   DependencyViolationLedger,
   dependencyVerificationKey,
-} from '../dependency-verification.js';
+} from '../dependency-verification-internal.js';
 
 class Checkout {}
 class Inventory {}

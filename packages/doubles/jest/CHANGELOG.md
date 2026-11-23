@@ -8,7 +8,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Features
 
 * **doubles.jest:** preserve the composed builder type through mock overrides ([#820](https://github.com/suites-dev/unit/issues/820))
-- Add the composable `@suites/doubles.jest/environment` entry point for file-level dependency verification.
+- Add the public `@suites/doubles.jest/environment` entry point for file-level dependency
+  verification. Its default export supplies the Node environment; its named
+  `withDependencyVerification` export preserves an existing custom Jest environment.
 
 ### BREAKING CHANGES
 

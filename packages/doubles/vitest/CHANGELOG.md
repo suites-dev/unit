@@ -12,7 +12,10 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### BREAKING CHANGES
 
 * **doubles.vitest:** the `/unit` declaration now augments Core's V5 builder-aware `MockOverride` contract so `impl()` and `final()` retain selective or composed mode. Upgrade this adapter together with `@suites/core.unit` and `@suites/unit`; the V5 declaration is not compatible with Core 4. ([#820](https://github.com/suites-dev/unit/issues/820))
-- Add `@suites/doubles.vitest/setup` for suite-level dependency verification and require Vitest 5.1 or later.
+* **doubles.vitest:** add the side-effect-only public `@suites/doubles.vitest/setup` entry point for suite-level
+  dependency verification; it has no named exports.
+* **doubles.vitest:** narrow the supported Vitest peer range from `>=1.0` to `^5.1.0`. The setup uses Vitest's
+  public `aroundAll` lifecycle and is verified against Vitest 5.1.
 
 ## [4.1.3](https://github.com/suites-dev/unit/compare/%40suites%2Fdoubles.vitest%404.1.2...%40suites%2Fdoubles.vitest%404.1.3) (2026-11-11)
 
