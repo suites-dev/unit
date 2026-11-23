@@ -34,6 +34,13 @@ class Service {
 }
 
 describe('InjectionJS constructor adapter', () => {
+  it('positively identifies only InjectionJS injectable classes for composition', () => {
+    class Unmarked {}
+
+    expect(adapter.isConstructable?.(Service)).toBe(true);
+    expect(adapter.isConstructable?.(Unmarked)).toBe(false);
+  });
+
   it('uses the same token identities and order as the production resolver', () => {
     const registry = adapter.inspect(Service);
     const production = ReflectiveInjector.resolve([Service])[0].resolvedFactories[0].dependencies;
