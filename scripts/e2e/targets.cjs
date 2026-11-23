@@ -4,21 +4,124 @@ const { dirname, join } = require('node:path');
 const { execute, npmRegistry, registryPackage, registryVersions } = require('./process.cjs');
 const { revision, manifests, hashFile } = require('./source.cjs');
 
-const versionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const versionPattern =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+const stableVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
-function selectPreviousVersion(versions, candidateVersion) {
-  const candidate = candidateVersion.split('-')[0].split('.').map(Number);
-  const compare = (left, right) => left[0] - right[0] || left[1] - right[1] || left[2] - right[2];
-  const eligible = versions
-    .filter((version) => /^\d+\.\d+\.\d+$/.test(version))
-    .map((version) => version.split('.').map(Number))
-    .filter((version) => version[0] === candidate[0] && compare(version, candidate) <= 0)
-    .sort(compare);
-  return eligible.at(-1)?.join('.');
+function parseVersion(version, description = 'Version') {
+  assert(
+    typeof version === 'string' && versionPattern.test(version),
+    `${description} must be valid exact semver`
+  );
+  const separator = version.indexOf('-');
+  const base = separator < 0 ? version : version.slice(0, separator);
+  const prerelease = separator < 0 ? [] : version.slice(separator + 1).split('.');
+  assert(
+    prerelease.every((identifier) => !/^\d+$/.test(identifier) || !/^0\d/.test(identifier)),
+    `${description} must be valid exact semver`
+  );
+  const [major, minor, patch] = base.split('.').map(Number);
+  return { version, major, minor, patch, prerelease };
 }
 
-function previousVersion(repository, candidateVersion) {
-  return selectPreviousVersion(registryVersions(repository), candidateVersion);
+function compareVersions(left, right) {
+  const core = left.major - right.major || left.minor - right.minor || left.patch - right.patch;
+  if (core) return core;
+  if (!left.prerelease.length || !right.prerelease.length)
+    return Number(!left.prerelease.length) - Number(!right.prerelease.length);
+  for (
+    let index = 0;
+    index < Math.max(left.prerelease.length, right.prerelease.length);
+    index += 1
+  ) {
+    const leftIdentifier = left.prerelease[index];
+    const rightIdentifier = right.prerelease[index];
+    if (leftIdentifier === undefined || rightIdentifier === undefined)
+      return Number(leftIdentifier !== undefined) - Number(rightIdentifier !== undefined);
+    if (leftIdentifier === rightIdentifier) continue;
+    const leftNumeric = /^\d+$/.test(leftIdentifier);
+    const rightNumeric = /^\d+$/.test(rightIdentifier);
+    if (leftNumeric && rightNumeric) return Number(leftIdentifier) - Number(rightIdentifier);
+    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+    return leftIdentifier.localeCompare(rightIdentifier);
+  }
+  return 0;
+}
+
+function selectPreviousVersion(versions, candidateVersion) {
+  const candidate = parseVersion(candidateVersion, 'Candidate version');
+  const eligible = versions
+    .filter((version) => stableVersionPattern.test(version))
+    .map((version) => parseVersion(version, 'Published version'))
+    .filter(
+      (version) => version.major === candidate.major && compareVersions(version, candidate) <= 0
+    )
+    .sort(compareVersions);
+  return eligible.at(-1)?.version;
+}
+
+function candidateVersion(packages) {
+  assert(packages.length > 0, 'Candidate contains no public packages');
+  const parsed = packages.map((pkg) => ({
+    name: pkg.name,
+    ...parseVersion(pkg.version, `${pkg.name} candidate version`),
+  }));
+  const unit = parsed.find((pkg) => pkg.name === '@suites/unit');
+  assert(unit, 'Candidate contains no @suites/unit package');
+  const inconsistent = parsed.filter((pkg) => pkg.major !== unit.major);
+  assert.equal(
+    inconsistent.length,
+    0,
+    `Candidate Suites packages must use the same major as @suites/unit ${unit.major}: ${inconsistent
+      .map((pkg) => `${pkg.name}@${pkg.version}`)
+      .join(', ')}`
+  );
+  return unit;
+}
+
+function automaticCompatibility(versions, packages) {
+  const candidate = candidateVersion(packages);
+  const stable = versions
+    .filter((version) => stableVersionPattern.test(version))
+    .map((version) => parseVersion(version, 'Published version'))
+    .sort(compareVersions);
+  assert(stable.length > 0, 'Registry returned no stable releases; refusing to skip compatibility');
+  const latest = stable.at(-1);
+  if (candidate.major < latest.major)
+    assert.fail(
+      `Candidate major ${candidate.major} is older than the latest stable major ${latest.major}`
+    );
+  if (candidate.major === latest.major) {
+    assert(
+      compareVersions(candidate, latest) >= 0,
+      `Candidate ${candidate.version} is older than latest stable ${latest.version}`
+    );
+    return {
+      status: 'checked',
+      baselineVersion: selectPreviousVersion(versions, candidate.version),
+      candidateMajor: candidate.major,
+      latestStableVersion: latest.version,
+    };
+  }
+  assert.equal(
+    candidate.major,
+    latest.major + 1,
+    `A new-major compatibility skip must advance exactly one major from ${latest.major}`
+  );
+  assert(
+    candidate.minor === 0 && candidate.patch === 0,
+    `A new major must start at ${candidate.major}.0.0`
+  );
+  return {
+    status: 'skipped-new-major',
+    candidateMajor: candidate.major,
+    previousMajor: latest.major,
+    latestStableVersion: latest.version,
+  };
+}
+
+function previousCompatibility(repository, packages) {
+  return automaticCompatibility(registryVersions(repository), packages);
 }
 
 function publishedTarget(repository, requested, destination) {
@@ -31,6 +134,7 @@ function publishedTarget(repository, requested, destination) {
   assert.match(unit.gitHead || '', /^[a-f0-9]{40}$/, 'Published Unit release has no source commit');
   const commit = revision(repository, unit.gitHead);
   const source = manifests(repository, commit);
+  candidateVersion(source);
   assert.equal(
     source.find((pkg) => pkg.name === '@suites/unit')?.version,
     unit.version,
@@ -99,4 +203,10 @@ function candidateTarget(repository, destination) {
   return { kind: 'candidate', label: commit, commit, packages };
 }
 
-module.exports = { publishedTarget, candidateTarget, previousVersion, selectPreviousVersion };
+module.exports = {
+  automaticCompatibility,
+  publishedTarget,
+  candidateTarget,
+  previousCompatibility,
+  selectPreviousVersion,
+};
