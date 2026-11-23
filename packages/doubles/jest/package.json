@@ -19,6 +19,11 @@
     },
     "./unit": {
       "types": "./unit.d.ts"
+    },
+    "./environment": {
+      "types": "./dist/cjs/environment.d.ts",
+      "import": "./dist/esm/environment.js",
+      "require": "./dist/cjs/environment.js"
     }
   },
   "keywords": [
@@ -64,7 +69,10 @@
     "@suites/core.unit": "workspace:^4.1.3",
     "@suites/types.common": "workspace:^4.0.2",
     "@suites/types.di": "workspace:^4.1.2",
-    "@suites/types.doubles": "workspace:^4.0.2"
+    "@suites/types.doubles": "workspace:^4.0.2",
+    "@jest/environment": "^30.5.2",
+    "@jest/types": "^30.5.1",
+    "jest-environment-node": "^30.5.2"
   },
   "devDependencies": {
     "@jest/globals": "^30.5.2",
@@ -74,5 +82,12 @@
     "access": "public",
     "provenance": true
   },
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.16.1",
+  "typesVersions": {
+    "*": {
+      "environment": [
+        "dist/cjs/environment.d.ts"
+      ]
+    }
+  }
 }
