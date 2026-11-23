@@ -71,6 +71,8 @@ describe('v5 explicit token bindings', () => {
       TestBed.sociable(Root).expose(REPOSITORY, Repository);
       // @ts-expect-error A class-token implementation must satisfy the token type.
       TestBed.sociable(Root).bind(Repository, Leaf);
+      // @ts-expect-error A symbol binding is checked when its value type is explicit.
+      TestBed.sociable(Root).bind<Repository>(REPOSITORY, Leaf);
     };
     expect(typeChecks).toBeDefined();
   });
