@@ -23,6 +23,9 @@ on:
       artifact-name:
         type: string
         default: consumer-e2e
+      stage-candidate-versions:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -44,16 +47,20 @@ jobs:
         with:
           ref: ${{ inputs.target }}
           path: candidate-source
+          fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-e2e-tools
         with:
           node-version: '26.x'
+      - uses: ./.github/actions/stage-compatibility-candidate
+        id: candidate-version
+        if: inputs.target-kind == 'candidate' && inputs.stage-candidate-versions
       - uses: ./.github/actions/prepare-e2e-target
         id: prepare
         with:
           target-kind: ${{ inputs.target-kind }}
           target: ${{ inputs.target }}
-          test-ref: ${{ inputs.test-ref }}
+          test-ref: ${{ inputs.test-ref || steps.candidate-version.outputs.source-commit }}
           baseline-version: ${{ inputs.baseline-version }}
           projects: ${{ inputs.projects }}
           node-versions: ${{ inputs.node-versions }}
