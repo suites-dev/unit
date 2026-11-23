@@ -159,6 +159,52 @@ test('new-major preparation freezes candidate tests and persists the skipped com
   assert.deepEqual(JSON.parse(readFileSync(join(destination, 'plan.json'))), plan);
 });
 
+test('an ephemeral candidate version commit preserves the original PR test source', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'suites-e2e-versioned-candidate-plan-'));
+  const destination = join(root, 'bundle');
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const sourceCommit = 'a'.repeat(40);
+  const candidateCommit = 'b'.repeat(40);
+  const snapshotRefs = [];
+  const plan = prepare(
+    {
+      repository: '/source',
+      candidateRepository: '/candidate',
+      destination,
+      kind: 'candidate',
+      target: candidateCommit,
+      testRef: sourceCommit,
+      baselineVersion: 'previous',
+      projects: [],
+      nodes: ['26.x'],
+    },
+    {
+      candidateTarget: () => ({
+        kind: 'candidate',
+        label: candidateCommit,
+        commit: candidateCommit,
+        packages: candidatePackages('5.0.0-compatibility.0', {
+          supportingVersion: '4.0.3-compatibility.0',
+        }),
+      }),
+      automaticCompatibility: () => ({
+        status: 'skipped-new-major',
+        candidateMajor: 5,
+        previousMajor: 4,
+        latestStableVersion: '4.1.3',
+      }),
+      snapshot: (_repository, ref) => {
+        snapshotRefs.push(ref);
+        return { commit: ref, projects: ['jest/nestjs'], hashes: {} };
+      },
+    }
+  );
+  assert.deepEqual(snapshotRefs, [sourceCommit]);
+  assert.equal(plan.tests.commit, sourceCommit);
+  assert.equal(plan.target.commit, candidateCommit);
+  assert.equal(plan.compatibility.testSource, 'explicit');
+});
+
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), 'suites-e2e-harness-test-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
