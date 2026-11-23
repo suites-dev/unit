@@ -7,6 +7,12 @@ const { revision, manifests, hashFile } = require('./source.cjs');
 const versionPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const stableVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const majorReleaseGroup = [
+  '@suites/core.unit',
+  '@suites/doubles.jest',
+  '@suites/doubles.vitest',
+  '@suites/unit',
+];
 
 function parseVersion(version, description = 'Version') {
   assert(
@@ -68,11 +74,16 @@ function candidateVersion(packages) {
   }));
   const unit = parsed.find((pkg) => pkg.name === '@suites/unit');
   assert(unit, 'Candidate contains no @suites/unit package');
-  const inconsistent = parsed.filter((pkg) => pkg.major !== unit.major);
+  const releaseGroup = majorReleaseGroup.map((name) => {
+    const pkg = parsed.find((candidate) => candidate.name === name);
+    assert(pkg, `Candidate contains no ${name} package`);
+    return pkg;
+  });
+  const inconsistent = releaseGroup.filter((pkg) => pkg.major !== unit.major);
   assert.equal(
     inconsistent.length,
     0,
-    `Candidate Suites packages must use the same major as @suites/unit ${unit.major}: ${inconsistent
+    `Candidate major release group must use the same major as @suites/unit ${unit.major}: ${inconsistent
       .map((pkg) => `${pkg.name}@${pkg.version}`)
       .join(', ')}`
   );
