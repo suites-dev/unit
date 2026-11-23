@@ -7,6 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Features
 
+* **unit:** add shared `.bind(TOKEN, Implementation)` across sociable construction modes ([#464](https://github.com/suites-dev/unit/issues/464))
 * **unit:** expose opt-in `.compose()` as a distinct mode from variadic selective exposure while retaining typed override chains ([#820](https://github.com/suites-dev/unit/issues/820))
 
 ### BREAKING CHANGES

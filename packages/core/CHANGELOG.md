@@ -8,6 +8,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Features
 
 * **core.unit:** add opt-in recursive sociable composition with pre-inspection boundaries ([#820](https://github.com/suites-dev/unit/issues/820))
+* **core.unit:** construct explicit token bindings by requested identity in selective and composed modes ([#464](https://github.com/suites-dev/unit/issues/464))
 
 ### BREAKING CHANGES
 

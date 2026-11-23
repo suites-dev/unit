@@ -146,7 +146,27 @@ V5 composition is explicitly opt in:
 const { unit } = await TestBed.sociable(UserService).compose().compile();
 ```
 
-Selective exposure and recursive composition are mutually exclusive choices: neither `.expose(...).compose()` nor `.compose().expose(...)` is available. Composition recursively constructs a class only when the selected DI adapter positively identifies it as constructable by that framework. Suites does not infer constructibility from a function token or implemented prototype members. Unmarked classes, including ambiguous concrete leaves, remain unresolved in composed mode until a token-to-implementation binding or explicit boundary is supplied. TypeScript erases the `abstract` modifier, so a framework decorator applied directly to an abstract class can still make it indistinguishable from a concrete class at runtime. Shared token bindings and forbidden boundaries are delivered separately.
+Map a requested injection token to a real implementation with `.bind()`:
+
+```typescript
+const USER_REPOSITORY = Symbol('USER_REPOSITORY');
+
+const selective = await TestBed.sociable(UserService)
+  .bind<UserRepository>(USER_REPOSITORY, SqlUserRepository)
+  .expose(DatabaseConnection)
+  .compile();
+
+const composed = await TestBed.sociable(UserService)
+  .compose()
+  .bind<UserRepository>(USER_REPOSITORY, SqlUserRepository)
+  .compile();
+```
+
+Bindings work before or after choosing selective exposure or composition. A direct `TestBed.sociable(UserService).bind(TOKEN, Implementation).compile()` constructs the bound implementation while retaining ordinary selective treatment for its dependencies. Composition follows the implementation recursively. Suites uses the requested token as the dependency identity; separate tokens that use one implementation remain separate, while repeated occurrences of one token and metadata qualifier share an instance. Explicit mock or final overrides take precedence, and contradictory bindings for one token fail compilation.
+
+Abstract and concrete class tokens encode their instance type, so `.bind(ClassToken, Implementation)` checks compatibility. Plain string and symbol tokens do not encode a value type; use `.bind<Contract>(TOKEN, Implementation)` when that check is required. A binding describes test wiring only and does not inspect or verify the application's production container registration.
+
+Selective exposure and recursive composition are mutually exclusive choices: neither `.expose(...).compose()` nor `.compose().expose(...)` is available. `.bind()` does not combine those modes and two-argument `.expose(TOKEN, Implementation)` is unsupported. Composition recursively constructs a class only when the selected DI adapter positively identifies it as constructable by that framework. Suites does not infer constructibility from a function token or implemented prototype members. Unmarked classes, including ambiguous concrete leaves, remain unresolved in composed mode until a token-to-implementation binding or explicit boundary is supplied. TypeScript erases the `abstract` modifier, so a framework decorator applied directly to an abstract class can still make it indistinguishable from a concrete class at runtime. Forbidden boundaries are delivered separately.
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
