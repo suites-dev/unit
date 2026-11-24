@@ -36,10 +36,7 @@ describe('Social TestBed Builder Integration Tests', () => {
     );
 
     const testBed = await unitBuilder
-      .expose(UserApiService)
-      .expose(UserDal)
-      .expose(HttpClient)
-      .expose(DatabaseService)
+      .expose(UserApiService, UserDal, HttpClient, DatabaseService)
       .mock(TestLogger)
       .impl((stubFn: Mock) => ({ log: stubFn().mockReturnValue('overridden') }))
       .mock(Axios)
