@@ -67,6 +67,7 @@ export type ClassInjectable<
  */
 export interface DependencyInjectionAdapter {
   inspect(targetClass: Type): InjectableRegistry;
+  isConstructable?(targetClass: Type): boolean;
 }
 
 /**
