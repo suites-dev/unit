@@ -26,7 +26,11 @@ describe('Social TestBed Builder (Empty Constructor) Integration Tests', () => {
       loggerMock
     );
 
-    const testBed = await unitBuilder.expose(TestSociableService).compile();
+    const testBed = await unitBuilder
+      .expose(TestSociableService)
+      .mock(TestDependService)
+      .impl(() => ({}))
+      .compile();
 
     testServiceAsIfItWasUnderTest = testBed.unit;
     unitRef = testBed.unitRef;

@@ -10,6 +10,7 @@ import type {
 } from '@suites/types.di';
 import type { CompositionBoundaryLookup, DependencyPathEntry } from './composition-boundary.js';
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
+import { createGuardedDependency } from './guarded-dependency.js';
 import { DependencyMap } from './dependency-map.js';
 
 export type ResolverOptions =
@@ -131,6 +132,15 @@ export class DependencyResolver {
       return instance;
     }
 
+    if (this.options.mode !== 'solitary' && !this.isExposedClass(identifier)) {
+      const guard = createGuardedDependency('undeclared dependency', identifier, metadata, [
+        ...this.constructionPath,
+        { identifier, metadata },
+      ]);
+      this.dependencyMap.set(identifier, guard, metadata);
+      return guard;
+    }
+
     if (this.isLeafOrPrimitive(identifier)) {
       if (this.isExposedClass(identifier)) {
         return this.instantiateClass(identifier, metadata);
@@ -159,9 +169,7 @@ export class DependencyResolver {
       return this.dependencyMap.get(identifier, metadata) as ResolvedDependency;
     }
 
-    const tracksCycles =
-      this.options.mode === 'composed' ||
-      (this.options.mode === 'selective' && this.options.bindings.size > 0);
+    const tracksCycles = this.options.mode !== 'solitary';
     if (
       tracksCycles &&
       this.constructionPath.some(

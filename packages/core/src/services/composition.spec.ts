@@ -5,6 +5,7 @@ import type {
   InjectableIdentifier,
 } from '@suites/types.di';
 import type { DependencyPathEntry } from './composition-boundary.js';
+import { dependencyVerificationKey } from '../dependency-verification-internal.js';
 import { CompositionBoundaryContainer } from './composition-boundary.js';
 import { DependencyContainer } from './dependency-container.js';
 import { DependencyResolver, type ResolverOptions } from './dependency-resolver.js';
@@ -83,6 +84,17 @@ function createBuilder<TClass>(target: Type<TClass>, currentAdapter: DependencyI
 function builder(target: Type<Service> = Service) {
   return createBuilder(target, adapter);
 }
+
+beforeEach(() => {
+  Reflect.defineProperty(global, dependencyVerificationKey, {
+    configurable: true,
+    value: () => undefined,
+  });
+});
+
+afterEach(() => {
+  Reflect.deleteProperty(global, dependencyVerificationKey);
+});
 
 describe('opt-in composition', () => {
   it('preserves implicit mocking when composition is not selected', () => {
