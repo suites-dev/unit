@@ -23,6 +23,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./setup": {
+      "types": "./dist/setup.d.ts",
+      "default": "./dist/setup.js"
     }
   },
   "scripts": {
@@ -31,5 +35,21 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "typesVersions": {
+    "*": {
+      "setup": [
+        "dist/setup.d.ts"
+      ]
+    }
+  },
+  "dependencies": {
+    "@suites/core.unit": "workspace:^4.1.3"
+  },
+  "peerDependencies": {
+    "vitest": "^5.1.0"
+  },
+  "devDependencies": {
+    "vitest": "5.1.1"
+  }
 }
