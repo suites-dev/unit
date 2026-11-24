@@ -1,6 +1,7 @@
 import {
   DependencyRuleViolationError,
   createGuardedDependency,
+  type GuardedDependency,
 } from './guarded-dependency.js';
 import {
   DependencyViolationLedger,
@@ -38,6 +39,25 @@ describe('guarded dependencies', () => {
         operation: 'read available on',
       })
     );
+  });
+
+  it.each<[string, (guard: GuardedDependency) => unknown]>([
+    ['write stock on', (guard) => Reflect.set(guard, 'stock', 3)],
+    ['check stock on', (guard) => Reflect.has(guard, 'stock')],
+    ['delete stock on', (guard) => Reflect.deleteProperty(guard, 'stock')],
+    ['define stock on', (guard) => Reflect.defineProperty(guard, 'stock', { value: 3 })],
+    ['enumerate', (guard) => Reflect.ownKeys(guard)],
+    ['inspect stock on', (guard) => Reflect.getOwnPropertyDescriptor(guard, 'stock')],
+    ['inspect the prototype of', (guard) => Reflect.getPrototypeOf(guard)],
+    ['change the prototype of', (guard) => Reflect.setPrototypeOf(guard, null)],
+    ['construct', (guard) => Reflect.construct(guard, [])],
+  ])('reports the attempted operation: %s', (operation, use) => {
+    const guard = createGuardedDependency('undeclared dependency', Inventory, undefined, [
+      { identifier: Checkout },
+      { identifier: Inventory },
+    ]);
+
+    expect(() => use(guard)).toThrow(expect.objectContaining({ identifier: Inventory, operation }));
   });
 
   it('records access for file verification before throwing', () => {
