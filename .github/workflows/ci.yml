@@ -49,6 +49,16 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check runner package contents
+        if: matrix.node-version == '26.x'
+        run: |
+          for runner in jest vitest; do
+            pnpm --dir "packages/runners/$runner" pack --pack-destination "$RUNNER_TEMP"
+            tar -tzf "$RUNNER_TEMP"/suites-runners."$runner"-*.tgz > "$RUNNER_TEMP/$runner-files"
+            grep -Fx 'package/dist/index.js' "$RUNNER_TEMP/$runner-files"
+            grep -Fx 'package/dist/index.d.ts' "$RUNNER_TEMP/$runner-files"
+          done
+
       - name: Check published and candidate type compatibility
         if: matrix.node-version == '26.x'
         run: pnpm test:types:compat

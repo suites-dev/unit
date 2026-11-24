@@ -40,6 +40,8 @@ test('V5 canary staging keeps supporting packages and their dependency ranges on
   const root = mkdtempSync(join(tmpdir(), 'suites-e2e-canary-versions-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const manifests = [
+    ['packages/runners/jest/package.json', '@suites/runners.jest', {}],
+    ['packages/runners/vitest/package.json', '@suites/runners.vitest', {}],
     ['packages/core/package.json', '@suites/core.unit', { '@suites/types.di': 'workspace:^4.1.2' }],
     ['packages/doubles/jest/package.json', '@suites/doubles.jest', { '@suites/core.unit': 'workspace:^4.1.3' }],
     ['packages/doubles/vitest/package.json', '@suites/doubles.vitest', { '@suites/core.unit': 'workspace:^4.1.3' }],
@@ -59,6 +61,8 @@ test('V5 canary staging keeps supporting packages and their dependency ranges on
   stageVersions(root);
   const readManifest = (path) => JSON.parse(readFileSync(join(root, path), 'utf8'));
   assert.equal(readManifest('packages/core/package.json').version, '5.0.0-e2e.0');
+  assert.equal(readManifest('packages/runners/jest/package.json').version, '5.0.0-e2e.0');
+  assert.equal(readManifest('packages/runners/vitest/package.json').version, '5.0.0-e2e.0');
   assert.equal(
     readManifest('packages/core/package.json').dependencies['@suites/types.di'],
     'workspace:^4.1.2'

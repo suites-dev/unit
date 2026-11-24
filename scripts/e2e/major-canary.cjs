@@ -9,11 +9,15 @@ const v5ReleaseGroup = new Set([
   '@suites/core.unit',
   '@suites/doubles.jest',
   '@suites/doubles.vitest',
+  '@suites/runners.jest',
+  '@suites/runners.vitest',
   '@suites/unit',
 ]);
 
 const packageManifestPaths = [
   'packages/core/package.json',
+  'packages/runners/jest/package.json',
+  'packages/runners/vitest/package.json',
   'packages/di/injection-js/package.json',
   'packages/di/inversify/package.json',
   'packages/di/nestjs/package.json',
@@ -82,7 +86,7 @@ function verifyPlan(bundle, repository) {
     { project: 'jest/nestjs', node: '26.x', id: 'jest-nestjs-26-x' },
   ]);
   const releaseGroup = plan.target.packages.filter((pkg) => v5ReleaseGroup.has(pkg.name));
-  const supporting = plan.target.packages.filter((pkg) => !v5ReleaseGroup.has(pkg.name));
+  const supporting = plan.target.packages.filter((pkg) => pkg.name.startsWith('@suites/di.') || pkg.name.startsWith('@suites/types.'));
   assert.equal(releaseGroup.length, v5ReleaseGroup.size);
   assert(
     releaseGroup.every((pkg) => pkg.version === '5.0.0-e2e.0'),
