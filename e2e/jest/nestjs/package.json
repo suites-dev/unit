@@ -25,8 +25,9 @@
     "jest-jasmine2": "^30.5.2"
   },
   "scripts": {
-    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && jest && pnpm test:guards",
+    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && jest && pnpm test:guards && pnpm test:forbid",
     "test:guards": "node ../../verify-guarded-dependencies.cjs jest",
+    "test:forbid": "node ../../verify-forbidden-boundaries.cjs jest",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {

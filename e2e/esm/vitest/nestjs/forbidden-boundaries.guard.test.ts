@@ -1,0 +1,157 @@
+import 'reflect-metadata';
+import { beforeEach, expect, it } from 'vitest';
+import { Inject, Injectable } from '@nestjs/common';
+import { TestBed } from '@suites/unit';
+import { appendFileSync } from 'node:fs';
+import { env } from 'node:process';
+
+@Injectable()
+class Boundary {
+  static constructed = 0;
+
+  constructor() {
+    Boundary.constructed += 1;
+  }
+
+  read(): string {
+    return 'production';
+  }
+}
+
+@Injectable()
+class Layer {
+  constructor(private readonly boundary: Boundary) {}
+
+  read(): string {
+    return this.boundary.read();
+  }
+}
+
+@Injectable()
+class Checkout {
+  constructor(private readonly layer: Layer) {}
+
+  safe(): string {
+    return 'safe';
+  }
+
+  read(): string {
+    return this.layer.read();
+  }
+}
+
+@Injectable()
+class TokenCheckout {
+  constructor(@Inject('AUDIT') private readonly audit: Boundary) {}
+
+  read(): string {
+    return this.audit.read();
+  }
+}
+
+@Injectable()
+class PropertyCheckout {
+  @Inject(Boundary)
+  private readonly boundary!: Boundary;
+
+  safe(): string {
+    return 'safe';
+  }
+
+  read(): string {
+    return this.boundary.read();
+  }
+}
+
+function catchBoundary(use: () => string, identifier: RegExp, step: string): void {
+  let caught: unknown;
+  try {
+    use();
+  } catch (error) {
+    caught = error;
+  }
+  expect(caught).toBeInstanceOf(Error);
+  if (!(caught instanceof Error)) throw new Error('Forbidden access did not throw');
+  expect(caught.message).toMatch(identifier);
+  expect(caught.message).toMatch(/Dependency path:/i);
+  if (env.SUITES_FORBID_STEPS_FILE) appendFileSync(env.SUITES_FORBID_STEPS_FILE, `${step}\n`);
+}
+
+beforeEach(() => {
+  Boundary.constructed = 0;
+});
+
+it('stops constructor traversal before constructing an unused forbidden boundary', async () => {
+  const { unit } = await TestBed.sociable(Checkout).compose().forbid(Boundary).compile();
+
+  expect(unit.safe()).toBe('safe');
+  expect(Boundary.constructed).toBe(0);
+});
+
+it('stops property traversal before constructing an unused forbidden boundary', async () => {
+  const { unit } = await TestBed.sociable(PropertyCheckout).compose().forbid(Boundary).compile();
+
+  expect(unit.safe()).toBe('safe');
+  expect(Boundary.constructed).toBe(0);
+});
+
+const assertExposureAndCompositionAreMutuallyExclusive = (): void => {
+  // @ts-expect-error forbidding dependencies requires recursive composition
+  TestBed.sociable(Checkout).forbid(Boundary);
+
+  const selective = TestBed.sociable(Checkout).expose(Boundary);
+  // @ts-expect-error selective exposure cannot switch to recursive composition
+  selective.compose();
+
+  const composed = TestBed.sociable(Checkout).compose();
+  // @ts-expect-error recursive composition cannot switch to selective exposure
+  composed.expose(Boundary);
+};
+void assertExposureAndCompositionAreMutuallyExclusive;
+
+it('rejects binding and forbidding the same token in either order', async () => {
+  const token = Symbol('forbidden boundary');
+  const boundFirst = TestBed.sociable(Checkout)
+    .compose()
+    .bind(token, Boundary)
+    .forbid(token)
+    .compile();
+  const forbiddenFirst = TestBed.sociable(Checkout)
+    .compose()
+    .forbid(token)
+    .bind(token, Boundary)
+    .compile();
+
+  await expect(boundFirst).rejects.toThrow(/conflicting.*forbidden boundary/i);
+  await expect(forbiddenFirst).rejects.toThrow(/conflicting.*forbidden boundary/i);
+});
+
+it('fails when a caught constructor-injected forbidden boundary is accessed', async () => {
+  const { unit } = await TestBed.sociable(Checkout).compose().forbid(Boundary).compile();
+
+  catchBoundary(
+    unit.read.bind(unit),
+    /forbidden dependency.*Boundary/i,
+    `${env.SUITES_FORBID_RUNNER}:constructor-caught`
+  );
+});
+
+it('fails when a caught property-injected forbidden boundary is accessed', async () => {
+  const { unit } = await TestBed.sociable(PropertyCheckout).compose().forbid(Boundary).compile();
+
+  catchBoundary(
+    unit.read.bind(unit),
+    /forbidden dependency.*Boundary/i,
+    `${env.SUITES_FORBID_RUNNER}:property-caught`
+  );
+});
+
+it('fails when a caught token forbidden boundary is accessed', async () => {
+  const { unit } = await TestBed.sociable(TokenCheckout).compose().forbid('AUDIT').compile();
+
+  catchBoundary(
+    unit.read.bind(unit),
+    /forbidden dependency.*AUDIT/i,
+    `${env.SUITES_FORBID_RUNNER}:token-caught`
+  );
+});

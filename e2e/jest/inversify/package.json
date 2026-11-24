@@ -7,10 +7,11 @@
     "@suites/doubles.jest": "e2e",
     "@suites/unit": "e2e",
     "inversify": "8.3.0",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "@suites/runners.jest": "e2e"
   },
   "scripts": {
-    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && jest",
+    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && jest && node ../../verify-forbidden-boundaries.cjs jest",
     "lint": "eslint '**/*.ts'"
   },
   "devDependencies": {

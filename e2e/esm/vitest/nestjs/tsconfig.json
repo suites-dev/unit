@@ -4,6 +4,6 @@
     "experimentalDecorators": true,
     "skipLibCheck": false
   },
-  "include": ["*e2e.test.ts", "global.d.ts"],
+  "include": ["*e2e.test.ts", "*.guard.test.ts", "global.d.ts"],
   "exclude": ["node_modules"]
 }

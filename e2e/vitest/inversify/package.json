@@ -8,10 +8,11 @@
     "@suites/doubles.vitest": "e2e",
     "@suites/unit": "e2e",
     "inversify": "8.3.0",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "@suites/runners.vitest": "e2e"
   },
   "scripts": {
-    "test": "tsc --noEmit && vitest --run",
+    "test": "tsc --noEmit && vitest --run && node ../../verify-forbidden-boundaries.cjs vitest",
     "lint": "eslint '**/*.ts'"
   },
   "devDependencies": {
