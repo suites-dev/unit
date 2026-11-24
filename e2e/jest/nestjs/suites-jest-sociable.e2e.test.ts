@@ -18,6 +18,12 @@ describe('Suites Jest / NestJS E2E Test Ctor', () => {
   beforeAll(async () => {
     const { unitRef: ref, unit } = await TestBed.sociable(UserService)
       .expose(UserApiService, UserDal, DatabaseService)
+      .mock(UserVerificationService)
+      .impl(() => ({}))
+      .mock(ApiService)
+      .impl(() => ({}))
+      .mock<Repository>('Repository')
+      .impl(() => ({}))
       .mock(Logger)
       .impl((stubFn) => ({ log: stubFn().mockReturnValue('overridden') }))
       .mock<string[]>('SOME_VALUE_TOKEN')

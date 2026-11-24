@@ -9,7 +9,8 @@
     "@suites/di.nestjs": "e2e",
     "@suites/doubles.vitest": "e2e",
     "@suites/unit": "e2e",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "@suites/runners.vitest": "e2e"
   },
   "devDependencies": {
     "@swc/core": "^1.16.2",
@@ -23,7 +24,8 @@
     "@suites/types.common": "e2e"
   },
   "scripts": {
-    "test": "tsc --noEmit && vitest --run",
+    "test": "tsc --noEmit && vitest --run && pnpm test:guards",
+    "test:guards": "node ../../verify-guarded-dependencies.cjs vitest",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {
