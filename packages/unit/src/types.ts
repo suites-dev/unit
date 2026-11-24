@@ -2,8 +2,8 @@ import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di'
 import type { DeepPartial, Type, AbstractType } from '@suites/types.common';
 import type { ArgsType, Stub, StubbedInstance } from '@suites/types.doubles';
 import type {
-  SociableTestBedBuilder as SociableTestBedBuilderCore,
   TestBedBuilder as TestBedBuilderCore,
+  SociableTestBedBuilderState as SociableTestBedBuilderStateCore,
   UnitReference as UnitReferenceCore,
   MockOverride as MockOverrideCore,
 } from '@suites/core.unit';
@@ -26,29 +26,14 @@ import type {
  */
 export type Mocked<T> = StubbedInstance<T>;
 
-export interface SociableTestBedBuilder<TClass> extends SociableTestBedBuilderCore<TClass> {
-  /**
-   * Exposes a dependency to be included in the test environment in its real or partially mocked state.
-   * This method is used to selectively expose dependencies that should not be fully mocked.
-   * It allows for sociable testing, where the class under test interacts with real implementations
-   * or partial mocks of certain dependencies.
-   *
-   * @since 3.0.0
-   * @template TClass The type of the class under test.
-   * @param dependency - The dependency to be exposed in its real or partially mocked state.
-   * @returns A TestBedBuilder instance for further configuration.
-   * @example
-   * ```ts
-   * import { TestBed } from '@suites/unit';
-   * import { MyService, AnotherService } from './my-service.js';
-   *
-   * const { unit, unitRef } = await TestBed.sociable(MyService).expose(AnotherService).compile();
-   * // MyService is now tested with AnotherService exposed and not fully mocked.
-   * ```
-   * @see {@link https://suites.dev/docs/api-reference/testbed-sociable | TestBed.sociable() API Reference}
-   */
-  expose(dependency: Type): SociableTestBedBuilder<TClass>;
-}
+type SociableTestBedBuilderMode = 'initial' | 'selective' | 'composed';
+
+export type SociableTestBedBuilder<
+  TClass,
+  TMode extends SociableTestBedBuilderMode = 'initial',
+> = TMode extends 'initial'
+  ? SociableTestBedBuilderStateCore<TClass, 'initial'>
+  : SociableTestBedBuilderStateCore<TClass, Exclude<TMode, 'initial'>>;
 
 export interface SolitaryTestBedBuilder<TClass> extends TestBedBuilder<TClass> {}
 
@@ -289,7 +274,11 @@ export interface UnitTestBed<TClass> {
  * @template TDependency The type of the dependency to be mocked.
  * @template TClass The type of the class under test.
  */
-export interface MockOverride<TDependency, TClass> extends MockOverrideCore<TDependency, TClass> {
+export interface MockOverride<
+  TDependency,
+  TClass,
+  TBuilder extends Pick<TestBedBuilderCore<TClass>, 'compile'> = TestBedBuilder<TClass>,
+> extends MockOverrideCore<TDependency, TClass, TBuilder> {
   /**
    * Provides a mock implementation using stub functions for methods.
    *
@@ -311,7 +300,7 @@ export interface MockOverride<TDependency, TClass> extends MockOverrideCore<TDep
    */
   impl(
     mockImplementation: (stubFn: Stub<any, ArgsType<TDependency>>) => DeepPartial<TDependency>
-  ): TestBedBuilder<TClass>;
+  ): TBuilder;
 
   /**
    * Provides a final implementation with concrete values or functions.
@@ -332,7 +321,7 @@ export interface MockOverride<TDependency, TClass> extends MockOverrideCore<TDep
    *   .compile();
    * ```
    */
-  final(finalImplementation: DeepPartial<TDependency>): TestBedBuilder<TClass>;
+  final(finalImplementation: DeepPartial<TDependency>): TBuilder;
 }
 
 /**
@@ -342,7 +331,7 @@ export interface MockOverride<TDependency, TClass> extends MockOverrideCore<TDep
  * @since 3.0.0
  * @see {@link https://suites.dev/docs/api-reference/mock-configuration | Mock Configuration}
  */
-export interface TestBedBuilder<TClass> extends TestBedBuilderCore<TClass> {
+export interface TestBedBuilder<TClass> {
   /**
    * Declares a dependency to be mocked using its type.
    *

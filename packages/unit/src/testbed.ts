@@ -1,10 +1,15 @@
-import { SuitesDIAdapters, SuitesDoublesAdapters, testBedBuilderFactory } from './testbed-builder.js';
+import {
+  SuitesDIAdapters,
+  SuitesDoublesAdapters,
+  testBedBuilderFactory,
+} from './testbed-builder.js';
 import type { Type } from '@suites/types.common';
 import {
   SociableTestBedBuilder as SociableTestBedBuilderCore,
   SolitaryTestBedBuilder as SolitaryTestBedBuilderCore,
 } from '@suites/core.unit';
-import type { SociableTestBedBuilder, SolitaryTestBedBuilder } from '@suites/core.unit';
+import type { SolitaryTestBedBuilder } from '@suites/core.unit';
+import type { SociableTestBedBuilder } from './types.js';
 
 /**
  * The main entry point for creating isolated test environments with Suites.
@@ -90,9 +95,7 @@ export class TestBed {
    * @see {@link https://suites.dev/docs/api-reference/testbed-sociable | Sociable API Reference}
    * @see {@link https://suites.dev/docs/guides/sociable | Sociable Guide}
    */
-  public static sociable<TClass = any>(
-    targetClass: Type<TClass>
-  ): Pick<SociableTestBedBuilder<TClass>, 'expose'> {
+  public static sociable<TClass = any>(targetClass: Type<TClass>): SociableTestBedBuilder<TClass> {
     return testBedBuilderFactory(SuitesDIAdapters, SuitesDoublesAdapters, targetClass).create(
       SociableTestBedBuilderCore<TClass>
     );
