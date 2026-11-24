@@ -562,9 +562,83 @@ describe('opt-in composition', () => {
     }).toThrow('Selective exposure requires at least one dependency');
   });
 
+  it('requires composed mode to forbid at least one dependency', () => {
+    expect(() => {
+      // @ts-expect-error A forbidden boundary requires at least one identifier.
+      builder().compose().forbid();
+    }).toThrow('A forbidden composition boundary requires at least one identifier');
+  });
+
   it('rejects retrieving recursively composed real dependencies', async () => {
     const { unitRef } = await builder().compose().compile();
     expect(() => unitRef.get(Repository)).toThrow('exposed dependency');
     expect(() => unitRef.get(Client)).toThrow('exposed dependency');
+  });
+
+  it('injects an unused forbidden boundary without constructing through it', async () => {
+    const { unit, unitRef } = await builder().compose().forbid(Client).compile();
+
+    expect(unit.repository).toBeInstanceOf(Repository);
+    expect(() => unitRef.get(Client)).toThrow('guarded dependency');
+  });
+
+  it('throws an actionable dependency-path error when a forbidden boundary is used', async () => {
+    const { unit } = await builder().compose().forbid(Client).compile();
+
+    let caught: unknown;
+    try {
+      unit.repository.client.read();
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    if (!(caught instanceof Error)) throw new Error('Forbidden dependency access did not throw');
+    expect(caught.message).toMatch(/forbidden dependency.*Client/i);
+    expect(caught.message).toMatch(/'Service'\s*->\s*'Repository'\s*->\s*'Client'/i);
+  });
+
+  it('rejects conflicting mock and final declarations at compile time', async () => {
+    const mocked = builder()
+      .compose()
+      .forbid(Client)
+      .mock(Client)
+      .impl(() => ({ read: () => 'mocked' }))
+      .compile();
+    const finalized = builder()
+      .compose()
+      .forbid(Client)
+      .mock(Client)
+      .final({ read: () => 'final' })
+      .compile();
+    const qualified = builder()
+      .compose()
+      .forbid(Client)
+      .mock(Client, primary)
+      .final({ read: () => 'qualified' })
+      .compile();
+
+    for (const compilation of [mocked, finalized, qualified]) {
+      await expect(compilation).rejects.toThrow(/conflicting dependency declarations.*Client/i);
+    }
+  });
+
+  it('rejects a token binding for the same forbidden identifier in either order', async () => {
+    const repositoryToken = Symbol('repository');
+    const boundFirst = builder()
+      .compose()
+      .bind(repositoryToken, Repository)
+      .forbid(repositoryToken)
+      .compile();
+    const forbiddenFirst = builder()
+      .compose()
+      .forbid(repositoryToken)
+      .bind(repositoryToken, Repository)
+      .compile();
+
+    await expect(boundFirst).rejects.toThrow(/conflicting dependency declarations.*repository/i);
+    await expect(forbiddenFirst).rejects.toThrow(
+      /conflicting dependency declarations.*repository/i
+    );
   });
 });

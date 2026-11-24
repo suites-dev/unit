@@ -9,6 +9,7 @@ import { DependencyContainer } from '../dependency-container.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
 import { CompositionBoundaryContainer, type CompositionBoundary } from '../composition-boundary.js';
 import { stringifyIdentifier } from '../functions.static.js';
+import { createGuardedDependency } from '../guarded-dependency.js';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 
@@ -23,21 +24,31 @@ type DependencyOf<TIdentifier> =
 type NonClassIdentifier<T> = Exclude<InjectableIdentifier<T>, AbstractType> &
   Partial<Record<typeof Symbol.hasInstance, never>>;
 
-export interface SociableTestBedBuilderState<TClass, TMode extends 'selective' | 'composed'> {
+interface ConfiguredBuilder<TClass, TSelf extends { compile(): Promise<UnitTestBed<TClass>> }> {
   bind<TIdentifier extends InjectableIdentifier>(
     identifier: TIdentifier,
     implementation: Type<DependencyOf<TIdentifier>>
-  ): SociableTestBedBuilderState<TClass, TMode>;
+  ): TSelf;
   bind<TDependency>(
     identifier: NonClassIdentifier<TDependency>,
     implementation: Type<TDependency>
-  ): SociableTestBedBuilderState<TClass, TMode>;
+  ): TSelf;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
     ...qualifier: [] | [metadata: IdentifierMetadata | undefined]
-  ): MockOverride<TDependency, TClass, SociableTestBedBuilderState<TClass, TMode>>;
+  ): MockOverride<TDependency, TClass, TSelf>;
   compile(): Promise<UnitTestBed<TClass>>;
 }
+
+type SelectiveBuilder<TClass> = ConfiguredBuilder<TClass, SelectiveBuilder<TClass>>;
+
+interface ComposedBuilder<TClass> extends ConfiguredBuilder<TClass, ComposedBuilder<TClass>> {
+  /** Stop recursive construction at each identifier and fail the test file on access. */
+  forbid(identifier: InjectableIdentifier, ...rest: InjectableIdentifier[]): ComposedBuilder<TClass>;
+}
+
+export type SociableTestBedBuilderState<TClass, TMode extends 'selective' | 'composed'> =
+  TMode extends 'composed' ? ComposedBuilder<TClass> : SelectiveBuilder<TClass>;
 
 interface BuilderContext<TClass> {
   readonly doubles: Promise<DoublesAdapter>;
@@ -47,7 +58,7 @@ interface BuilderContext<TClass> {
 }
 
 type ConstructionMode =
-  { readonly kind: 'selective'; readonly classes: readonly Type[] } | { readonly kind: 'composed' };
+  { readonly kind: 'selective'; readonly classes: readonly Type[] } | { readonly kind: 'composed'; readonly forbidden: readonly InjectableIdentifier[] };
 
 type Override = (
   | {
@@ -61,7 +72,6 @@ type Override = (
 };
 
 interface SociableConfiguration {
-  readonly mode: ConstructionMode;
   readonly overrides: readonly Override[];
   readonly bindings: readonly {
     readonly identifier: InjectableIdentifier;
@@ -86,28 +96,42 @@ export class SociableTestBedBuilder<TClass> {
       throw new TypeError('Selective exposure requires at least one dependency');
     }
 
-    return configuredBuilder(this.#context, {
-      mode: { kind: 'selective', classes: [first, ...rest] },
-      overrides: [],
-      bindings: [],
-    });
+    const mode = { kind: 'selective', classes: [first, ...rest] } satisfies ConstructionMode;
+    const next = (config: SociableConfiguration): SelectiveBuilder<TClass> =>
+      configuredBuilder(this.#context, config, mode, next);
+    return next({ overrides: [], bindings: [] });
   }
 
-  public compose(): SociableTestBedBuilderState<TClass, 'composed'> {
-    return configuredBuilder(this.#context, {
-      mode: { kind: 'composed' },
-      overrides: [],
-      bindings: [],
-    });
+  public compose(): ComposedBuilder<TClass> {
+    return composedBuilder(this.#context, { overrides: [], bindings: [] }, []);
   }
 }
 
-function configuredBuilder<TClass, TMode extends 'selective' | 'composed'>(
+function composedBuilder<TClass>(
   context: BuilderContext<TClass>,
-  configuration: SociableConfiguration
-): SociableTestBedBuilderState<TClass, TMode> {
+  configuration: SociableConfiguration,
+  forbidden: readonly InjectableIdentifier[]
+): ComposedBuilder<TClass> {
+  const mode = { kind: 'composed', forbidden } satisfies ConstructionMode;
+  return {
+    ...configuredBuilder(context, configuration, mode, (next) => composedBuilder(context, next, forbidden)),
+    forbid(identifier, ...rest) {
+      if (identifier === undefined) {
+        throw new TypeError('A forbidden composition boundary requires at least one identifier');
+      }
+      return composedBuilder(context, configuration, [...forbidden, identifier, ...rest]);
+    },
+  };
+}
+
+function configuredBuilder<TClass, TSelf extends { compile(): Promise<UnitTestBed<TClass>> }>(
+  context: BuilderContext<TClass>,
+  configuration: SociableConfiguration,
+  mode: ConstructionMode,
+  next: (configuration: SociableConfiguration) => TSelf
+): ConfiguredBuilder<TClass, TSelf> {
   const withOverride = (override: Override) =>
-    configuredBuilder<TClass, TMode>(context, {
+    next({
       ...configuration,
       overrides: [...configuration.overrides, override],
     });
@@ -117,7 +141,7 @@ function configuredBuilder<TClass, TMode extends 'selective' | 'composed'>(
       if (typeof implementation !== 'function') {
         throw new TypeError('Binding a dependency token requires a concrete implementation');
       }
-      return configuredBuilder<TClass, TMode>(context, {
+      return next({
         ...configuration,
         bindings: [...configuration.bindings, { identifier, implementation }],
       });
@@ -134,13 +158,14 @@ function configuredBuilder<TClass, TMode extends 'selective' | 'composed'>(
         final: (value) => withOverride({ kind: 'final', identifier, metadata, value }),
       };
     },
-    compile: () => compile(context, configuration),
+    compile: () => compile(context, configuration, mode),
   };
 }
 
 async function compile<TClass>(
   context: BuilderContext<TClass>,
-  configuration: SociableConfiguration
+  configuration: SociableConfiguration,
+  mode: ConstructionMode
 ): Promise<UnitTestBed<TClass>> {
   const bindings = new Map<InjectableIdentifier, Type>();
   for (const { identifier, implementation } of configuration.bindings) {
@@ -168,6 +193,22 @@ async function compile<TClass>(
   const finalized: IdentifierToFinal[] = [];
   const boundaries: CompositionBoundary[] = [];
 
+  if (mode.kind === 'composed') {
+    for (const identifier of new Set(mode.forbidden)) {
+      if (bindings.has(identifier) || configuration.overrides.some((entry) => entry.identifier === identifier)) {
+        throw new DependencyResolutionError(
+          `Conflicting dependency declarations for ${stringifyIdentifier(identifier, undefined)}. A composed dependency cannot be forbidden and also declared as real, mocked, or final.`
+        );
+      }
+      boundaries.push({
+        kind: 'guard',
+        identifier,
+        metadata: undefined,
+        create: (path) => createGuardedDependency('forbidden dependency', identifier, path.at(-1)?.metadata, path),
+      });
+    }
+  }
+
   const mocks = configuration.overrides.filter(({ kind }) => kind === 'mock');
   const finals = configuration.overrides.filter(({ kind }) => kind === 'final');
   for (const override of [...mocks, ...finals]) {
@@ -185,7 +226,6 @@ async function compile<TClass>(
     }
   }
 
-  const { mode } = configuration;
   const classes = mode.kind === 'selective' ? mode.classes : [];
   const options = (
     mode.kind === 'selective'

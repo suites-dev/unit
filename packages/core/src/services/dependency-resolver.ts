@@ -65,6 +65,7 @@ export class DependencyResolver {
         : undefined;
     if (boundary !== undefined) {
       if (boundary.kind === 'guard') {
+        this.composedDependencies.push({ identifier, metadata });
         return {
           value: boundary.create([...this.constructionPath, { identifier, metadata }]),
         };
