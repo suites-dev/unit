@@ -168,7 +168,6 @@ Class tokens check the implementation's instance type. Use `.bind<Contract>(TOKE
 
 Composition constructs a class when the DI adapter identifies it as constructable. For an unmarked class or an abstract token, select a real implementation with `.bind()` or configure a mock. TypeScript erases the abstract modifier, so a framework decorator on an abstract class can make it indistinguishable from a concrete class at runtime.
 
-
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
 ## Migration

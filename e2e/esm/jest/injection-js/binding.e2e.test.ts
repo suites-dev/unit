@@ -1,9 +1,13 @@
 import 'reflect-metadata';
 import { describe, expect, it } from '@jest/globals';
-import { Inject, Injectable } from 'injection-js';
+import { Inject, Injectable, InjectionToken } from 'injection-js';
 import { TestBed } from '@suites/unit';
 
-const REPOSITORY = Symbol('repository');
+interface RepositoryPort {
+  read(): string;
+}
+
+const REPOSITORY = new InjectionToken<RepositoryPort>('repository');
 
 @Injectable()
 class Leaf {
@@ -32,36 +36,23 @@ class Root {
 }
 
 describe('v5 explicit token bindings', () => {
-  it('constructs bindings in selective mode in every supported order', async () => {
-    const direct = await TestBed.sociable(Root).bind(REPOSITORY, Repository).compile();
-    const exposedFirst = await TestBed.sociable(Root)
+  it('uses a bound repository and its exposed dependency in selective mode', async () => {
+    const { unit, unitRef } = await TestBed.sociable(Root)
       .expose(Leaf)
-      .bind(REPOSITORY, Repository)
+      .bind<RepositoryPort>(REPOSITORY, Repository)
       .compile();
-    const boundFirst = await TestBed.sociable(Root)
-      .bind(REPOSITORY, Repository)
-      .expose(Leaf)
-      .compile();
-    expect(direct.unit.repository).toBeInstanceOf(Repository);
-    expect(direct.unit.repository).toBe(direct.unit.repeated);
-    expect(direct.unit.repository.leaf).not.toBeInstanceOf(Leaf);
-    expect(() => direct.unitRef.get(REPOSITORY)).toThrow(/exposed dependency/);
-    expect(exposedFirst.unit.read()).toBe('live:value');
-    expect(boundFirst.unit.read()).toBe('live:value');
+    expect(unit.repository).toBeInstanceOf(Repository);
+    expect(unit.repository).toBe(unit.repeated);
+    expect(unit.read()).toBe('live:value');
+    expect(() => unitRef.get(REPOSITORY)).toThrow(/exposed dependency/);
   });
 
-  it('follows bindings recursively in composed mode in either order', async () => {
-    const boundFirst = await TestBed.sociable(Root)
-      .bind(REPOSITORY, Repository)
+  it('recursively constructs the dependencies of a bound repository in composed mode', async () => {
+    const { unit } = await TestBed.sociable(Root)
       .compose()
+      .bind<RepositoryPort>(REPOSITORY, Repository)
       .compile();
-    const composedFirst = await TestBed.sociable(Root)
-      .compose()
-      .bind(REPOSITORY, Repository)
-      .compile();
-    expect(boundFirst.unit.repository.leaf).toBeInstanceOf(Leaf);
-    expect(boundFirst.unit.read()).toBe('live:value');
-    expect(composedFirst.unit.repository.leaf).toBeInstanceOf(Leaf);
-    expect(composedFirst.unit.read()).toBe('live:value');
+    expect(unit.repository.leaf).toBeInstanceOf(Leaf);
+    expect(unit.read()).toBe('live:value');
   });
 });

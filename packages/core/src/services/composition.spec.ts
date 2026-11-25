@@ -11,6 +11,8 @@ import { DependencyResolver, type ResolverOptions } from './dependency-resolver.
 import { SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
 import { UnitMocker } from './unit-mocker.js';
 
+import { TestToken } from '../../__test__/test-token.js';
+
 function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdapter {
   return {
     isConstructable: (type: Type) => entries.some(([target]) => type === target),
@@ -48,7 +50,7 @@ const adapter = registry([
 
 const composed = {
   mode: 'composed',
-        bindings: new Map(),
+  bindings: new Map(),
   boundaries: new CompositionBoundaryContainer([]),
 } satisfies ResolverOptions;
 
@@ -307,8 +309,8 @@ describe('opt-in composition', () => {
     expect(instance.first.client).toBeInstanceOf(Client);
   });
 
-  it('shares explicit bindings across selective and composed builder states', async () => {
-    const token = Symbol('repository');
+  it('constructs the same registered adapter token in selective and composed modes', async () => {
+    const token = new TestToken<Repository>('repository');
     class BoundRoot {
       constructor(
         readonly repository: Repository,
@@ -405,9 +407,7 @@ describe('opt-in composition', () => {
     const base = fresh().expose(Client).bind(token, Repository);
     const conflicting = base.bind(token, AlternativeRepository);
     await expect(conflicting.compile()).rejects.toThrow(/Conflicting bindings.*repository/);
-    await expect(
-      base.bind(token, Repository).compile()
-    ).resolves.toBeDefined();
+    await expect(base.bind(token, Repository).compile()).resolves.toBeDefined();
   });
 
   it('rejects a binding without a runtime implementation', () => {

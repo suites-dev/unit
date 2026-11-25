@@ -23,7 +23,7 @@ export interface SociableTestBedBuilderState<TClass, TMode extends 'selective' |
   ): SociableTestBedBuilderState<TClass, TMode>;
   mock<TDependency>(
     identifier: InjectableIdentifier<TDependency>,
-    metadata?: IdentifierMetadata
+    ...qualifier: [] | [metadata: IdentifierMetadata | undefined]
   ): MockOverride<TDependency, TClass, SociableTestBedBuilderState<TClass, TMode>>;
   compile(): Promise<UnitTestBed<TClass>>;
 }
@@ -83,7 +83,11 @@ export class SociableTestBedBuilder<TClass> {
   }
 
   public compose(): SociableTestBedBuilderState<TClass, 'composed'> {
-    return configuredBuilder(this.#context, { mode: { kind: 'composed' }, overrides: [], bindings: [] });
+    return configuredBuilder(this.#context, {
+      mode: { kind: 'composed' },
+      overrides: [],
+      bindings: [],
+    });
   }
 }
 
@@ -107,7 +111,7 @@ function configuredBuilder<TClass, TMode extends 'selective' | 'composed'>(
         bindings: [...configuration.bindings, { identifier, implementation }],
       });
     },
-    mock(identifier, metadata) {
+    mock(identifier, ...[metadata]) {
       return {
         impl: (implementation) =>
           withOverride({
@@ -132,8 +136,8 @@ async function compile<TClass>(
     const existing = bindings.get(identifier);
     if (existing !== undefined && existing !== implementation) {
       throw new DependencyResolutionError(
-        'Conflicting bindings for ' + stringifyIdentifier(identifier, undefined) + ': ' +
-          existing.name + ' and ' + implementation.name + '. Bind each requested token to one implementation.'
+        `Conflicting bindings for ${stringifyIdentifier(identifier, undefined)}: ` +
+          `${existing.name} and ${implementation.name}. Bind each requested token to one implementation.`
       );
     }
     bindings.set(identifier, implementation);
@@ -198,6 +202,12 @@ For detailed instructions and best practices, refer to our documentation: https:
 
   return {
     unit: instance,
-    unitRef: new UnitReference(container, classes, finalized, composedDependencies, exposedDependencies),
+    unitRef: new UnitReference(
+      container,
+      classes,
+      finalized,
+      composedDependencies,
+      exposedDependencies
+    ),
   };
 }

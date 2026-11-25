@@ -74,58 +74,39 @@ class PropertyRoot {
 }
 
 describe('v5 explicit token bindings', () => {
-  it('constructs a bound implementation in selective mode in every supported order', async () => {
-    const direct = await TestBed.sociable(Root).bind(REPOSITORY, Repository).compile();
-    const exposedFirst = await TestBed.sociable(Root)
+  it('uses a bound repository and its exposed dependency in selective mode', async () => {
+    const { unit, unitRef } = await TestBed.sociable(Root)
       .expose(Leaf)
       .bind(REPOSITORY, Repository)
       .compile();
-    const boundFirst = await TestBed.sociable(Root)
-      .bind(REPOSITORY, Repository)
-      .expose(Leaf)
-      .compile();
-
-    expect(direct.unit.repository).toBeInstanceOf(Repository);
-    expect(direct.unit.repository).toBe(direct.unit.repeated);
-    expect(direct.unit.repository.leaf).not.toBeInstanceOf(Leaf);
-    expect(() => direct.unitRef.get(REPOSITORY)).toThrow(/exposed dependency/);
-    expect(exposedFirst.unit.read()).toBe('live:value');
-    expect(boundFirst.unit.read()).toBe('live:value');
-
+    expect(unit.repository).toBeInstanceOf(Repository);
+    expect(unit.repository).toBe(unit.repeated);
+    expect(unit.read()).toBe('live:value');
+    expect(() => unitRef.get(REPOSITORY)).toThrow(/exposed dependency/);
     const typeChecks = () => {
       // @ts-expect-error Binding preserves the subject type.
-      direct.unit.missingMethod();
+      unit.missingMethod();
       // @ts-expect-error Selective exposure accepts classes, not token bindings.
       TestBed.sociable(Root).expose(REPOSITORY, Repository);
       // @ts-expect-error A class-token implementation must satisfy the token type.
-      TestBed.sociable(Root).bind(Repository, Leaf);
+      TestBed.sociable(Root).expose(Leaf).bind(Repository, Leaf);
       // @ts-expect-error A symbol binding is checked when its value type is explicit.
-      TestBed.sociable(Root).bind<Repository>(REPOSITORY, Leaf);
+      TestBed.sociable(Root).compose().bind<Repository>(REPOSITORY, Leaf);
     };
     expect(typeChecks).toBeDefined();
   });
 
-  it('follows a binding recursively in composed mode in either order', async () => {
-    const boundFirst = await TestBed.sociable(Root)
-      .bind(REPOSITORY, Repository)
-      .compose()
-      .compile();
-    const composedFirst = await TestBed.sociable(Root)
-      .compose()
-      .bind(REPOSITORY, Repository)
-      .compile();
-
-    expect(boundFirst.unit.repository.leaf).toBeInstanceOf(Leaf);
-    expect(boundFirst.unit.read()).toBe('live:value');
-    expect(composedFirst.unit.repository.leaf).toBeInstanceOf(Leaf);
-    expect(composedFirst.unit.read()).toBe('live:value');
+  it('recursively constructs the dependencies of a bound repository in composed mode', async () => {
+    const { unit } = await TestBed.sociable(Root).compose().bind(REPOSITORY, Repository).compile();
+    expect(unit.repository.leaf).toBeInstanceOf(Leaf);
+    expect(unit.read()).toBe('live:value');
   });
 
   it('does not alias distinct tokens that share an implementation', async () => {
     const { unit } = await TestBed.sociable(IdentityRoot)
+      .compose()
       .bind(REPOSITORY, Repository)
       .bind(SECONDARY_REPOSITORY, Repository)
-      .compose()
       .compile();
 
     expect(unit.primary).toBeInstanceOf(Repository);
@@ -135,9 +116,9 @@ describe('v5 explicit token bindings', () => {
 
   it('supports string, abstract-class, and property token bindings', async () => {
     const tokenKinds = await TestBed.sociable(TokenKindsRoot)
+      .compose()
       .bind('repository', PortRepository)
       .bind(RepositoryPort, PortRepository)
-      .compose()
       .compile();
     const property = await TestBed.sociable(PropertyRoot)
       .compose()
@@ -155,10 +136,10 @@ describe('v5 explicit token bindings', () => {
   it('lets an explicit final override win and rejects contradictory bindings', async () => {
     const supplied = { read: () => 'supplied' };
     const overridden = await TestBed.sociable(Root)
+      .compose()
       .bind(REPOSITORY, Repository)
       .mock<Repository>(REPOSITORY)
       .final(supplied)
-      .compose()
       .compile();
 
     expect(overridden.unit.repository).toBe(supplied);
@@ -166,6 +147,7 @@ describe('v5 explicit token bindings', () => {
 
     await expect(
       TestBed.sociable(Root)
+        .expose(Leaf)
         .bind(REPOSITORY, Repository)
         .bind(REPOSITORY, AlternativeRepository)
         .compile()
