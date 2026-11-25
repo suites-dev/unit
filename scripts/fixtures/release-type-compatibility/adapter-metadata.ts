@@ -1,6 +1,7 @@
 /// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.nestjs/metadata" />
 
+import type {} from '@suites/doubles.jest/metadata';
 import { mock as jestMock } from '@suites/doubles.jest';
 import { mock as vitestMock } from '@suites/doubles.vitest';
 import type { Mocked, UnitReference } from '@suites/unit';

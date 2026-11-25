@@ -158,7 +158,7 @@ try {
         }
         writeFileSync(
           join(consumer, 'adapter-metadata.ts'),
-          readFileSync(join(fixtureRoot, 'adapter-metadata.ts'), 'utf8').replace(
+          readFileSync(join(fixtureRoot, 'adapter-metadata.ts'), 'utf8').replaceAll(
             '@suites/doubles.jest/metadata',
             `@suites/doubles.${framework}/metadata`
           )
