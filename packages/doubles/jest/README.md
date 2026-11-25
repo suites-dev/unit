@@ -31,7 +31,7 @@ Generate typed dependency mocks backed by Jest's mock functions. Configure respo
 For NestJS with Jest:
 
 ```sh
-pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.jest
+pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.jest @types/jest
 ```
 
 Replace `@suites/di.nestjs` with `@suites/di.inversify` or `@suites/di.injectionjs` for your DI framework. Install one doubles adapter per test project.
@@ -40,7 +40,7 @@ Requires `jest` and `@jest/globals` in `^30.5.2`. Suites 4 supports Node.js `^22
 
 ## Configuration
 
-Create `suites.d.ts` and include it in your test `tsconfig.json`:
+The Jest metadata declaration loads `@types/jest`. Create `suites.d.ts` and include it in your test `tsconfig.json`.
 
 ```typescript
 /// <reference types="@suites/doubles.jest/metadata" />
