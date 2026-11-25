@@ -108,7 +108,9 @@ async function compile<TClass>(
   const finalized: IdentifierToFinal[] = [];
   const boundaries: CompositionBoundary[] = [];
 
-  for (const override of configuration.overrides) {
+  const mocks = configuration.overrides.filter(({ kind }) => kind === 'mock');
+  const finals = configuration.overrides.filter(({ kind }) => kind === 'final');
+  for (const override of [...mocks, ...finals]) {
     const { identifier, metadata } = override;
     const key = normalizeIdentifier(identifier, metadata);
     if (override.kind === 'mock') {

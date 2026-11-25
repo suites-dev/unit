@@ -331,6 +331,19 @@ describe('opt-in composition', () => {
     expect(second.unit.repository.client.read()).toBe('two');
   });
 
+  it('resolves an implemented mock before a final for the same identifier in either mode', async () => {
+    for (const selected of [builder().expose(Repository), builder().compose()]) {
+      const { unit } = await selected
+        .mock(Client)
+        .final({ read: () => 'final' })
+        .mock(Client)
+        .impl(() => ({ read: () => 'implemented' }))
+        .compile();
+
+      expect(unit.repository.client.read()).toBe('implemented');
+    }
+  });
+
   it('retains composed mode through both override forms', async () => {
     const implemented = await builder()
       .compose()
