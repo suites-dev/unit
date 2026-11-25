@@ -1,16 +1,7 @@
-import type { Mock } from 'jest-mock';
+import type { stub } from './stub.js';
 
-// Preserve the overloads of @types/jest when the consumer loads Jest globals.
-type JestMockFactory = typeof globalThis extends { jest: { fn: infer Factory } }
-  ? Factory
-  : NativeMockFactory;
-type NativeMockFactory = <T = any, Args extends any[] = any[], Context = any>(
-  implementation?: (this: Context, ...args: Args) => T
-) => Mock<(this: Context, ...args: Args) => T>;
-
-declare const createMock: JestMockFactory;
 type MockFunction<T extends (...args: any[]) => any> = ReturnType<
-  typeof createMock<ReturnType<T>, Parameters<T>>
+  typeof stub<ReturnType<T>, Parameters<T>>
 > &
   T;
 
@@ -80,5 +71,4 @@ export type Mocked<T> = {
  * @see {@link https://jestjs.io/docs/mock-function-api#jestfnimplementation | Jest Function Mocks}
  * @see {@link https://suites.dev/docs/api-reference/mock | Stub Reference}
  */
-export type Stub<TArgs extends any[] = any[]> = ReturnType<typeof createMock<any, TArgs>>;
-export type { JestMockFactory };
+export type Stub<TArgs extends any[] = any[]> = ReturnType<typeof stub<any, TArgs>>;
