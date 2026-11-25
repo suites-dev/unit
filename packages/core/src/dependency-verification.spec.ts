@@ -84,5 +84,6 @@ describe('dependency violation verification', () => {
 
     expect(result).toBeInstanceOf(DependencyVerificationError);
     expect(result?.errors).toEqual([suiteFailure, violation]);
+    expect(result?.cause).toBe(suiteFailure);
   });
 });

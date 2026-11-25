@@ -92,7 +92,11 @@ try {
     assert.ok(recordedSteps.includes('vitest:dynamic-skip-after-guard'), output);
   }
 
-  assert.equal(tests.length, passing.length + guarded.length + (runner === 'vitest' ? 3 : 1), output);
+  assert.equal(
+    tests.length,
+    passing.length + guarded.length + (runner === 'vitest' ? 3 : 1),
+    output
+  );
 
   const missingArgs =
     runner === 'jest'
@@ -126,23 +130,48 @@ try {
   assert.ok(existsSync(missingOutputFile), `${runner} did not produce a missing-setup report.`);
 
   if (runner === 'jest') {
-    const jasmineOutputFile = join(directory, 'jasmine-results.json');
-    const jasmineResult = spawnSync(
-      'pnpm',
-      [
-        'exec', 'jest', '--config', 'jest.caught-guard.config.cjs', '--testRunner', 'jest-jasmine2',
-        '--runInBand', '--json', '--outputFile', jasmineOutputFile,
-      ],
-      { encoding: 'utf8', env: { ...process.env, SUITES_GUARD_STEPS_FILE: stepsFile }, timeout: 60_000 }
-    );
-    assert.ifError(jasmineResult.error);
-    const jasmineOutput = jasmineResult.stdout + jasmineResult.stderr;
-    assert.equal(jasmineResult.status, 1, jasmineOutput);
-    assert.ok(readFileSync(stepsFile, 'utf8').includes('jest:caught-fallback-asserted'), jasmineOutput);
-    const jasmineReport = JSON.parse(readFileSync(jasmineOutputFile, 'utf8'));
-    assert.equal(jasmineReport.numFailedTestSuites, 1, jasmineOutput);
-    assert.equal(jasmineReport.numFailedTests, 0, jasmineOutput);
-    assert.match(jasmineReport.testResults[0].message, /undeclared dependency 'Inventory'/i);
+    for (const customTeardownFails of [false, true]) {
+      const jasmineOutputFile = join(directory, `jasmine-${customTeardownFails}.json`);
+      const jasmineStepsFile = join(directory, `jasmine-${customTeardownFails}-steps.txt`);
+      const jasmineResult = spawnSync(
+        'pnpm',
+        [
+          'exec',
+          'jest',
+          '--config',
+          'jest.caught-guard.config.cjs',
+          '--testRunner',
+          'jest-jasmine2',
+          ...(customTeardownFails ? ['--env=./custom-guard-environment.cjs'] : []),
+          '--runInBand',
+          '--json',
+          '--outputFile',
+          jasmineOutputFile,
+        ],
+        {
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            SUITES_GUARD_STEPS_FILE: jasmineStepsFile,
+            SUITES_TEST_TEARDOWN_FAILURE: customTeardownFails ? '1' : '',
+          },
+          timeout: 60_000,
+        }
+      );
+      assert.ifError(jasmineResult.error);
+      const jasmineOutput = jasmineResult.stdout + jasmineResult.stderr;
+      assert.equal(jasmineResult.status, 1, jasmineOutput);
+      assert.ok(
+        readFileSync(jasmineStepsFile, 'utf8').includes('jest:caught-fallback-asserted'),
+        jasmineOutput
+      );
+      const jasmineReport = JSON.parse(readFileSync(jasmineOutputFile, 'utf8'));
+      assert.equal(jasmineReport.numFailedTestSuites, 1, jasmineOutput);
+      assert.equal(jasmineReport.numFailedTests, 0, jasmineOutput);
+      const message = jasmineReport.testResults[0].message;
+      assert.match(message, /undeclared dependency 'Inventory'/i);
+      if (customTeardownFails) assert.match(message, /Custom teardown failed/);
+    }
 
     const customResult = spawnSync(
       'pnpm',

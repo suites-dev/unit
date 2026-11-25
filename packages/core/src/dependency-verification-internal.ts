@@ -7,6 +7,7 @@ export type DependencyViolationReporter = (error: Error) => void;
 
 export class DependencyVerificationError extends Error {
   public readonly errors: readonly unknown[];
+  public readonly cause: unknown;
 
   public constructor(
     public readonly violations: readonly Error[],
@@ -15,6 +16,7 @@ export class DependencyVerificationError extends Error {
     const details = violations.map((error) => error.message).join('\n');
     super(`Suites Unit recorded dependency rule violations.\n${details}`);
     this.name = 'DependencyVerificationError';
+    this.cause = suiteFailure;
     this.errors = suiteFailure === undefined ? violations : [suiteFailure, ...violations];
   }
 }

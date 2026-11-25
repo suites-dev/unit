@@ -52,8 +52,21 @@ export function withDependencyVerification(
     }
 
     public async teardown(): Promise<void> {
-      this.dependencyVerification?.uninstall();
-      await super.teardown();
+      const verification = this.dependencyVerification;
+      try {
+        try {
+          await super.teardown();
+        } catch (error) {
+          throw verification?.finish(error) ?? error;
+        }
+
+        const failure = verification?.finish();
+        if (failure !== undefined) {
+          throw failure;
+        }
+      } finally {
+        verification?.uninstall();
+      }
     }
   };
 }
