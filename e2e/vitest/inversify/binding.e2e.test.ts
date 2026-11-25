@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, named } from 'inversify';
 import { TestBed } from '@suites/unit';
 import { describe, expect, it } from 'vitest';
 
@@ -47,5 +47,34 @@ describe('v5 explicit token bindings', () => {
     const { unit } = await TestBed.sociable(Root).compose().bind(REPOSITORY, Repository).compile();
     expect(unit.repository.leaf).toBeInstanceOf(Leaf);
     expect(unit.read()).toBe('live:value');
+  });
+
+  it('applies a qualified override only to the matching request for a bound token', async () => {
+    @injectable()
+    class QualifiedRoot {
+      constructor(
+        @inject(REPOSITORY) @named('replica') readonly replica: Repository,
+        @inject(REPOSITORY) readonly primary: Repository
+      ) {}
+    }
+
+    const selector = TestBed.sociable(QualifiedRoot);
+    const replica = { named: 'replica' };
+    for (const mode of [selector.expose(Leaf), selector.compose()]) {
+      const bound = mode.bind(REPOSITORY, Repository);
+      const mocked = await bound
+        .mock<Repository>(REPOSITORY, replica)
+        .impl((stub) => ({ read: stub().mockReturnValue('mock replica') }))
+        .compile();
+      expect(mocked.unit.replica.read()).toBe('mock replica');
+      expect(mocked.unitRef.get<Repository>(REPOSITORY, replica).read).toHaveBeenCalledTimes(1);
+      expect(mocked.unit.primary.read()).toBe('live:value');
+      expect(() => mocked.unitRef.get(REPOSITORY)).toThrow(/exposed dependency/);
+
+      const supplied = { read: () => 'supplied replica' };
+      const finalized = await bound.mock<Repository>(REPOSITORY, replica).final(supplied).compile();
+      expect(finalized.unit.replica).toBe(supplied);
+      expect(finalized.unit.primary.read()).toBe('live:value');
+    }
   });
 });

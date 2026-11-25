@@ -362,26 +362,39 @@ describe('opt-in composition', () => {
     expect(unit.first).not.toBe(unit.second);
   });
 
-  it('lets configured boundaries win over a binding', async () => {
+  it('rejects token-wide overrides and bindings before constructing any collaborator', async () => {
     const token = Symbol('repository');
+    const constructed = jest.fn();
+    const configureMock = jest.fn(() => ({}));
+    class BoundRepository {
+      constructor() {
+        constructed();
+      }
+    }
     class BoundRoot {
-      constructor(readonly repository: Repository) {}
+      constructor(readonly repository: BoundRepository) {
+        constructed();
+      }
     }
     const currentAdapter = registry([
       [BoundRoot, [parameter(token)]],
-      [Repository, [parameter(Client)]],
-      [Client, []],
+      [BoundRepository, []],
     ]);
-    const supplied = { client: { read: () => 'supplied' } };
-
-    const { unit } = await createBuilder(BoundRoot, currentAdapter)
-      .compose()
-      .bind(token, Repository)
-      .mock<Repository>(token)
-      .final(supplied)
-      .compile();
-
-    expect(unit.repository).toBe(supplied);
+    const selector = createBuilder(BoundRoot, currentAdapter);
+    for (const mode of [selector.expose(BoundRepository), selector.compose()]) {
+      const bound = mode.bind(token, BoundRepository);
+      const declarations = [
+        bound.mock(token).impl(configureMock),
+        bound.mock(token).final({}),
+        mode.mock(token).impl(configureMock).bind(token, BoundRepository),
+        mode.mock(token).final({}).bind(token, BoundRepository),
+      ];
+      for (const declaration of declarations) {
+        await expect(declaration.compile()).rejects.toThrow(/conflicting.*repository/i);
+      }
+    }
+    expect(constructed).not.toHaveBeenCalled();
+    expect(configureMock).not.toHaveBeenCalled();
   });
 
   it('rejects contradictory bindings in both construction modes', async () => {

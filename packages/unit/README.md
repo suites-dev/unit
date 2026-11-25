@@ -162,7 +162,7 @@ const composed = await TestBed.sociable(UserService)
   .compile();
 ```
 
-Selective exposure constructs the bound implementation and the classes passed to `.expose()`. Composition follows its injectable dependencies recursively. Each token and qualifier pair receives its own instance, so two tokens bound to the same implementation remain distinct. An explicit mock or final override takes precedence. Conflicting bindings for one token fail compilation.
+Selective exposure constructs the bound implementation and the classes passed to `.expose()`. Composition follows its injectable dependencies recursively. Each token and qualifier pair receives its own instance, so two tokens bound to the same implementation remain distinct. For adapters with qualifiers, a qualified mock or final value replaces only the matching request. Other requests use the bound implementation. Combining a binding with an unqualified mock or final value for that token makes `.compile()` reject before construction. Binding the token to two different implementations also fails.
 
 Class tokens check the implementation's instance type. Use `.bind<Contract>(TOKEN, Implementation)` for string, symbol, and InjectionJS tokens when you want TypeScript to check the implementation against a specific contract. Third-party adapters can register additional token types through their type declarations.
 

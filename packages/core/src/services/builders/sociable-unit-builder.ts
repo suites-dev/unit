@@ -154,6 +154,15 @@ async function compile<TClass>(
     bindings.set(identifier, implementation);
   }
 
+  for (const { identifier, metadata } of configuration.overrides) {
+    if (metadata === undefined && bindings.has(identifier)) {
+      throw new DependencyResolutionError(
+        `Conflicting declarations for ${stringifyIdentifier(identifier, metadata)}: ` +
+          'choose either a binding or an unqualified override for this token.'
+      );
+    }
+  }
+
   const doubles = await context.doubles;
   const entries: IdentifierToMockOrFinal[] = [];
   const finalized: IdentifierToFinal[] = [];

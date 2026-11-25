@@ -79,6 +79,14 @@ export class DependencyResolver {
       return { value: boundary.value };
     }
 
+    if (
+      metadata === undefined &&
+      this.options.mode !== 'solitary' &&
+      this.options.bindings.has(identifier)
+    ) {
+      return undefined;
+    }
+
     const existingEntry = this.mockedFromBeforeContainer.resolveEntry(identifier, metadata);
     if (existingEntry !== undefined) {
       this.usedMockEntries.add(existingEntry);

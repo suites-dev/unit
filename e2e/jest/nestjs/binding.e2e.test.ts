@@ -133,18 +133,34 @@ describe('v5 explicit token bindings', () => {
     expect(property.unit.repository.leaf).toBeInstanceOf(Leaf);
   });
 
-  it('lets an explicit final override win and rejects contradictory bindings', async () => {
-    const supplied = { read: () => 'supplied' };
-    const overridden = await TestBed.sociable(Root)
-      .compose()
-      .bind(REPOSITORY, Repository)
-      .mock<Repository>(REPOSITORY)
-      .final(supplied)
-      .compile();
+  it('rejects an unqualified override before constructing the subject in both modes', async () => {
+    let constructions = 0;
+    @Injectable()
+    class Subject {
+      constructor(@Inject(REPOSITORY) readonly repository: Repository) {
+        constructions++;
+      }
+    }
+    const selector = TestBed.sociable(Subject);
+    for (const mode of [selector.expose(Leaf), selector.compose()]) {
+      const bound = mode.bind(REPOSITORY, Repository);
+      await expect(
+        bound
+          .mock<Repository>(REPOSITORY)
+          .impl((stub) => ({ read: stub() }))
+          .compile()
+      ).rejects.toThrow(/conflicting.*repository/i);
+      await expect(
+        bound
+          .mock<Repository>(REPOSITORY)
+          .final({ read: () => 'supplied' })
+          .compile()
+      ).rejects.toThrow(/conflicting.*repository/i);
+    }
+    expect(constructions).toBe(0);
+  });
 
-    expect(overridden.unit.repository).toBe(supplied);
-    expect(overridden.unit.read()).toBe('supplied');
-
+  it('rejects contradictory bindings for one token', async () => {
     await expect(
       TestBed.sociable(Root)
         .expose(Leaf)
