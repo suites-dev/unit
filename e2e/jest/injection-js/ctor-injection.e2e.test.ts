@@ -41,6 +41,19 @@ class Service {
 }
 
 describe('published InjectionJS adapter', () => {
+  it('keeps a forbidden InjectionToken separate from a mock with the same description', async () => {
+    const { unit, unitRef } = await TestBed.sociable(Service)
+      .compose()
+      .forbid(TOKEN)
+      .mock<Repository>(OTHER)
+      .impl((stub) => ({ find: stub().mockReturnValue('replica') }))
+      .compile();
+
+    expect(unit.other.find()).toBe('replica');
+    expect(unitRef.get<Repository>(OTHER).find).toHaveBeenCalledTimes(1);
+    expect(() => unitRef.get(TOKEN)).toThrow(/guarded dependency/);
+  });
+
   it('distinguishes finalized and mocked tokens with identical descriptions', async () => {
     const { unit, unitRef } = await TestBed.solitary(Service)
       .mock<Repository>(TOKEN)
