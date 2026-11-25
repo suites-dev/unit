@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { Checkout, Inventory, StockService } from './stock-checkout';
+import { Checkout, Inventory, StockService } from './stock-checkout.js';
 import { TestBed } from '@suites/unit';
 import { appendFileSync } from 'node:fs';
 import { env } from 'node:process';

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { Checkout, StockService } from './stock-checkout';
+import { Checkout, StockService } from './stock-checkout.js';
 import { TestBed } from '@suites/unit';
 
 it('fails closed when a caught guard has no Vitest setup integration', async () => {
