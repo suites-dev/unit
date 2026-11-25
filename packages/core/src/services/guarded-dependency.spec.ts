@@ -8,6 +8,9 @@ import {
   dependencyVerificationKey,
 } from '../dependency-verification-internal.js';
 
+import { DependencyContainer } from './dependency-container.js';
+import { UnitReference } from './unit-reference.js';
+
 class Checkout {}
 class Inventory {}
 
@@ -25,20 +28,36 @@ afterEach(() => {
 describe('guarded dependencies', () => {
   it('permits injection until a business member is accessed', () => {
     const guard = createGuardedDependency('undeclared dependency', Inventory, undefined, [
-      { identifier: Checkout },
-      { identifier: Inventory },
+      { identifier: Checkout, metadata: undefined },
+      { identifier: Inventory, metadata: undefined },
     ]);
 
     expect(typeof guard).toBe('function');
     expect(() => Reflect.get(guard, 'available')).toThrow(
       expect.objectContaining({
         category: 'undeclared dependency',
-        dependencyPath: [{ identifier: Checkout }, { identifier: Inventory }],
+        dependencyPath: [{ identifier: Checkout, metadata: undefined }, { identifier: Inventory, metadata: undefined }],
         identifier: Inventory,
         name: 'DependencyRuleViolationError',
         operation: 'read available on',
       })
     );
+  });
+
+  it('only retrieves intentional mocks when the same token also has a guarded qualifier', () => {
+    const primary = { named: 'primary' };
+    const replica = { named: 'replica' };
+    const guard = createGuardedDependency('undeclared dependency', Inventory, primary, [
+      { identifier: Inventory, metadata: primary },
+    ]);
+    const mock = { available: jest.fn() };
+    const reference = new UnitReference(new DependencyContainer([
+      [{ identifier: Inventory, metadata: primary }, guard],
+      [{ identifier: Inventory, metadata: replica }, mock],
+    ]), [], []);
+
+    expect(() => reference.get(Inventory, primary)).toThrow(/Cannot retrieve guarded dependency/);
+    expect(reference.get(Inventory, replica)).toBe(mock);
   });
 
   it.each<[string, (guard: GuardedDependency) => unknown]>([
@@ -53,8 +72,8 @@ describe('guarded dependencies', () => {
     ['construct', (guard) => Reflect.construct(guard, [])],
   ])('reports the attempted operation: %s', (operation, use) => {
     const guard = createGuardedDependency('undeclared dependency', Inventory, undefined, [
-      { identifier: Checkout },
-      { identifier: Inventory },
+      { identifier: Checkout, metadata: undefined },
+      { identifier: Inventory, metadata: undefined },
     ]);
 
     expect(() => use(guard)).toThrow(expect.objectContaining({ identifier: Inventory, operation }));
@@ -67,8 +86,8 @@ describe('guarded dependencies', () => {
       value: (error: Error) => ledger.record(error),
     });
     const guard = createGuardedDependency('forbidden dependency', Inventory, undefined, [
-      { identifier: Checkout },
-      { identifier: Inventory },
+      { identifier: Checkout, metadata: undefined },
+      { identifier: Inventory, metadata: undefined },
     ]);
 
     expect(() => Reflect.apply(guard, undefined, [])).toThrow(DependencyRuleViolationError);
@@ -78,7 +97,7 @@ describe('guarded dependencies', () => {
   it('includes qualified identifiers and the dependency path in diagnostics', () => {
     const metadata = { named: 'primary' } as never;
     const guard = createGuardedDependency('undeclared dependency', 'INVENTORY', metadata, [
-      { identifier: Checkout },
+      { identifier: Checkout, metadata: undefined },
       { identifier: 'INVENTORY', metadata },
     ]);
 

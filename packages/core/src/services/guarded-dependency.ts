@@ -1,15 +1,17 @@
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
+import type { DependencyPathEntry } from './composition-boundary.js';
 import { reportDependencyViolation } from '../dependency-verification-internal.js';
 import { stringifyIdentifier } from './functions.static.js';
 
 export type DependencyViolationCategory = 'undeclared dependency' | 'forbidden dependency';
 
-export interface DependencyPathEntry {
-  identifier: InjectableIdentifier;
-  metadata?: IdentifierMetadata;
-}
-
 export type GuardedDependency = (...args: unknown[]) => never;
+
+const guardedDependencies = new WeakSet();
+
+export function isGuardedDependency(value: unknown): boolean {
+  return typeof value === 'function' && guardedDependencies.has(value);
+}
 
 export class DependencyRuleViolationError extends Error {
   public constructor(
@@ -51,7 +53,7 @@ export function createGuardedDependency(
     return fail('call');
   };
 
-  return new Proxy(target, {
+  const guard = new Proxy(target, {
     get: (_target, key) => {
       if (key === Symbol.for('nodejs.util.inspect.custom')) {
         return () => `[Guarded ${category}: ${stringifyIdentifier(identifier, metadata)}]`;
@@ -69,4 +71,6 @@ export function createGuardedDependency(
     apply: () => fail('call'),
     construct: () => fail('construct'),
   });
+  guardedDependencies.add(guard);
+  return guard;
 }
