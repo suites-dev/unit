@@ -72,6 +72,10 @@ The package repository URL must be `https://github.com/suites-dev/unit.git`. See
 
 Preparation never pushes directly to `master`, publishes npm packages, or creates tags. Keep feature commits and their scopes and breaking-change footers in Git history so Lerna can generate meaningful package changelogs.
 
+## Maintenance release baselines
+
+Lerna compares each package to its previous stable package tag. When that tag comes from a maintenance branch, the changelog preset checks integration merges on the release branch in first-parent order. If a merge contains the published tag and restores the package directory exactly as tagged, the notes describe changes since that merge. The comparison link still points to the published tag. Packages with a different tree keep their full conventional-commit history for review.
+
 ## Create the release tags
 
 **Tag Release** is a separate workflow. It starts when a release PR is merged into `master`; other merged PRs do not trigger tagging. Approve its existing `release` environment deployment. For an already-merged release or a same-commit retry, run it manually from `master` or re-run the original run, respectively.

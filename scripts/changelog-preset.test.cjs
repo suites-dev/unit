@@ -6,7 +6,7 @@ const { join } = require('node:path');
 const { test } = require('node:test');
 const preset = require('./changelog-preset.cjs');
 
-test('package changelogs retain breaking changes through graduation and reset after stable', async (t) => {
+async function repositoryFixture(t) {
   const { ConventionalChangelog, packagePrefix } = await import('conventional-changelog');
   const root = mkdtempSync(join(tmpdir(), 'suites-changelog-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -19,7 +19,11 @@ test('package changelogs retain breaking changes through graduation and reset af
       JSON.stringify({
         name: `@suites/${scope}`,
         version,
-        repository: { type: 'git', url: 'https://github.com/suites-dev/unit.git' },
+        repository: {
+          type: 'git',
+          url: 'https://github.com/suites-dev/unit.git',
+          directory: `packages/${scope}`,
+        },
       })
     );
   const commit = (message) => {
@@ -29,7 +33,7 @@ test('package changelogs retain breaking changes through graduation and reset af
   const generate = async (scope, version) => {
     manifest(scope, version);
     const generator = new ConventionalChangelog(paths[scope]);
-    generator.config(await preset());
+    generator.config(await preset({ cwd: root }));
     generator.readPackage(join(paths[scope], 'package.json'));
     generator.commits({ path: paths[scope] });
     generator.tags({ prefix: packagePrefix(`@suites/${scope}`) });
@@ -48,6 +52,11 @@ test('package changelogs retain breaking changes through graduation and reset af
     manifest(scope, '3.1.0');
   }
   commit('chore: initial stable release');
+  return { git, commit, generate, scopes, paths, manifest };
+}
+
+test('package changelogs retain breaking changes through graduation and reset after stable', async (t) => {
+  const { git, commit, generate, scopes, paths, manifest } = await repositoryFixture(t);
   for (const scope of scopes) git('tag', `@suites/${scope}@3.1.0`);
 
   for (const scope of scopes) {
@@ -86,4 +95,55 @@ test('package changelogs retain breaking changes through graduation and reset af
   const patch = await generate('unit', '4.0.1');
   assert.match(patch, /handle a stable regression/);
   assert.doesNotMatch(patch, /BREAKING CHANGES|maintained Node releases|prerelease regression/);
+});
+
+test('use a maintenance release restoration only for the package whose entire tree matches', async (t) => {
+  const { git, commit, generate, scopes, paths, manifest } = await repositoryFixture(t);
+  git('switch', '-c', 'maintenance');
+  for (const scope of scopes) manifest(scope, '3.1.1');
+  commit('chore: release from maintenance');
+  for (const scope of scopes) git('tag', `@suites/${scope}@3.1.1`);
+
+  git('switch', 'next');
+  writeFileSync(join(paths.unit, 'preview.js'), 'preview');
+  commit('feat(unit): offer preview API');
+  writeFileSync(join(paths['di.inversify'], 'fix.js'), 'fix');
+  commit('fix(di.inversify): retain qualified providers');
+  git('merge', '--no-ff', 'maintenance', '-m', 'Merge published maintenance release');
+
+  git('switch', '-c', 'independent');
+  writeFileSync(join(paths.unit, 'independent.js'), 'independent');
+  commit('feat(unit): support an independent provider');
+
+  git('switch', 'next');
+  git('switch', '-c', 'restore');
+  git('rm', 'packages/unit/preview.js');
+  commit('revert(unit): defer preview API');
+  git('switch', 'next');
+  git('merge', '--no-ff', 'restore', '-m', 'Merge rollback');
+  git('merge', '--no-ff', 'independent', '-m', 'Merge independent provider');
+  writeFileSync(join(paths.unit, 'public.js'), 'public');
+  commit('feat(unit): offer stable API');
+
+  const unit = await generate('unit', '4.0.0');
+  assert.doesNotMatch(unit, /offer preview API|defer preview API/);
+  assert.match(unit, /support an independent provider/);
+  assert.match(unit, /offer stable API/);
+  assert.match(decodeURIComponent(unit), /@suites\/unit@3\.1\.1\.\.\.@suites\/unit@4\.0\.0/);
+  const inversify = await generate('di.inversify', '4.0.0');
+  assert.match(inversify, /retain qualified providers/);
+});
+
+test('Git reverts remove withdrawn features from the next stable changelog', async (t) => {
+  const { git, commit, generate, paths } = await repositoryFixture(t);
+  git('tag', '@suites/unit@3.1.0');
+  writeFileSync(join(paths.unit, 'preview.js'), 'preview');
+  commit('feat(unit): add a preview provider');
+  git('revert', '--no-edit', 'HEAD');
+  writeFileSync(join(paths.unit, 'stable.js'), 'stable');
+  commit('feat(unit): add a stable provider');
+
+  const notes = await generate('unit', '3.2.0');
+  assert.match(notes, /add a stable provider/);
+  assert.doesNotMatch(notes, /preview provider|### Reverts/);
 });

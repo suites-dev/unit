@@ -109,6 +109,8 @@ For example: `feat(unit): add a new TestBed option`. Mark breaking changes with 
 
 Keep each package's changes in its scoped commit. Merge multi-package releases with a merge commit or rebase merge, preserving the commits through `next` to `master`; squashing loses the package-specific release history.
 
+When withdrawing an unreleased feature, run `git revert` on each original package commit, newest first. Keep Git's generated subject and `This reverts commit …` line so Lerna can pair each feature with its revert in the package changelog. Rehearse the release notes if the rollback needed manual conflict resolution.
+
 For detailed guidelines on semantic commits,
 visit [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary).
 
