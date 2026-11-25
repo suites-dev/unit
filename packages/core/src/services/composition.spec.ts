@@ -8,6 +8,7 @@ import type { DependencyPathEntry } from './composition-boundary.js';
 import { dependencyVerificationKey } from '../dependency-verification-internal.js';
 import { CompositionBoundaryContainer } from './composition-boundary.js';
 import { DependencyContainer } from './dependency-container.js';
+import { isGuardedDependency } from './guarded-dependency.js';
 import { DependencyResolver, type ResolverOptions } from './dependency-resolver.js';
 import { SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
 import { UnitMocker } from './unit-mocker.js';
@@ -125,7 +126,7 @@ describe('opt-in composition', () => {
     );
 
     const instance = current.instantiateClass(Root) as Root;
-    expect(instance.port).not.toBeInstanceOf(Port);
+    expect(() => instance.port.read()).toThrow(/undeclared dependency 'Port'/);
   });
 
   it('does not compose an unbound abstract token with concrete members', () => {
@@ -148,24 +149,25 @@ describe('opt-in composition', () => {
     );
 
     const instance = current.instantiateClass(Root) as Root;
-    expect(instance.port).not.toBeInstanceOf(PartiallyImplementedPort);
+    expect(() => instance.port.label()).toThrow(/undeclared dependency 'PartiallyImplementedPort'/);
   });
 
   it('never treats a native constructor as a composable collaborator', () => {
     class Root {
       constructor(readonly value: unknown) {}
     }
-    const mock = { marker: 'mock' };
+    const mock = jest.fn();
     const current = new DependencyResolver(
       [],
       new DependencyContainer([]),
       registry([[Root, [parameter(Object)]]]),
-      jest.fn(() => mock),
+      mock,
       composed
     );
 
     const instance = current.instantiateClass(Root) as Root;
-    expect(instance.value).toBe(mock);
+    expect(isGuardedDependency(instance.value)).toBe(true);
+    expect(mock).not.toHaveBeenCalled();
   });
 
   it('resolves boundaries before inspecting their implementation graph', () => {
