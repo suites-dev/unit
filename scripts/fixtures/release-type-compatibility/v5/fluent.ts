@@ -37,6 +37,7 @@ interface ServiceToken<T> {
 declare module '@suites/types.di' {
   interface InjectableIdentifierRegistry<T> {
     readonly exampleAdapter: ServiceToken<T>;
+    readonly namedAdapter: { readonly name: string };
   }
 }
 
@@ -51,6 +52,8 @@ for (const mode of [initial.expose(Service), initial.compose()]) {
     .final({ read: () => 'stub' });
   // @ts-expect-error A class token fixes the required implementation contract.
   mode.bind(Service, Subject);
+  // @ts-expect-error A class with a name cannot fall back to the registered named-token overload.
+  mode.bind<Subject>(Service, Subject);
   // @ts-expect-error An unregistered object cannot be used as a token.
   mode.bind({ unrelated: true }, Service);
   // @ts-expect-error The registered token carries its service contract.

@@ -12,13 +12,24 @@ import { stringifyIdentifier } from '../functions.static.js';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
 
+type DependencyOf<TIdentifier> =
+  TIdentifier extends AbstractType<infer TDependency>
+    ? TDependency
+    : TIdentifier extends InjectableIdentifier<infer TDependency>
+      ? TDependency
+      : never;
+
+// A constructor's static properties can also match a registered structural token.
+type NonClassIdentifier<T> = Exclude<InjectableIdentifier<T>, AbstractType> &
+  Partial<Record<typeof Symbol.hasInstance, never>>;
+
 export interface SociableTestBedBuilderState<TClass, TMode extends 'selective' | 'composed'> {
-  bind<TToken extends AbstractType>(
-    identifier: TToken,
-    implementation: Type<InstanceType<TToken>>
+  bind<TIdentifier extends InjectableIdentifier>(
+    identifier: TIdentifier,
+    implementation: Type<DependencyOf<TIdentifier>>
   ): SociableTestBedBuilderState<TClass, TMode>;
   bind<TDependency>(
-    identifier: Exclude<InjectableIdentifier<TDependency>, AbstractType>,
+    identifier: NonClassIdentifier<TDependency>,
     implementation: Type<TDependency>
   ): SociableTestBedBuilderState<TClass, TMode>;
   mock<TDependency>(
