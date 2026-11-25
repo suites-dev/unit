@@ -24,3 +24,11 @@ selective().compose();
 composed().expose(Service);
 // @ts-expect-error Emitted declarations preserve the dependency type.
 selector().final({ name: 1 });
+
+composed().forbid(Service).compile();
+selector()
+  .final({ read: () => 'selected' })
+  .forbid(Service)
+  .compile();
+// @ts-expect-error Only composed builders support forbid().
+selective().forbid(Service);

@@ -40,20 +40,16 @@ interface ConfiguredBuilder<TClass, TSelf extends { compile(): Promise<UnitTestB
   compile(): Promise<UnitTestBed<TClass>>;
 }
 
-type SelectiveBuilder<TClass> = ConfiguredBuilder<TClass, SelectiveBuilder<TClass>>;
-
-interface ComposedBuilder<TClass> extends ConfiguredBuilder<TClass, ComposedBuilder<TClass>> {
-  /** Stop recursive construction at each identifier and fail the test file on access. */
-  forbid(
-    identifier: InjectableIdentifier,
-    ...rest: InjectableIdentifier[]
-  ): ComposedBuilder<TClass>;
-}
-
 export type SociableTestBedBuilderState<
   TClass,
   TMode extends 'selective' | 'composed',
-> = TMode extends 'composed' ? ComposedBuilder<TClass> : SelectiveBuilder<TClass>;
+> = ConfiguredBuilder<TClass, SociableTestBedBuilderState<TClass, TMode>> & {
+  /** Stop recursive construction at each identifier and fail the test file on access. */
+  [Method in TMode extends 'composed' ? 'forbid' : never]: (
+    identifier: InjectableIdentifier,
+    ...rest: InjectableIdentifier[]
+  ) => SociableTestBedBuilderState<TClass, 'composed'>;
+};
 
 interface BuilderContext<TClass> {
   readonly doubles: Promise<DoublesAdapter>;
@@ -103,12 +99,14 @@ export class SociableTestBedBuilder<TClass> {
     }
 
     const mode = { kind: 'selective', classes: [first, ...rest] } satisfies ConstructionMode;
-    const next = (config: SociableConfiguration): SelectiveBuilder<TClass> =>
+    const next = (
+      config: SociableConfiguration
+    ): SociableTestBedBuilderState<TClass, 'selective'> =>
       configuredBuilder(this.#context, config, mode, next);
     return next({ overrides: [], bindings: [] });
   }
 
-  public compose(): ComposedBuilder<TClass> {
+  public compose(): SociableTestBedBuilderState<TClass, 'composed'> {
     return composedBuilder(this.#context, { overrides: [], bindings: [] }, []);
   }
 }
@@ -117,7 +115,7 @@ function composedBuilder<TClass>(
   context: BuilderContext<TClass>,
   configuration: SociableConfiguration,
   forbidden: readonly InjectableIdentifier[]
-): ComposedBuilder<TClass> {
+): SociableTestBedBuilderState<TClass, 'composed'> {
   const mode = { kind: 'composed', forbidden } satisfies ConstructionMode;
   return {
     ...configuredBuilder(context, configuration, mode, (next) =>
