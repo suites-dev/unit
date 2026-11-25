@@ -44,11 +44,16 @@ type SelectiveBuilder<TClass> = ConfiguredBuilder<TClass, SelectiveBuilder<TClas
 
 interface ComposedBuilder<TClass> extends ConfiguredBuilder<TClass, ComposedBuilder<TClass>> {
   /** Stop recursive construction at each identifier and fail the test file on access. */
-  forbid(identifier: InjectableIdentifier, ...rest: InjectableIdentifier[]): ComposedBuilder<TClass>;
+  forbid(
+    identifier: InjectableIdentifier,
+    ...rest: InjectableIdentifier[]
+  ): ComposedBuilder<TClass>;
 }
 
-export type SociableTestBedBuilderState<TClass, TMode extends 'selective' | 'composed'> =
-  TMode extends 'composed' ? ComposedBuilder<TClass> : SelectiveBuilder<TClass>;
+export type SociableTestBedBuilderState<
+  TClass,
+  TMode extends 'selective' | 'composed',
+> = TMode extends 'composed' ? ComposedBuilder<TClass> : SelectiveBuilder<TClass>;
 
 interface BuilderContext<TClass> {
   readonly doubles: Promise<DoublesAdapter>;
@@ -58,7 +63,8 @@ interface BuilderContext<TClass> {
 }
 
 type ConstructionMode =
-  { readonly kind: 'selective'; readonly classes: readonly Type[] } | { readonly kind: 'composed'; readonly forbidden: readonly InjectableIdentifier[] };
+  | { readonly kind: 'selective'; readonly classes: readonly Type[] }
+  | { readonly kind: 'composed'; readonly forbidden: readonly InjectableIdentifier[] };
 
 type Override = (
   | {
@@ -114,7 +120,9 @@ function composedBuilder<TClass>(
 ): ComposedBuilder<TClass> {
   const mode = { kind: 'composed', forbidden } satisfies ConstructionMode;
   return {
-    ...configuredBuilder(context, configuration, mode, (next) => composedBuilder(context, next, forbidden)),
+    ...configuredBuilder(context, configuration, mode, (next) =>
+      composedBuilder(context, next, forbidden)
+    ),
     forbid(identifier, ...rest) {
       if (identifier === undefined) {
         throw new TypeError('A forbidden composition boundary requires at least one identifier');
@@ -195,7 +203,10 @@ async function compile<TClass>(
 
   if (mode.kind === 'composed') {
     for (const identifier of new Set(mode.forbidden)) {
-      if (bindings.has(identifier) || configuration.overrides.some((entry) => entry.identifier === identifier)) {
+      if (
+        bindings.has(identifier) ||
+        configuration.overrides.some((entry) => entry.identifier === identifier)
+      ) {
         throw new DependencyResolutionError(
           `Conflicting dependency declarations for ${stringifyIdentifier(identifier, undefined)}. A composed dependency cannot be forbidden and also declared as real, mocked, or final.`
         );
@@ -204,7 +215,13 @@ async function compile<TClass>(
         kind: 'guard',
         identifier,
         metadata: undefined,
-        create: (path) => createGuardedDependency('forbidden dependency', identifier, path.at(-1)?.metadata, path),
+        create: (path) =>
+          createGuardedDependency(
+            'forbidden dependency',
+            identifier,
+            path[path.length - 1].metadata,
+            path
+          ),
       });
     }
   }

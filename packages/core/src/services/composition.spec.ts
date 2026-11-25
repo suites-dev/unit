@@ -582,6 +582,21 @@ describe('opt-in composition', () => {
     expect(() => unitRef.get(Client)).toThrow('guarded dependency');
   });
 
+  it('keeps forbidden boundaries on the branch that declares them', async () => {
+    const composed = builder().compose();
+    const forbidden = composed.forbid(Client);
+    const mocked = composed.mock(Client).final({ read: () => 'replacement' });
+    const [original, blocked, replaced] = await Promise.all([
+      composed.compile(),
+      forbidden.compile(),
+      mocked.compile(),
+    ]);
+
+    expect(original.unit.repository.client.read()).toBe('live');
+    expect(() => blocked.unit.repository.client.read()).toThrow(/forbidden dependency 'Client'/);
+    expect(replaced.unit.repository.client.read()).toBe('replacement');
+  });
+
   it('throws an actionable dependency-path error when a forbidden boundary is used', async () => {
     const { unit } = await builder().compose().forbid(Client).compile();
 
