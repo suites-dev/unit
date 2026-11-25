@@ -77,7 +77,7 @@ export class TestBed {
    *
    * @template TClass The type of the class under test
    * @param targetClass - The class constructor to test with selective real dependencies
-   * @returns A builder requiring `.expose()` to specify real implementations
+   * @returns A selector offering `.expose(...classes)` for selected collaborators and `.compose()` for recursive construction
    *
    * @example
    * ```ts

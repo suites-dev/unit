@@ -60,10 +60,9 @@ describe('v5 opt-in composition', () => {
     const selective = TestBed.sociable(EmptyLeafRoot).expose(EmptyLeaf, AnotherEmptyLeaf);
     const composed = TestBed.sociable(Service).compose();
     const exposed = await selective.compile();
-    const overridden = await TestBed.sociable(Service)
+    const overridden = await composed
       .mock(Leaf)
       .impl((stub) => ({ prefix: stub().mockReturnValue('mock:') }))
-      .compose()
       .compile();
     // @ts-expect-error All exposed classes are supplied in one call.
     expect(selective.expose).toBeUndefined();
@@ -85,15 +84,15 @@ describe('v5 opt-in composition', () => {
     expect(overridden.unitRef.get(Leaf).prefix).toHaveBeenCalledTimes(1);
   });
 
-  it('does not mutate the original sociable builder', async () => {
-    const original = TestBed.sociable(Service);
-    const composed = original.compose();
-
-    const unchanged = await original.compile();
-    const recursive = await composed.compile();
-
-    expect(unchanged.unit.repository).not.toBeInstanceOf(Repository);
-    expect(recursive.unit.repository).toBeInstanceOf(Repository);
-    expect(recursive.unit.repository.leaf).toBeInstanceOf(Leaf);
+  it('requires mode selection before configuring or compiling', () => {
+    const selector = TestBed.sociable(Service);
+    // @ts-expect-error Choose expose or compose before compiling.
+    expect(selector.compile).toBeUndefined();
+    // @ts-expect-error Choose a mode before declaring a mock.
+    expect(selector.mock).toBeUndefined();
+    // @ts-expect-error Bindings belong to a selected mode.
+    expect(selector.bind).toBeUndefined();
+    // @ts-expect-error Forbidden boundaries belong to composed tests.
+    expect(selector.forbid).toBeUndefined();
   });
 });

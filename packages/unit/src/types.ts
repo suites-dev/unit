@@ -3,6 +3,7 @@ import type { DeepPartial, Type, AbstractType } from '@suites/types.common';
 import type { ArgsType, Stub, StubbedInstance } from '@suites/types.doubles';
 import type {
   TestBedBuilder as TestBedBuilderCore,
+  SociableTestBedBuilder as SociableSelectorCore,
   SociableTestBedBuilderState as SociableTestBedBuilderStateCore,
   UnitReference as UnitReferenceCore,
   MockOverride as MockOverrideCore,
@@ -32,7 +33,7 @@ export type SociableTestBedBuilder<
   TClass,
   TMode extends SociableTestBedBuilderMode = 'initial',
 > = TMode extends 'initial'
-  ? SociableTestBedBuilderStateCore<TClass, 'initial'>
+  ? Pick<SociableSelectorCore<TClass>, 'expose' | 'compose'>
   : SociableTestBedBuilderStateCore<TClass, Exclude<TMode, 'initial'>>;
 
 export interface SolitaryTestBedBuilder<TClass> extends TestBedBuilder<TClass> {}
@@ -227,8 +228,7 @@ export interface TestBed {
    * @see {@link https://suites.dev/docs/api-reference/testbed-sociable | TestBed.sociable() API Reference}
    * @template TClass - The type of the target class.
    * @param targetClass - The target class to be tested.
-   * @returns A subset of the SociableTestBedBuilder's methods
-   * containing only the 'expose' method.
+   * @returns A selector for one variadic exposure or recursive composition.
    * @since 3.0.0
    * @example
    * ```ts

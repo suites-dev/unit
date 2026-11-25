@@ -12,11 +12,10 @@ import type { CompositionBoundaryLookup, DependencyPathEntry } from './compositi
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyMap } from './dependency-map.js';
 
-export interface ResolverOptions {
-  compose?: boolean;
-  boundaries?: CompositionBoundaryLookup;
-  exposedBindings?: ReadonlyMap<InjectableIdentifier, Type>;
-}
+export type ResolverOptions =
+  | { readonly mode: 'solitary' }
+  | { readonly mode: 'selective' }
+  | { readonly mode: 'composed'; readonly boundaries: CompositionBoundaryLookup };
 
 type ResolvedDependency = Type | FinalValue | StubbedInstance<unknown>;
 type ResolvedBoundary = { value: ResolvedDependency };
@@ -29,11 +28,11 @@ export class DependencyResolver {
   private readonly composedDependencies: IdentifierToMockOrFinal[0][] = [];
 
   constructor(
-    private readonly classesToExpose: Type[],
+    private readonly classesToExpose: readonly Type[],
     private readonly mockedFromBeforeContainer: DependencyContainer,
     private readonly adapter: DependencyInjectionAdapter,
     private readonly mockFunction: MockFunction,
-    private readonly options: ResolverOptions = {}
+    private readonly options: ResolverOptions = { mode: 'solitary' }
   ) {}
 
   private isExposedClass(identifier: InjectableIdentifier): identifier is Type {
@@ -54,7 +53,10 @@ export class DependencyResolver {
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
   ): ResolvedBoundary | undefined {
-    const boundary = this.options.boundaries?.resolve(identifier, metadata);
+    const boundary =
+      this.options.mode === 'composed'
+        ? this.options.boundaries.resolve(identifier, metadata)
+        : undefined;
     if (boundary !== undefined) {
       if (boundary.kind === 'guard') {
         return {
@@ -102,16 +104,7 @@ export class DependencyResolver {
       return boundary.value;
     }
 
-    const exposedImplementation = this.options.exposedBindings?.get(identifier);
-    if (exposedImplementation !== undefined) {
-      const instance = this.instantiateClass(exposedImplementation, metadata, identifier);
-      if (this.options.compose) {
-        this.composedDependencies.push({ identifier, metadata });
-      }
-      return instance;
-    }
-
-    if (this.options.compose && this.isComposableClass(identifier)) {
+    if (this.options.mode === 'composed' && this.isComposableClass(identifier)) {
       const instance = this.instantiateClass(identifier, metadata);
       this.composedDependencies.push({ identifier, metadata });
       return instance;
@@ -145,7 +138,7 @@ export class DependencyResolver {
       return this.dependencyMap.get(identifier, metadata) as ResolvedDependency;
     }
 
-    const tracksCycles = this.options.compose || (this.options.exposedBindings?.size ?? 0) > 0;
+    const tracksCycles = this.options.mode === 'composed';
     if (
       tracksCycles &&
       this.constructionPath.some(
@@ -174,9 +167,11 @@ export class DependencyResolver {
       });
 
       const ctorInjectables = injectableRegistry.list().filter(({ type }) => type === 'PARAM');
-      const ctorParams = ctorInjectables.map(
-        (injectable) =>
-          this.resolveOrMock(injectable.identifier, 'metadata' in injectable ? injectable.metadata : undefined)
+      const ctorParams = ctorInjectables.map((injectable) =>
+        this.resolveOrMock(
+          injectable.identifier,
+          'metadata' in injectable ? injectable.metadata : undefined
+        )
       );
 
       const instance = new type(...ctorParams);

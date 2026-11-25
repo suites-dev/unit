@@ -7,7 +7,7 @@ import type {
 import type { DependencyPathEntry } from './composition-boundary.js';
 import { CompositionBoundaryContainer } from './composition-boundary.js';
 import { DependencyContainer } from './dependency-container.js';
-import { DependencyResolver } from './dependency-resolver.js';
+import { DependencyResolver, type ResolverOptions } from './dependency-resolver.js';
 import { SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
 import { UnitMocker } from './unit-mocker.js';
 
@@ -46,7 +46,12 @@ const adapter = registry([
   [Client, []],
 ]);
 
-function resolver(options = {}) {
+const composed = {
+  mode: 'composed',
+  boundaries: new CompositionBoundaryContainer([]),
+} satisfies ResolverOptions;
+
+function resolver(options: ResolverOptions = { mode: 'solitary' }) {
   return new DependencyResolver(
     [],
     new DependencyContainer([]),
@@ -79,7 +84,7 @@ describe('opt-in composition', () => {
   });
 
   it('constructs transitive and leaf classes when selected', () => {
-    const instance = resolver({ compose: true }).instantiateClass(Service) as Service;
+    const instance = resolver(composed).instantiateClass(Service) as Service;
     expect(instance.repository).toBeInstanceOf(Repository);
     expect(instance.repository.client).toBeInstanceOf(Client);
     expect(instance.repository.client.read()).toBe('live');
@@ -97,7 +102,7 @@ describe('opt-in composition', () => {
       new DependencyContainer([]),
       registry([[Root, [parameter(Port)]]]),
       jest.fn(() => ({})),
-      { compose: true }
+      composed
     );
 
     const instance = current.instantiateClass(Root) as Root;
@@ -120,7 +125,7 @@ describe('opt-in composition', () => {
       new DependencyContainer([]),
       registry([[Root, [parameter(PartiallyImplementedPort)]]]),
       jest.fn(() => ({})),
-      { compose: true }
+      composed
     );
 
     const instance = current.instantiateClass(Root) as Root;
@@ -137,7 +142,7 @@ describe('opt-in composition', () => {
       new DependencyContainer([]),
       registry([[Root, [parameter(Object)]]]),
       jest.fn(() => mock),
-      { compose: true }
+      composed
     );
 
     const instance = current.instantiateClass(Root) as Root;
@@ -162,7 +167,7 @@ describe('opt-in composition', () => {
       { inspect, isConstructable: adapter.isConstructable },
       jest.fn(() => ({})),
       {
-        compose: true,
+        mode: 'composed',
         boundaries: new CompositionBoundaryContainer([
           { kind: 'guard', identifier: Client, metadata: undefined, create: createGuard },
         ]),
@@ -183,7 +188,7 @@ describe('opt-in composition', () => {
       { inspect, isConstructable: adapter.isConstructable },
       jest.fn(() => ({})),
       {
-        compose: true,
+        mode: 'composed',
         boundaries: new CompositionBoundaryContainer([
           { kind: 'guard', identifier: Client, metadata: undefined, create: () => undefined },
         ]),
@@ -210,7 +215,7 @@ describe('opt-in composition', () => {
       registry([[Root, [parameter(Client, primary), parameter(Client, secondary)]]]),
       jest.fn(() => ({})),
       {
-        compose: true,
+        mode: 'composed',
         boundaries: new CompositionBoundaryContainer([
           { kind: 'guard', identifier: Client, metadata: undefined, create: () => defaultBoundary },
           {
@@ -246,7 +251,7 @@ describe('opt-in composition', () => {
         ],
       ]),
       jest.fn(() => ({})),
-      { compose: true }
+      composed
     );
 
     const instance = current.instantiateClass(Root) as Root;
@@ -282,38 +287,13 @@ describe('opt-in composition', () => {
         [Client, []],
       ]),
       jest.fn(() => ({})),
-      { compose: true }
+      composed
     );
 
     const instance = current.instantiateClass(Root) as Root;
     expect(instance.first).toBeInstanceOf(Repository);
     expect(instance.second).toBe(instance.first);
     expect(instance.first.client).toBeInstanceOf(Client);
-  });
-
-  it('follows a supplied token binding through its dependency graph', () => {
-    const repositoryToken = Symbol('repository');
-    class Root {
-      constructor(readonly repository: Repository) {}
-    }
-    const current = new DependencyResolver(
-      [],
-      new DependencyContainer([]),
-      registry([
-        [Root, [parameter(repositoryToken)]],
-        [Repository, [parameter(Client)]],
-        [Client, []],
-      ]),
-      jest.fn(() => ({})),
-      {
-        compose: true,
-        exposedBindings: new Map([[repositoryToken, Repository]]),
-      }
-    );
-
-    const instance = current.instantiateClass(Root) as Root;
-    expect(instance.repository).toBeInstanceOf(Repository);
-    expect(instance.repository.client).toBeInstanceOf(Client);
   });
 
   it('reports constructor cycles with their dependency path', () => {
@@ -327,29 +307,25 @@ describe('opt-in composition', () => {
         [Two, [parameter(One)]],
       ]),
       jest.fn(() => ({})),
-      { compose: true }
+      composed
     );
 
     expect(() => current.instantiateClass(One)).toThrow('One -> Two -> One');
   });
 
-  it('keeps original and sibling builders independent', async () => {
-    const original = builder();
-    const composed = original.compose();
-    const sibling = original.compose();
-    const selective = original.expose(Repository);
-    composed.mock(Repository).final({ client: { read: () => 'supplied' } });
+  it('keeps independently configured branches of one composed builder isolated', async () => {
+    const composed = builder().compose();
+    const one = composed.mock(Client).final({ read: () => 'one' });
+    const two = composed.mock(Client).impl(() => ({ read: () => 'two' }));
 
-    const unchanged = await original.compile();
-    const selected = await selective.compile();
-    const recursive = await sibling.compile();
-    const overridden = await composed.compile();
-
-    expect(unchanged.unit.repository).not.toBeInstanceOf(Repository);
-    expect(selected.unit.repository).toBeInstanceOf(Repository);
-    expect(selected.unit.repository.client).not.toBeInstanceOf(Client);
-    expect(recursive.unit.repository.client).toBeInstanceOf(Client);
-    expect(overridden.unit.repository).not.toBeInstanceOf(Repository);
+    const [original, first, second] = await Promise.all([
+      composed.compile(),
+      one.compile(),
+      two.compile(),
+    ]);
+    expect(original.unit.repository.client.read()).toBe('live');
+    expect(first.unit.repository.client.read()).toBe('one');
+    expect(second.unit.repository.client.read()).toBe('two');
   });
 
   it('retains composed mode through both override forms', async () => {
@@ -370,20 +346,17 @@ describe('opt-in composition', () => {
     expect(finalized.unit.repository.client.read()).toBe('final');
   });
 
-  it('retains the initial mode choice after configuring an override', async () => {
-    const implemented = await builder()
-      .mock(Client)
-      .impl(() => ({ read: () => 'implemented before composition' }))
-      .compose()
-      .compile();
-    const finalized = await builder()
-      .mock(Client)
-      .final({ read: () => 'final before composition' })
-      .compose()
-      .compile();
-
-    expect(implemented.unit.repository.client.read()).toBe('implemented before composition');
-    expect(finalized.unit.repository.client.read()).toBe('final before composition');
+  it('offers only mode selection on the initial builder', () => {
+    const selector = builder();
+    expect(Object.getOwnPropertyNames(Object.getPrototypeOf(selector)).sort()).toEqual([
+      'compose',
+      'constructor',
+      'expose',
+    ]);
+    expect('compile' in selector).toBe(false);
+    expect('mock' in selector).toBe(false);
+    expect('bind' in selector).toBe(false);
+    expect('forbid' in selector).toBe(false);
   });
 
   it('keeps variadic selective exposure mutually exclusive with composition', async () => {

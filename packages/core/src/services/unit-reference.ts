@@ -146,7 +146,7 @@ export interface UnitReference {
 export class UnitReference {
   public constructor(
     private readonly mocksContainer: DependencyContainer,
-    private readonly exposedInstances: InjectableIdentifier[],
+    private readonly exposedInstances: readonly InjectableIdentifier[],
     private readonly fakedDependencies: IdentifierToFinal[],
     private readonly composedDependencies: readonly IdentifierToMockOrFinal[0][] = []
   ) {}

@@ -25,7 +25,7 @@ export class UnitMocker {
 
   public async constructUnit<TClass>(
     targetClass: Type<TClass>,
-    classesToExpose: Type[],
+    classesToExpose: readonly Type[],
     mockContainer: DependencyContainer,
     resolverOptions?: ResolverOptions
   ): Promise<MockedUnit<TClass>> {

@@ -22,7 +22,7 @@ describe('Social TestBed Builder Integration Tests', () => {
   let userServiceAsIfItWasUnderTest: UserService;
   let unitRef: UnitReference;
 
-  const loggerMock = { warn: jest.fn() } as unknown as jest.Mocked<Console>;
+  const loggerMock = { warn: jest.fn() } satisfies Pick<Console, 'warn'>;
 
   beforeAll(async () => {
     unitBuilder = new SociableTestBedBuilder(
@@ -142,25 +142,19 @@ describe('Social TestBed Builder Integration Tests', () => {
     });
   });
 
-  it('should trigger the logger warning when the HttpClient is attempted to be mocked', async () => {
+  it('warns about a mock whose class is outside the selected graph', async () => {
+    loggerMock.warn.mockClear();
+    class UnusedDependency {}
     await unitBuilder
-      .mock('non-existing-dep')
+      .expose(UserApiService)
+      .mock(TestLogger)
+      .impl((stub: Mock) => ({ log: stub() }))
+      .mock(UnusedDependency)
       .impl(() => ({}))
       .compile();
 
     expect(loggerMock.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Suites Warning: Unreachable Mock Configuration Detected')
-    );
-  });
-
-  it('should trigger the logger warning when the HttpClient is attempted to be mocked', async () => {
-    await unitBuilder
-      .mock(UserDal)
-      .impl(() => ({}))
-      .compile();
-
-    expect(loggerMock.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Suites Warning: Unreachable Mock Configuration Detected')
+      expect.stringContaining("mock 'UnusedDependency'")
     );
   });
 });
