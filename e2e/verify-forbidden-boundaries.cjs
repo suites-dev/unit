@@ -42,15 +42,10 @@ try {
   const tests = report.testResults.flatMap((file) => file.assertionResults);
   assert.ok(tests.length >= 4, `Expected the forbid contract tests.\n${output}`);
 
-  const failing = tests.filter((test) => test.title.startsWith('fails '));
-  const passing = tests.filter((test) => !test.title.startsWith('fails '));
-  assert.ok(failing.length >= 2, `Expected caught forbidden-boundary failures.\n${output}`);
-  assert.ok(passing.length >= 2, `Expected passing forbidden-boundary setup tests.\n${output}`);
-
-  for (const test of passing) assert.equal(test.status, 'passed', test.title);
-  for (const test of failing) {
-    assert.match(test.status, /^(passed|failed)$/, test.title);
-  }
+  assert.equal(report.numFailedTestSuites, 1, output);
+  assert.equal(report.numFailedTests, 0, output);
+  assert.equal(report.numPassedTests, tests.length, output);
+  for (const test of tests) assert.equal(test.status, 'passed', test.title);
 
   const diagnostics = failedFiles
     .flatMap((file) => [
