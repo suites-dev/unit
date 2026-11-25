@@ -28,10 +28,16 @@ Shared contracts between Suites core and DI adapters. Application tests select `
 
 ## Adapter contracts
 
-- `DependencyInjectionAdapter` inspects a concrete class and returns its dependency registry.
+- `DependencyInjectionAdapter.inspect()` reads the dependencies of a class that Suites has already chosen to construct.
 - `InjectableRegistry` lists and resolves constructor and property dependencies.
 - `InjectableIdentifier<T>` accepts abstract or concrete class tokens, strings, symbols, and adapter-registered identifiers.
 - `IdentifierMetadata` derives the selected adapter's metadata rules from declaration augmentation.
+
+### Automatic construction in sociable composition
+
+Implement `isConstructable(targetClass)` to identify classes your framework can construct automatically. Return `true` only when you have positive construction evidence, such as a framework-owned marker on the class. An empty dependency list could describe either an injectable leaf or a token.
+
+Existing adapters that implement only `inspect()` remain valid. Without `isConstructable`, Suites can inspect an explicitly selected class, but composition cannot automatically expand through classes provided by that adapter. In a guarded sociable test, a required dependency without another declaration fails when used. Test both a marked class with no dependencies and a class token your adapter must leave unresolved.
 
 ## Load adapter declarations
 

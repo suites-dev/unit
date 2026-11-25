@@ -67,6 +67,10 @@ export type ClassInjectable<
  */
 export interface DependencyInjectionAdapter {
   inspect(targetClass: Type): InjectableRegistry;
+  /**
+   * Returns true when framework metadata identifies a class for automatic composition.
+   * Adapters that omit this capability still support explicit construction through inspect().
+   */
   isConstructable?(targetClass: Type): boolean;
 }
 
