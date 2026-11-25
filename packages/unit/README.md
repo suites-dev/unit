@@ -51,13 +51,13 @@ Jest requires `jest` and `@jest/globals` in `^30.5.2`. The Vitest adapter declar
 Create `suites.d.ts` and include it in your test `tsconfig.json`:
 
 ```typescript
-/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
 Use one doubles adapter reference and one DI adapter reference per test TypeScript project. These declarations load module augmentations directly; no postinstall script is needed.
 
-For Vitest, replace the first reference with `@suites/doubles.vitest/unit`. For Inversify or InjectionJS, replace the second with `@suites/di.inversify/metadata` or `@suites/di.injectionjs/metadata`.
+For Vitest, replace the first reference with `@suites/doubles.vitest/metadata`. For Inversify or InjectionJS, replace the second with `@suites/di.inversify/metadata` or `@suites/di.injectionjs/metadata`.
 
 Enable decorator metadata in your test TypeScript configuration:
 

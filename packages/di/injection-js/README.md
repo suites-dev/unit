@@ -49,13 +49,13 @@ Suites 4 supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and E
 Create `suites.d.ts` and include it in your test `tsconfig.json`:
 
 ```typescript
-/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.injectionjs/metadata" />
 ```
 
 Use one doubles adapter reference and one DI adapter reference per test TypeScript project. These declarations load module augmentations directly; no postinstall script is needed.
 
-For Vitest, use `@suites/doubles.vitest/unit` for the first reference.
+For Vitest, use `@suites/doubles.vitest/metadata` for the first reference.
 
 Enable decorator metadata in your test TypeScript configuration:
 

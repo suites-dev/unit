@@ -37,11 +37,11 @@ import type { Mocked, Stub } from '@suites/unit';
 Include your doubles adapter's declaration entry point in `suites.d.ts`, alongside your DI adapter. For Jest with NestJS:
 
 ```typescript
-/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-For Vitest, use `@suites/doubles.vitest/unit`. Use the metadata reference for your selected DI framework. These references provide runner-specific methods such as `mockResolvedValue` on `Mocked<T>` and `Stub`.
+For Vitest, use `@suites/doubles.vitest/metadata`. Use the metadata reference for your selected DI framework. These references provide runner-specific methods such as `mockResolvedValue` on `Mocked<T>` and `Stub`.
 
 ## Adapter development
 

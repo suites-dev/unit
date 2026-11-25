@@ -44,7 +44,7 @@ Existing adapters that implement only `inspect()` remain valid. Without `isConst
 Create `suites.d.ts` in your test TypeScript project. For NestJS with Jest:
 
 ```typescript
-/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
