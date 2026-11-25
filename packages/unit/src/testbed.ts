@@ -16,7 +16,7 @@ import type { SociableTestBedBuilder } from './types.js';
  *
  * TestBed provides two testing modes:
  * - **Solitary**: Complete isolation with all dependencies mocked
- * - **Sociable**: Selective real implementations with other dependencies mocked
+ * - **Sociable**: Selected or recursively constructed collaborators with explicit test boundaries
  *
  * TestBed uses a Virtual DI Container to analyze the target class metadata, automatically
  * generate type-safe mocks, and wire everything together without boilerplate.
@@ -83,7 +83,9 @@ export class TestBed {
    * ```ts
    * // Test with real dependencies
    * const { unit, unitRef } = await TestBed.sociable(OrderService)
-   *   .expose(PriceCalculator) // PriceCalculator runs real code
+   *   .expose(PriceCalculator)
+   *   .mock(InventoryService)
+   *   .impl((stub) => ({ checkStock: stub() }))
    *   .compile();
    *
    * // Configure mocked dependencies
