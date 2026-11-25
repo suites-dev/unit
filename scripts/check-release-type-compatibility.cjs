@@ -4,6 +4,7 @@ const {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  copyFileSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -34,6 +35,7 @@ const packages = [
   ['@suites/doubles.jest', 'packages/doubles/jest'],
   ['@suites/doubles.vitest', 'packages/doubles/vitest'],
   ['@suites/types.common', 'packages/types/common'],
+  ['@suites/di.nestjs', 'packages/di/nestjs'],
   ['@suites/types.di', 'packages/types/di'],
   ['@suites/types.doubles', 'packages/types/doubles'],
 ];
@@ -58,7 +60,9 @@ function dependencies(destination) {
   }
   for (const [name, folder] of [
     ['@vitest/spy', 'packages/doubles/vitest'],
+    ['vitest', 'packages/doubles/vitest'],
     ['@jest/globals', 'packages/doubles/jest'],
+    ['jest-mock', 'packages/doubles/jest'],
   ]) {
     link(join(root, folder, 'node_modules', name), join(destination, name));
   }
@@ -148,6 +152,18 @@ try {
           )
         );
       }
+      if (label === 'aligned') {
+        if (framework === 'jest') {
+          copyFileSync(join(fixtureRoot, 'jest-globals.ts'), join(consumer, 'jest-globals.ts'));
+        }
+        writeFileSync(
+          join(consumer, 'adapter-metadata.ts'),
+          readFileSync(join(fixtureRoot, 'adapter-metadata.ts'), 'utf8').replace(
+            '@suites/doubles.jest/metadata',
+            `@suites/doubles.${framework}/metadata`
+          )
+        );
+      }
       for (const [version, compiler, module, moduleResolution] of compilers) {
         const config = join(consumer, 'tsconfig.json');
         writeFileSync(
@@ -187,6 +203,27 @@ try {
         );
         try {
           run(process.execPath, [compiler, '-p', config]);
+          if (label === 'aligned') {
+            stage = 'adapter metadata and standalone imports';
+            const metadataConfig = join(consumer, 'tsconfig.metadata.json');
+            writeFileSync(
+              metadataConfig,
+              JSON.stringify({
+                extends: './tsconfig.json',
+                compilerOptions: {
+                  types:
+                    framework === 'vitest' && version === 'current'
+                      ? ['node', 'vitest/globals']
+                      : [],
+                },
+                files:
+                  framework === 'jest'
+                    ? ['adapter-metadata.ts', 'jest-globals.ts']
+                    : ['adapter-metadata.ts'],
+              })
+            );
+            run(process.execPath, [compiler, '-p', metadataConfig]);
+          }
           if (hasCandidateUnit) {
             stage = 'declaration emission';
             run(process.execPath, [
