@@ -50,7 +50,6 @@ Follow the [unit package README](https://github.com/suites-dev/unit/tree/master/
 
 Abstract classes are accepted as dependency tokens. The class under test and exposed dependencies must be concrete because Suites instantiates them.
 
-
 ## Adapter development
 
 DI adapters implement contracts from `@suites/types.di`; doubles adapters implement contracts from `@suites/types.doubles`. Use `@suites/types.common` for shared constructor types. Read the [DI adapter contracts](https://github.com/suites-dev/unit/tree/master/packages/types/di#readme) before building an integration.

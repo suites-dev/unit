@@ -4,7 +4,6 @@ import type { ArgsType, Stub, StubbedInstance } from '@suites/types.doubles';
 import type {
   TestBedBuilder as TestBedBuilderCore,
   SociableTestBedBuilder as SociableSelectorCore,
-  SociableTestBedBuilderState as SociableTestBedBuilderStateCore,
   UnitReference as UnitReferenceCore,
   MockOverride as MockOverrideCore,
 } from '@suites/core.unit';
@@ -34,7 +33,7 @@ export type SociableTestBedBuilder<
   TMode extends SociableTestBedBuilderMode = 'initial',
 > = TMode extends 'initial'
   ? Pick<SociableSelectorCore<TClass>, 'expose' | 'compose'>
-  : SociableTestBedBuilderStateCore<TClass, Exclude<TMode, 'initial'>>;
+  : ReturnType<SociableSelectorCore<TClass>[TMode extends 'selective' ? 'expose' : 'compose']>;
 
 export interface SolitaryTestBedBuilder<TClass> extends TestBedBuilder<TClass> {}
 
