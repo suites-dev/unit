@@ -370,6 +370,9 @@ importers:
       '@suites/types.doubles':
         specifier: workspace:^4.0.2
         version: link:../../types/doubles
+      jest-mock:
+        specifier: ^30.5.2
+        version: 30.5.2
     devDependencies:
       '@jest/globals':
         specifier: ^30.5.2
