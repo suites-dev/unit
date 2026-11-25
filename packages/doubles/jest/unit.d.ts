@@ -24,7 +24,7 @@ declare module '@suites/unit' {
    * Represents a test double instance where all methods and properties are stubbed.
    *
    * This abstract type provides the foundation for creating test doubles in unit tests.
-   * When the testing adapter's `/unit` declaration is referenced, this type gains
+   * When the testing adapter's `/metadata` declaration is referenced, this type gains
    * framework-specific capabilities through TypeScript module augmentation.
    *
    * @template T The type of the object being transformed into a test double
