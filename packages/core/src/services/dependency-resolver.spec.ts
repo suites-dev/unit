@@ -1,3 +1,4 @@
+import { ok } from 'node:assert/strict';
 import type { Type } from '@suites/types.common';
 import type { ClassInjectable, DependencyInjectionAdapter } from '@suites/types.di';
 import { DependencyContainer } from './dependency-container.js';
@@ -11,8 +12,8 @@ class Root {
   ) {}
 }
 
-const primary = { named: 'primary' } as never;
-const secondary = { named: 'secondary' } as never;
+const primary = { named: 'primary' };
+const secondary = { named: 'secondary' };
 
 function adapterFor(target: Type, dependencies: ClassInjectable[]): DependencyInjectionAdapter {
   return {
@@ -34,13 +35,24 @@ describe('qualified dependency resolution', () => {
         [{ identifier: Provider, metadata: secondary }, second],
       ]),
       adapterFor(Root, [
-        { identifier: Provider, metadata: primary, type: 'PARAM' } as ClassInjectable,
-        { identifier: Provider, metadata: secondary, type: 'PARAM' } as ClassInjectable,
+        {
+          identifier: Provider,
+          metadata: primary,
+          type: 'PARAM',
+          value: Provider,
+        } as ClassInjectable,
+        {
+          identifier: Provider,
+          metadata: secondary,
+          type: 'PARAM',
+          value: Provider,
+        } as ClassInjectable,
       ]),
       jest.fn()
     );
 
-    const root = resolver.instantiateClass(Root) as unknown as Root;
+    const root = resolver.instantiateClass(Root);
+    ok(root instanceof Root);
     expect(root.first).toBe(first);
     expect(root.second).toBe(second);
     expect(resolver.getResolutionSummary().notFound).toEqual([]);
@@ -58,8 +70,8 @@ describe('qualified dependency resolution', () => {
     const second = resolver.resolveOrMock(Provider, secondary);
 
     expect(first).not.toBe(second);
-    expect(resolver.resolveOrMock(Provider, { named: 'primary' } as never)).toBe(first);
-    expect(resolver.resolveOrMock(Provider, { named: 'secondary' } as never)).toBe(second);
+    expect(resolver.resolveOrMock(Provider, { named: 'primary' })).toBe(first);
+    expect(resolver.resolveOrMock(Provider, { named: 'secondary' })).toBe(second);
     expect(mock).toHaveBeenCalledTimes(2);
   });
 
@@ -102,8 +114,8 @@ describe('qualified dependency resolution', () => {
     expect(second).not.toBe(first);
     expect(unqualified).not.toBe(first);
     expect(unqualified).not.toBe(second);
-    expect(resolver.instantiateClass(RealProvider, { named: 'primary' } as never)).toBe(first);
-    expect(resolver.instantiateClass(RealProvider, { named: 'secondary' } as never)).toBe(second);
+    expect(resolver.instantiateClass(RealProvider, { named: 'primary' })).toBe(first);
+    expect(resolver.instantiateClass(RealProvider, { named: 'secondary' })).toBe(second);
     expect(resolver.instantiateClass(RealProvider)).toBe(unqualified);
     expect(constructions).toBe(3);
   });
@@ -113,13 +125,14 @@ describe('qualified dependency resolution', () => {
     class RealProvider {
       nested!: Leaf;
     }
-    const propertyMetadata = { named: 'property' } as never;
+    const propertyMetadata = { named: 'property' };
     const resolver = new DependencyResolver(
       [RealProvider],
       new DependencyContainer([]),
       adapterFor(RealProvider, [
         {
           identifier: Leaf,
+          value: Leaf,
           metadata: propertyMetadata,
           type: 'PROPERTY',
           property: { key: 'nested' },
@@ -128,13 +141,10 @@ describe('qualified dependency resolution', () => {
       jest.fn(() => ({}))
     );
 
-    const first = resolver.resolveOrMock(RealProvider, primary) as unknown as RealProvider;
-    const second = resolver.resolveOrMock(
-      RealProvider,
-      propertyMetadata
-    ) as unknown as RealProvider;
-    expect(first).toBeInstanceOf(RealProvider);
-    expect(second).toBeInstanceOf(RealProvider);
+    const first = resolver.resolveOrMock(RealProvider, primary);
+    const second = resolver.resolveOrMock(RealProvider, propertyMetadata);
+    ok(first instanceof RealProvider);
+    ok(second instanceof RealProvider);
     expect(first).not.toBe(second);
     expect(first.nested).toBe(second.nested);
     expect(resolver.resolveOrMock(RealProvider, primary)).toBe(first);

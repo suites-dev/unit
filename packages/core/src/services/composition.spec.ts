@@ -23,8 +23,8 @@ function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdap
 
 const parameter = (identifier: InjectableIdentifier, metadata?: unknown): ClassInjectable =>
   ({ identifier, metadata, type: 'PARAM' }) as ClassInjectable;
-const primary = { named: 'primary' } as never;
-const secondary = { named: 'secondary' } as never;
+const primary = { named: 'primary' };
+const secondary = { named: 'secondary' };
 
 class Client {
   read(): string {
@@ -190,6 +190,7 @@ describe('opt-in composition', () => {
       {
         mode: 'composed',
         boundaries: new CompositionBoundaryContainer([
+          // @ts-expect-error JavaScript can supply a boundary that returns undefined.
           { kind: 'guard', identifier: Client, metadata: undefined, create: () => undefined },
         ]),
       }
@@ -273,14 +274,16 @@ describe('opt-in composition', () => {
           [
             {
               identifier: Repository,
+              value: Repository,
               type: 'PROPERTY',
               property: { key: 'first' },
-            } as ClassInjectable,
+            },
             {
               identifier: Repository,
+              value: Repository,
               type: 'PROPERTY',
               property: { key: 'second' },
-            } as ClassInjectable,
+            },
           ],
         ],
         [Repository, [parameter(Client)]],
