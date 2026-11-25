@@ -56,7 +56,7 @@ export const FakeAdapter: DependencyInjectionAdapter = {
           .get(targetClass)!
           .list()
           .find((injectable: WithMetadata<never>) => {
-            const subject = normalizeIdentifier(identifier, metadata as never);
+            const subject = normalizeIdentifier(identifier, metadata);
             const toFind = normalizeIdentifier(injectable.identifier, injectable.metadata);
 
             return isDeepStrictEqual(toFind, subject);

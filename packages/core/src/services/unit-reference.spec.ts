@@ -34,8 +34,8 @@ describe('Unit Reference Unit Spec', () => {
     ]);
 
     const fakedDependencies: IdentifierToFinal[] = [
-      [{ identifier: RealDependencyThree }, 'fake-value-1'],
-      [{ identifier: RealDependencyFour }, 'another-fake-value-2'],
+      [{ identifier: RealDependencyThree, metadata: undefined }, 'fake-value-1'],
+      [{ identifier: RealDependencyFour, metadata: undefined }, 'another-fake-value-2'],
     ];
 
     unitReference = new UnitReference(

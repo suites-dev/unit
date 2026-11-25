@@ -174,7 +174,7 @@ export const FakeDIAdapter: DependencyInjectionAdapter = {
         metadata?: IdentifierMetadata
       ): ClassInjectable | undefined {
         return classInjectables.find((injectable: WithMetadata<never>) => {
-          const subject = normalizeIdentifier(identifier, metadata as never);
+          const subject = normalizeIdentifier(identifier, metadata);
           const toFind = normalizeIdentifier(injectable.identifier, injectable.metadata);
 
           return isDeepStrictEqual(toFind, subject);

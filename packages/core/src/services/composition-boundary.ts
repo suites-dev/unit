@@ -4,29 +4,16 @@ import type { StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 
 export interface DependencyPathEntry {
-  identifier: InjectableIdentifier;
-  metadata?: IdentifierMetadata;
+  readonly identifier: InjectableIdentifier;
+  readonly metadata: IdentifierMetadata | undefined;
 }
 
-export type CompositionBoundary =
-  | {
-      kind: 'mock';
-      identifier: InjectableIdentifier;
-      metadata?: IdentifierMetadata;
-      value: StubbedInstance<unknown>;
-    }
-  | {
-      kind: 'final';
-      identifier: InjectableIdentifier;
-      metadata?: IdentifierMetadata;
-      value: FinalValue;
-    }
-  | {
-      kind: 'guard';
-      identifier: InjectableIdentifier;
-      metadata?: IdentifierMetadata;
-      create(path: readonly DependencyPathEntry[]): FinalValue;
-    };
+export type CompositionBoundary = DependencyPathEntry &
+  (
+    | { readonly kind: 'mock'; readonly value: StubbedInstance<unknown> }
+    | { readonly kind: 'final'; readonly value: FinalValue }
+    | { readonly kind: 'guard'; readonly create: (path: readonly DependencyPathEntry[]) => FinalValue }
+  );
 
 export interface CompositionBoundaryLookup {
   resolve(

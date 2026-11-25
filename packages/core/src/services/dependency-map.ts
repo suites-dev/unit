@@ -18,7 +18,7 @@ export class DependencyMap {
     value: Type | StubbedInstance<unknown> | FinalValue,
     metadata?: IdentifierMetadata
   ): void {
-    this.resolvedDependencies.push([{ identifier, metadata: metadata as never }, value]);
+    this.resolvedDependencies.push([{ identifier, metadata }, value]);
   }
 
   public get(

@@ -1,12 +1,8 @@
-import type { InjectableIdentifier } from '@suites/types.di';
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 
 export function normalizeIdentifier(
   identifier: InjectableIdentifier,
-  metadata: undefined | never = undefined
-): { identifier: InjectableIdentifier; metadata?: never } {
-  if (metadata) {
-    return Object.assign({ identifier }, { metadata });
-  }
-
-  return { identifier };
+  metadata: IdentifierMetadata | undefined = undefined
+) {
+  return { identifier, metadata } as const;
 }

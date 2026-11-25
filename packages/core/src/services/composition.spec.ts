@@ -164,7 +164,7 @@ describe('opt-in composition', () => {
       {
         compose: true,
         boundaries: new CompositionBoundaryContainer([
-          { kind: 'guard', identifier: Client, create: createGuard },
+          { kind: 'guard', identifier: Client, metadata: undefined, create: createGuard },
         ]),
       }
     );
@@ -185,7 +185,7 @@ describe('opt-in composition', () => {
       {
         compose: true,
         boundaries: new CompositionBoundaryContainer([
-          { kind: 'guard', identifier: Client, create: () => undefined },
+          { kind: 'guard', identifier: Client, metadata: undefined, create: () => undefined },
         ]),
       }
     );
@@ -212,7 +212,7 @@ describe('opt-in composition', () => {
       {
         compose: true,
         boundaries: new CompositionBoundaryContainer([
-          { kind: 'guard', identifier: Client, create: () => defaultBoundary },
+          { kind: 'guard', identifier: Client, metadata: undefined, create: () => defaultBoundary },
           {
             kind: 'guard',
             identifier: Client,

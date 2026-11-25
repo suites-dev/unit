@@ -7,7 +7,6 @@ import type {
   DependencyInjectionAdapter,
   IdentifierMetadata,
   InjectableIdentifier,
-  WithMetadata,
 } from '@suites/types.di';
 import type { CompositionBoundaryLookup, DependencyPathEntry } from './composition-boundary.js';
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
@@ -99,7 +98,7 @@ export class DependencyResolver {
 
     const boundary = this.resolveBoundary(identifier, metadata);
     if (boundary !== undefined) {
-      this.dependencyMap.set(identifier, boundary.value, metadata as never);
+      this.dependencyMap.set(identifier, boundary.value, metadata);
       return boundary.value;
     }
 
@@ -124,13 +123,13 @@ export class DependencyResolver {
       }
 
       const mock = this.mockFunction();
-      this.dependencyMap.set(identifier, mock, metadata as never);
+      this.dependencyMap.set(identifier, mock, metadata);
       return mock;
     }
 
     if (typeof identifier === 'function' && !this.isExposedClass(identifier)) {
       const mock = this.mockFunction();
-      this.dependencyMap.set(identifier, mock, metadata as never);
+      this.dependencyMap.set(identifier, mock, metadata);
       return mock;
     }
 
@@ -176,26 +175,20 @@ export class DependencyResolver {
 
       const ctorInjectables = injectableRegistry.list().filter(({ type }) => type === 'PARAM');
       const ctorParams = ctorInjectables.map(
-        ({ identifier: dependencyIdentifier, metadata: dependencyMetadata }: WithMetadata<never>) =>
-          this.resolveOrMock(dependencyIdentifier, dependencyMetadata)
+        (injectable) =>
+          this.resolveOrMock(injectable.identifier, 'metadata' in injectable ? injectable.metadata : undefined)
       );
 
       const instance = new type(...ctorParams);
-      this.dependencyMap.set(identifier, instance, metadata as never);
+      this.dependencyMap.set(identifier, instance, metadata);
 
       const propsInjectables = injectableRegistry.list().filter(({ type }) => type === 'PROPERTY');
-      propsInjectables.forEach(
-        ({
-          identifier: dependencyIdentifier,
-          metadata: dependencyMetadata,
-          property,
-        }: WithMetadata<never>) => {
-          instance[property!.key] = this.resolveOrMock(
-            dependencyIdentifier,
-            dependencyMetadata as IdentifierMetadata
-          );
-        }
-      );
+      propsInjectables.forEach((injectable) => {
+        instance[injectable.property!.key] = this.resolveOrMock(
+          injectable.identifier,
+          'metadata' in injectable ? injectable.metadata : undefined
+        );
+      });
 
       return instance;
     } finally {
