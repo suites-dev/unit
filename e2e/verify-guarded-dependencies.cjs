@@ -98,7 +98,8 @@ try {
     runner === 'jest'
       ? [
           '--config',
-          'jest.missing-guards.config.cjs',
+          'jest.caught-guard.config.cjs',
+          '--env=node',
           '--runInBand',
           '--json',
           '--outputFile',
@@ -125,6 +126,24 @@ try {
   assert.ok(existsSync(missingOutputFile), `${runner} did not produce a missing-setup report.`);
 
   if (runner === 'jest') {
+    const jasmineOutputFile = join(directory, 'jasmine-results.json');
+    const jasmineResult = spawnSync(
+      'pnpm',
+      [
+        'exec', 'jest', '--config', 'jest.caught-guard.config.cjs', '--testRunner', 'jest-jasmine2',
+        '--runInBand', '--json', '--outputFile', jasmineOutputFile,
+      ],
+      { encoding: 'utf8', env: { ...process.env, SUITES_GUARD_STEPS_FILE: stepsFile }, timeout: 60_000 }
+    );
+    assert.ifError(jasmineResult.error);
+    const jasmineOutput = jasmineResult.stdout + jasmineResult.stderr;
+    assert.equal(jasmineResult.status, 1, jasmineOutput);
+    assert.ok(readFileSync(stepsFile, 'utf8').includes('jest:caught-fallback-asserted'), jasmineOutput);
+    const jasmineReport = JSON.parse(readFileSync(jasmineOutputFile, 'utf8'));
+    assert.equal(jasmineReport.numFailedTestSuites, 1, jasmineOutput);
+    assert.equal(jasmineReport.numFailedTests, 0, jasmineOutput);
+    assert.match(jasmineReport.testResults[0].message, /undeclared dependency 'Inventory'/i);
+
     const customResult = spawnSync(
       'pnpm',
       [
