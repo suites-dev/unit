@@ -154,6 +154,20 @@ describe('guarded dependencies', () => {
     expect(lookup).not.toHaveBeenCalled();
   });
 
+  it('reports class and registered tokens that have no own label', () => {
+    class AnonymousToken {}
+    Reflect.deleteProperty(AnonymousToken, 'name');
+    const token = new TestToken('payments');
+    const guard = createGuardedDependency('undeclared dependency', token, undefined, [
+      { identifier: AnonymousToken, metadata: undefined },
+      { identifier: token, metadata: undefined },
+    ]);
+
+    expect(() => guard()).toThrow(
+      /undeclared dependency '\[object token\]'.*Dependency path: '\[function\]' -> '\[object token\]'/
+    );
+  });
+
   it('retains a data-property token description and bounds wide qualifier output', () => {
     const token = new TestToken('payments');
     Object.defineProperty(token, '_desc', { value: 'PAYMENTS' });
