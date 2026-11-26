@@ -34,6 +34,11 @@ function installAdapter(kind, scenario) {
   rmSync(path, { recursive: true, force: true });
   if (scenario === 'missing') return;
   mkdirSync(path);
+  if (scenario === 'broken-entry' || scenario === 'invalid-exports') {
+    const entry = scenario === 'broken-entry' ? './missing.cjs' : '../invalid.cjs';
+    writeFileSync(join(path, 'package.json'), JSON.stringify({ exports: entry }));
+    return;
+  }
   const sources = {
     valid: valid[kind],
     throws: 'throw globalThis.adapterFailure;',
@@ -64,7 +69,15 @@ try {
     entry +
     'verify(TestBed, ...process.argv.slice(1)).catch(error => { console.error(error); process.exitCode = 1; });';
   for (const [kind, name] of Object.entries(packages)) {
-    for (const scenario of ['valid', 'missing', 'throws', 'no-export', 'malformed']) {
+    for (const scenario of [
+      'valid',
+      'missing',
+      'throws',
+      'no-export',
+      'malformed',
+      'broken-entry',
+      'invalid-exports',
+    ]) {
       for (const adapter of Object.keys(packages)) {
         installAdapter(adapter, adapter === kind ? scenario : 'valid');
       }

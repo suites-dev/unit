@@ -1,4 +1,4 @@
-import { adapter } from './assets/test-adapter.js';
+import { adapter } from './assets/doubles-adapter.js';
 import { testBedBuilderFactory } from '../src/testbed-builder.js';
 
 const initiationStub = jest.fn();
@@ -22,7 +22,7 @@ describe('Testbed Builder Unit Spec', () => {
   beforeAll(async () => {
     result = testBedBuilderFactory(
       { test: __dirname + '/assets/test-adapter' },
-      { test: __dirname + '/assets/test-adapter' },
+      { test: __dirname + '/assets/doubles-adapter' },
       TargetClass
     ).create(FakeBuilderType);
   });

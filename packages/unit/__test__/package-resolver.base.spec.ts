@@ -1,5 +1,9 @@
 import type { DependencyInjectionAdapter } from '@suites/types.di';
-import { PackageResolver, type PackageResolverStrategy } from '../src/package-resolver.base.js';
+import {
+  diContract,
+  PackageResolver,
+  type PackageResolverStrategy,
+} from '../src/package-resolver.base.js';
 
 class EmptyService {}
 
@@ -13,7 +17,8 @@ describe('PackageResolver Unit Spec', () => {
         mockStrategy = jest.fn((path: string) => path.includes('test-adapter'));
         packageResolver = new PackageResolver<DependencyInjectionAdapter>(
           { test: __dirname + '/assets/test-adapter' },
-          mockStrategy
+          mockStrategy,
+          diContract
         );
       });
 
@@ -39,13 +44,14 @@ describe('PackageResolver Unit Spec', () => {
             adapter1: 'package-1',
             adapter2: 'package-2',
           },
-          mockStrategy
+          mockStrategy,
+          diContract
         );
       });
 
-      it('should throw "Adapter not found" error', async () => {
+      it('should report that no compatible adapter was found', async () => {
         await expect(packageResolver.resolveCorrespondingAdapter()).rejects.toThrow(
-          'Adapter not found'
+          'No compatible adapter found'
         );
       });
 
@@ -67,13 +73,14 @@ describe('PackageResolver Unit Spec', () => {
         const mockStrategy = jest.fn().mockReturnValue(true);
         packageResolver = new PackageResolver<DependencyInjectionAdapter>(
           { invalid: __dirname + '/assets/invalid-adapter' },
-          mockStrategy
+          mockStrategy,
+          diContract
         );
       });
 
-      it('should throw "Adapter has no export" error', async () => {
+      it('should identify the missing adapter export', async () => {
         await expect(packageResolver.resolveCorrespondingAdapter()).rejects.toThrow(
-          'Adapter has no export'
+          'Expected a named "adapter" export'
         );
       });
     });
@@ -91,7 +98,8 @@ describe('PackageResolver Unit Spec', () => {
             test: __dirname + '/assets/test-adapter',
             another: 'another-nonexistent',
           },
-          mockStrategy
+          mockStrategy,
+          diContract
         );
       });
 
@@ -113,12 +121,16 @@ describe('PackageResolver Unit Spec', () => {
 
       beforeEach(() => {
         const mockStrategy = jest.fn().mockReturnValue(true);
-        packageResolver = new PackageResolver<DependencyInjectionAdapter>({}, mockStrategy);
+        packageResolver = new PackageResolver<DependencyInjectionAdapter>(
+          {},
+          mockStrategy,
+          diContract
+        );
       });
 
-      it('should throw "Adapter not found" error', async () => {
+      it('should report that no compatible adapter was found', async () => {
         await expect(packageResolver.resolveCorrespondingAdapter()).rejects.toThrow(
-          'Adapter not found'
+          'No compatible adapter found'
         );
       });
     });

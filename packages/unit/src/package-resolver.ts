@@ -1,35 +1,17 @@
-/**
- * CJS version of PackageResolver with require.resolve strategy.
- * Pure IoC composition with factory function.
- * @module
- */
+import { checkPackage, PackageResolver, type AdapterContract } from './package-resolver.base.js';
 
-import type { DependencyInjectionAdapter } from '@suites/types.di';
-import type { DoublesAdapter } from '@suites/types.doubles';
-import {
-  PackageResolver as BasePackageResolver,
-  type PackageResolverStrategy,
-} from './package-resolver.base.js';
-
-/**
- * CJS package resolution strategy using require.resolve
- */
-function createCjsResolverStrategy(): PackageResolverStrategy {
-  return (path: string): boolean => {
-    try {
-      require.resolve(path);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-}
-
-/**
- * Creates a PackageResolver instance with CJS resolution strategy
- */
-export function createPackageResolver<TAdapter extends DependencyInjectionAdapter | DoublesAdapter>(
-  adapters: Record<string, string>
-): BasePackageResolver<TAdapter> {
-  return new BasePackageResolver<TAdapter>(adapters, createCjsResolverStrategy());
+export function createPackageResolver<T>(
+  adapters: Readonly<Record<string, string>>,
+  contract: AdapterContract<T>
+): PackageResolver<T> {
+  return new PackageResolver(
+    adapters,
+    (name) =>
+      checkPackage(
+        name,
+        () => require.resolve(name),
+        () => require.resolve.paths(name)
+      ),
+    contract
+  );
 }
