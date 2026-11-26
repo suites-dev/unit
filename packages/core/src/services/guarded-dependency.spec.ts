@@ -8,6 +8,7 @@ import {
   dependencyVerificationKey,
 } from '../dependency-verification-internal.js';
 
+import { TestToken } from '../../__test__/test-token.js';
 import { DependencyContainer } from './dependency-container.js';
 import { UnitReference } from './unit-reference.js';
 
@@ -139,6 +140,31 @@ describe('guarded dependencies', () => {
       /Cannot call forbidden dependency.*Dependency path: 'Checkout'.*'Symbol\(audit\)'.*primary/
     );
     expect(hook).not.toHaveBeenCalled();
+  });
+
+  it('reports registered object tokens without invoking a description getter', () => {
+    const token = new TestToken('payments');
+    const lookup = jest.fn(() => {
+      throw new Error('unexpected description read');
+    });
+    Object.defineProperty(token, '_desc', { get: lookup });
+    const guard = createGuardedDependency('undeclared dependency', token, undefined, []);
+
+    expect(() => guard()).toThrow(/undeclared dependency '\[object token\]'/);
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
+  it('retains a data-property token description and bounds wide qualifier output', () => {
+    const token = new TestToken('payments');
+    Object.defineProperty(token, '_desc', { value: 'PAYMENTS' });
+    const qualifier = Object.fromEntries(Array.from({ length: 9 }, (_, index) => [index, index]));
+
+    const guard = createGuardedDependency('forbidden dependency', token, qualifier, [
+      { identifier: Checkout, metadata: { region: null } },
+    ]);
+    expect(() => guard()).toThrow(
+      /forbidden dependency 'PAYMENTS', with metadata \[opaque\].*'Checkout', with metadata {"region":null}/
+    );
   });
 
   it('includes qualified identifiers and the dependency path in diagnostics', () => {
