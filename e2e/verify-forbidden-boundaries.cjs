@@ -75,6 +75,7 @@ try {
 
   assert.ok(existsSync(stepsFile), `${runner} did not record caught boundary accesses.\n${output}`);
   const steps = readFileSync(stepsFile, 'utf8').trim().split('\n');
+  assert.ok(!steps.includes('diagnostic-hook-called'), `${runner} invoked a token or qualifier hook`);
   for (const step of [`${runner}:constructor-caught`, `${runner}:token-caught`]) {
     assert.ok(steps.includes(step), `Missing completed step ${step}.\n${output}`);
   }

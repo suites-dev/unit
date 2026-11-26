@@ -99,7 +99,7 @@ describe('guarded dependencies', () => {
       throw new Error('Unexpected inspection');
     });
     const proxy = new Proxy(
-      {},
+      class {},
       {
         get: hook,
         getPrototypeOf: hook,
@@ -122,11 +122,11 @@ describe('guarded dependencies', () => {
     circular.self = circular;
     const guard = createGuardedDependency(
       'forbidden dependency',
-      { toString: hook } as never,
+      AccessorName,
       qualifier,
       [
         { identifier: Checkout, metadata: undefined },
-        { identifier: proxy as never, metadata: proxy },
+        { identifier: proxy, metadata: new Proxy({}, { ownKeys: hook, get: hook }) },
         { identifier: AccessorName, metadata: circular },
         { identifier: revoked.proxy, metadata: undefined },
         { identifier: Symbol('audit'), metadata: { named: 'primary' } },

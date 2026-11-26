@@ -168,6 +168,7 @@ it('records caught access to a forbidden object token', async () => {
 
   const { unit } = await TestBed.sociable(PaymentCheckout).compose().forbid(token).compile();
   token.toString = () => {
+    recordStep('diagnostic-hook-called');
     throw new Error('Token cannot be coerced');
   };
 

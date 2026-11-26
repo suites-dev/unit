@@ -191,6 +191,7 @@ it('fails when a caught token forbidden boundary is accessed', async () => {
 it('records caught access to an undeclared qualified token', async () => {
   const region = {
     toJSON() {
+      recordStep('diagnostic-hook-called');
       throw new Error('Region cannot be serialized');
     },
   };
