@@ -1,5 +1,6 @@
 import type { DependencyInjectionAdapter } from '@suites/types.di';
 import {
+  checkPackage,
   diContract,
   PackageResolver,
   type PackageResolverStrategy,
@@ -30,6 +31,51 @@ describe('PackageResolver Unit Spec', () => {
       it('should successfully resolve the adapter', async () => {
         const adapter = await packageResolver.resolveCorrespondingAdapter();
         expect(adapter.inspect(EmptyService).list()).toEqual([]);
+      });
+    });
+
+    it('preserves the initialization error from the first installed adapter', async () => {
+      const cause = new Error('The DI framework failed to initialize');
+      const name = 'throwing-di-adapter';
+      jest.doMock(
+        name,
+        () => {
+          throw cause;
+        },
+        { virtual: true }
+      );
+      const installed = jest.fn(() => true);
+      const resolver = new PackageResolver(
+        { first: name, fallback: __dirname + '/assets/test-adapter' },
+        installed,
+        diContract
+      );
+
+      await expect(resolver.resolveCorrespondingAdapter()).rejects.toMatchObject({
+        code: 'ER021',
+        cause,
+        message: expect.stringContaining(name),
+      });
+      expect(installed.mock.calls).toEqual([[name]]);
+    });
+
+    it('reports a broken entry point separately from an absent package', async () => {
+      const cause = new Error('Invalid package entry point');
+      const resolve = () => {
+        throw cause;
+      };
+      // Search from the installed Suites packages visible to this consumer.
+      const searchPaths = () => require.resolve.paths('@suites/types.di');
+      const resolver = new PackageResolver(
+        { absent: 'absent-di-adapter', installed: '@suites/types.di' },
+        (name) => checkPackage(name, resolve, searchPaths),
+        diContract
+      );
+
+      await expect(resolver.resolveCorrespondingAdapter()).rejects.toMatchObject({
+        code: 'ER021',
+        cause,
+        message: expect.stringContaining('@suites/types.di'),
       });
     });
 
