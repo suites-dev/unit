@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { beforeEach, expect, it } from 'vitest';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, tagged } from 'inversify';
 import { TestBed } from '@suites/unit';
 import { appendFileSync } from 'node:fs';
 import { env } from 'node:process';
@@ -186,4 +186,21 @@ it('fails when a caught token forbidden boundary is accessed', async () => {
     /Dependency path:\s*'TokenCheckout'\s*->\s*'AUDIT'/i
   );
   recordStep(`${env.SUITES_FORBID_RUNNER}:token-caught`);
+});
+
+it('records caught access to an undeclared qualified token', async () => {
+  const region = {
+    toJSON() {
+      throw new Error('Region cannot be serialized');
+    },
+  };
+
+  @injectable()
+  class PaymentCheckout {
+    constructor(@inject('PAYMENTS') @tagged('region', region) readonly payments: Boundary) {}
+  }
+
+  const { unit } = await TestBed.sociable(PaymentCheckout).compose().compile();
+
+  expect(() => unit.payments.read()).toThrow();
 });

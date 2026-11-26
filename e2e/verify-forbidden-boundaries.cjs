@@ -58,6 +58,21 @@ try {
   assert.match(diagnostics, /forbidden dependency/i, diagnostics || output);
   assert.match(diagnostics, /Dependency path:/i, diagnostics || output);
 
+  if (tests.some((test) => test.title === 'records caught access to a forbidden object token')) {
+    assert.match(
+      diagnostics,
+      /Cannot read read on forbidden dependency.*Dependency path: 'PaymentCheckout'/i
+    );
+  }
+  if (
+    tests.some((test) => test.title === 'records caught access to an undeclared qualified token')
+  ) {
+    assert.match(
+      diagnostics,
+      /Cannot read read on undeclared dependency 'PAYMENTS', with metadata.*Dependency path: 'PaymentCheckout'/i
+    );
+  }
+
   assert.ok(existsSync(stepsFile), `${runner} did not record caught boundary accesses.\n${output}`);
   const steps = readFileSync(stepsFile, 'utf8').trim().split('\n');
   for (const step of [`${runner}:constructor-caught`, `${runner}:token-caught`]) {

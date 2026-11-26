@@ -94,6 +94,53 @@ describe('guarded dependencies', () => {
     expect(ledger.finish()?.message).toMatch(/forbidden dependency 'Inventory'/i);
   });
 
+  it('reports opaque identifiers and qualifiers without invoking their hooks', () => {
+    const hook = jest.fn((): never => {
+      throw new Error('Unexpected inspection');
+    });
+    const proxy = new Proxy(
+      {},
+      {
+        get: hook,
+        getPrototypeOf: hook,
+        ownKeys: hook,
+        getOwnPropertyDescriptor: hook,
+      }
+    );
+    const revoked = Proxy.revocable(class {}, {});
+    revoked.revoke();
+    class AccessorName {}
+    Object.defineProperty(AccessorName, 'name', { get: hook });
+    const qualifier = {
+      get region() {
+        return hook();
+      },
+      toJSON: hook,
+      proxy,
+    };
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    const guard = createGuardedDependency(
+      'forbidden dependency',
+      { toString: hook } as never,
+      qualifier,
+      [
+        { identifier: Checkout, metadata: undefined },
+        { identifier: proxy as never, metadata: proxy },
+        { identifier: AccessorName, metadata: circular },
+        { identifier: revoked.proxy, metadata: undefined },
+        { identifier: Symbol('audit'), metadata: { named: 'primary' } },
+      ]
+    );
+
+    const inspect = Reflect.get(guard, Symbol.for('nodejs.util.inspect.custom'));
+    expect(inspect()).toContain('Guarded forbidden dependency');
+    expect(() => guard()).toThrow(
+      /Cannot call forbidden dependency.*Dependency path: 'Checkout'.*'Symbol\(audit\)'.*primary/
+    );
+    expect(hook).not.toHaveBeenCalled();
+  });
+
   it('includes qualified identifiers and the dependency path in diagnostics', () => {
     const metadata = { named: 'primary' } as never;
     const guard = createGuardedDependency('undeclared dependency', 'INVENTORY', metadata, [
