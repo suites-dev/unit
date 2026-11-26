@@ -49,6 +49,22 @@ describe('dependency violation verification', () => {
     );
   });
 
+  it('keeps the original diagnostic and call site without giving runners application objects', () => {
+    const ledger = new DependencyViolationLedger();
+    const metadata = { named: 'primary' };
+    const violation = Object.assign(new Error('guarded access'), { metadata });
+    const stack = violation.stack;
+
+    ledger.record(violation);
+    violation.message = 'application changed the caught error';
+
+    const result = ledger.finish();
+    expect(result?.message).toContain('guarded access');
+    expect(result?.violations[0].stack).toBe(stack);
+    expect(result?.violations[0]).not.toHaveProperty('metadata');
+    expect(violation.metadata).toBe(metadata);
+  });
+
   it('schedules a one-time setup failure when runner integration is missing', () => {
     const violation = new Error('guarded access');
     const scheduledFailures: Array<() => void> = [];

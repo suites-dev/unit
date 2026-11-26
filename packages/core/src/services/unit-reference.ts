@@ -1,4 +1,4 @@
-import { isGuardedDependency } from './guarded-dependency.js';
+import { formatGuardedIdentifier, isGuardedDependency } from './guarded-dependency.js';
 import { isDeepStrictEqual } from 'node:util';
 import type { StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
@@ -179,7 +179,7 @@ export class UnitReference {
     const selectedDependency = this.mocksContainer.resolveEntry(identifier, identifierMetadata);
 
     if (isGuardedDependency(selectedDependency?.[1])) {
-      const name = stringifyIdentifier(identifier, identifierMetadata);
+      const name = formatGuardedIdentifier(identifier, identifierMetadata);
       throw new DependencyResolutionError(
         `Cannot retrieve guarded dependency ${name}. Declare a mock for this identifier before compiling the test.`
       );
