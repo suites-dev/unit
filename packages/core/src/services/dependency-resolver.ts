@@ -52,7 +52,7 @@ export class DependencyResolver {
       return false;
     }
 
-    return this.adapter.isConstructable?.(identifier as Type) === true;
+    return this.adapter.canAutoConstruct?.(identifier as Type) === true;
   }
 
   private resolveBoundary(

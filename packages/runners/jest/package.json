@@ -23,10 +23,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./environment": {
-      "types": "./dist/environment.d.ts",
-      "default": "./dist/environment.js"
     }
   },
   "scripts": {
@@ -36,13 +32,6 @@
   "files": [
     "dist"
   ],
-  "typesVersions": {
-    "*": {
-      "environment": [
-        "dist/environment.d.ts"
-      ]
-    }
-  },
   "dependencies": {
     "@suites/core.unit": "workspace:^4.1.3",
     "@jest/environment": "^30.5.2",

@@ -6,6 +6,6 @@ export default defineConfig({
   test: {
     ...config.test,
     include: ['**/guarded-dependencies.guard.test.ts'],
-    setupFiles: ['@suites/runners.vitest/setup'],
+    setupFiles: ['@suites/runners.vitest'],
   },
 });

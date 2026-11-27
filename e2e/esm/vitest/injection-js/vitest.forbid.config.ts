@@ -6,6 +6,6 @@ export default defineConfig({
   test: {
     ...config.test,
     include: ['**/forbidden-boundaries.guard.test.ts'],
-    setupFiles: ['@suites/runners.vitest/setup'],
+    setupFiles: ['@suites/runners.vitest'],
   },
 });

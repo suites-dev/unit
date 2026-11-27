@@ -152,10 +152,10 @@ An undeclared dependency can be injected and left unused. Reading or calling it 
 
 | Runner | Install alongside the doubles adapter | Project configuration |
 | --- | --- | --- |
-| Jest 30.5.2 or later in v30 | `pnpm add -D @suites/runners.jest` | Set `testEnvironment` to `'@suites/runners.jest/environment'`. |
-| Vitest 5.1 or later in v5 | `pnpm add -D @suites/runners.vitest` | Add `'@suites/runners.vitest/setup'` to `test.setupFiles`. |
+| Jest 30.5.2 or later in v30 | `pnpm add -D @suites/runners.jest` | Set `testEnvironment` to `'@suites/runners.jest'`. |
+| Vitest 5.1 or later in v5 | `pnpm add -D @suites/runners.vitest` | Add `'@suites/runners.vitest'` to `test.setupFiles`. |
 
-For a custom Jest environment, export `withDependencyVerification(ExistingEnvironment)` from your environment module using the helper in `@suites/runners.jest/environment`. Jest Circus and Vitest can report a caught assertion as passed while marking its suite failed and exiting with status 1.
+For a custom Jest environment, export `withDependencyVerification(ExistingEnvironment)` from your environment module using the helper in `@suites/runners.jest`. Jest Circus and Vitest can report a caught assertion as passed while marking its suite failed and exiting with status 1.
 
 Choose one mode before configuring or compiling a sociable test. Replace repeated calls such as `.expose(A).expose(B)` with `.expose(A, B)`. Use `.compose()` to construct the injectable graph recursively:
 
