@@ -11,6 +11,8 @@ import { DependencyResolver, type ResolverOptions } from './dependency-resolver.
 import { SociableTestBedBuilder } from './builders/sociable-unit-builder.js';
 import { UnitMocker } from './unit-mocker.js';
 
+import { TestToken } from '../../__test__/test-token.js';
+
 function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdapter {
   return {
     canAutoConstruct: (type: Type) => entries.some(([target]) => type === target),
@@ -48,6 +50,7 @@ const adapter = registry([
 
 const composed = {
   mode: 'composed',
+  bindings: new Map(),
   boundaries: new CompositionBoundaryContainer([]),
 } satisfies ResolverOptions;
 
@@ -61,7 +64,7 @@ function resolver(options: ResolverOptions = { mode: 'solitary' }) {
   );
 }
 
-function builder(target: Type<Service> = Service) {
+function createBuilder<TClass>(target: Type<TClass>, currentAdapter: DependencyInjectionAdapter) {
   const doubles = Promise.resolve({
     mock: jest.fn((implementation: unknown) => implementation ?? {}),
     stub: jest.fn,
@@ -70,11 +73,15 @@ function builder(target: Type<Service> = Service) {
     doubles,
     new UnitMocker(
       doubles.then((value) => value.mock),
-      Promise.resolve(adapter)
+      Promise.resolve(currentAdapter)
     ),
     target,
     console
   );
+}
+
+function builder(target: Type<Service> = Service) {
+  return createBuilder(target, adapter);
 }
 
 describe('opt-in composition', () => {
@@ -168,6 +175,7 @@ describe('opt-in composition', () => {
       jest.fn(() => ({})),
       {
         mode: 'composed',
+        bindings: new Map(),
         boundaries: new CompositionBoundaryContainer([
           { kind: 'guard', identifier: Client, metadata: undefined, create: createGuard },
         ]),
@@ -189,6 +197,7 @@ describe('opt-in composition', () => {
       jest.fn(() => ({})),
       {
         mode: 'composed',
+        bindings: new Map(),
         boundaries: new CompositionBoundaryContainer([
           // @ts-expect-error JavaScript can supply a boundary that returns undefined.
           { kind: 'guard', identifier: Client, metadata: undefined, create: () => undefined },
@@ -217,6 +226,7 @@ describe('opt-in composition', () => {
       jest.fn(() => ({})),
       {
         mode: 'composed',
+        bindings: new Map(),
         boundaries: new CompositionBoundaryContainer([
           { kind: 'guard', identifier: Client, metadata: undefined, create: () => defaultBoundary },
           {
@@ -297,6 +307,127 @@ describe('opt-in composition', () => {
     expect(instance.first).toBeInstanceOf(Repository);
     expect(instance.second).toBe(instance.first);
     expect(instance.first.client).toBeInstanceOf(Client);
+  });
+
+  it('constructs the same registered adapter token in selective and composed modes', async () => {
+    const token = new TestToken<Repository>('repository');
+    class BoundRoot {
+      constructor(
+        readonly repository: Repository,
+        readonly repeated: Repository
+      ) {}
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(token), parameter(token)]],
+      [Repository, [parameter(Client)]],
+      [Client, []],
+    ]);
+    const fresh = () => createBuilder(BoundRoot, currentAdapter);
+
+    const selective = fresh().expose(Client);
+    const composed = fresh().compose();
+    const exposed = await selective.bind(token, Repository).compile();
+    const recursive = await composed.bind(token, Repository).compile();
+    for (const result of [exposed, recursive]) {
+      expect(result.unit.repository).toBeInstanceOf(Repository);
+      expect(result.unit.repository).toBe(result.unit.repeated);
+      expect(result.unit.repository.client).toBeInstanceOf(Client);
+      expect(() => result.unitRef.get(token)).toThrow('exposed dependency');
+    }
+  });
+
+  it('keeps requested token identities distinct when implementations match', async () => {
+    const first = Symbol('repository');
+    const second = Symbol('repository');
+    class BoundRoot {
+      constructor(
+        readonly first: Repository,
+        readonly repeated: Repository,
+        readonly second: Repository
+      ) {}
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(first), parameter(first), parameter(second)]],
+      [Repository, [parameter(Client)]],
+      [Client, []],
+    ]);
+
+    const { unit } = await createBuilder(BoundRoot, currentAdapter)
+      .compose()
+      .bind(first, Repository)
+      .bind(second, Repository)
+      .compile();
+
+    expect(unit.first).toBe(unit.repeated);
+    expect(unit.first).not.toBe(unit.second);
+  });
+
+  it('rejects token-wide overrides and bindings before constructing any collaborator', async () => {
+    const token = Symbol('repository');
+    const constructed = jest.fn();
+    const configureMock = jest.fn(() => ({}));
+    class BoundRepository {
+      constructor() {
+        constructed();
+      }
+    }
+    class BoundRoot {
+      constructor(readonly repository: BoundRepository) {
+        constructed();
+      }
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(token)]],
+      [BoundRepository, []],
+    ]);
+    const selector = createBuilder(BoundRoot, currentAdapter);
+    for (const mode of [selector.expose(BoundRepository), selector.compose()]) {
+      const bound = mode.bind(token, BoundRepository);
+      const declarations = [
+        bound.mock(token).impl(configureMock),
+        bound.mock(token).final({}),
+        mode.mock(token).impl(configureMock).bind(token, BoundRepository),
+        mode.mock(token).final({}).bind(token, BoundRepository),
+      ];
+      for (const declaration of declarations) {
+        await expect(declaration.compile()).rejects.toThrow(/conflicting.*repository/i);
+      }
+    }
+    expect(constructed).not.toHaveBeenCalled();
+    expect(configureMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects contradictory bindings in both construction modes', async () => {
+    const token = Symbol('repository');
+    class AlternativeRepository extends Repository {}
+    class BoundRoot {
+      constructor(readonly repository: Repository) {}
+    }
+    const currentAdapter = registry([
+      [BoundRoot, [parameter(token)]],
+      [Repository, [parameter(Client)]],
+      [AlternativeRepository, [parameter(Client)]],
+      [Client, []],
+    ]);
+    const fresh = () => createBuilder(BoundRoot, currentAdapter);
+
+    await expect(
+      fresh().expose(Client).bind(token, Repository).bind(token, AlternativeRepository).compile()
+    ).rejects.toThrow(/Conflicting bindings.*repository/);
+    await expect(
+      fresh().compose().bind(token, Repository).bind(token, AlternativeRepository).compile()
+    ).rejects.toThrow(/Conflicting bindings.*repository/);
+    const base = fresh().expose(Client).bind(token, Repository);
+    const conflicting = base.bind(token, AlternativeRepository);
+    await expect(conflicting.compile()).rejects.toThrow(/Conflicting bindings.*repository/);
+    await expect(base.bind(token, Repository).compile()).resolves.toBeDefined();
+  });
+
+  it('rejects a binding without a runtime implementation', () => {
+    const current = builder().compose();
+    expect(() => Reflect.apply(current.bind, current, ['repository', undefined])).toThrow(
+      'requires a concrete implementation'
+    );
   });
 
   it('reports constructor cycles with their dependency path', () => {

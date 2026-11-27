@@ -219,10 +219,10 @@ export interface TestBed {
   solitary<TClass>(targetClass: Type<TClass>): SolitaryTestBedBuilder<TClass>;
 
   /**
-   * Creates a TestBedBuilder instance for the given target class for sociable testing.
-   * Sociable testing allows for the inclusion of real implementations or partial mocks of certain dependencies.
-   * This method returns a subset of the SociableTestBedBuilder's methods, focusing on exposing
-   * specific dependencies that should be included in their real or partially mocked state.
+   * Selects how real dependencies are constructed. Use expose(First, ...rest)
+   * for specific classes or compose() for the adapter-recognized dependency graph.
+   * Both modes accept bind(token, Implementation) to construct an implementation
+   * when a dependency requests the token.
    *
    * @see {@link https://suites.dev/docs/api-reference/testbed-sociable | TestBed.sociable() API Reference}
    * @template TClass - The type of the target class.
