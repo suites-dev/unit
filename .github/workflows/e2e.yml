@@ -4,11 +4,6 @@ env:
 
 on:
   pull_request:
-    branches:
-      - master
-      - next
-      - 'feat/v5-*'
-      - 'test/v5-*'
   workflow_dispatch:
 
 permissions:
