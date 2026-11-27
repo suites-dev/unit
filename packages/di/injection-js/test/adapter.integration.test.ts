@@ -205,3 +205,46 @@ describe('InjectionJS constructor adapter', () => {
     expect(caught).toBe(cause);
   });
 });
+
+describe('InjectionJS static metadata diagnostics', () => {
+  it('preserves the declared index when static metadata covers only the first argument', () => {
+    class Checkout {
+      static parameters = [[Repository]];
+      constructor(
+        readonly first: Repository,
+        readonly missing: unknown
+      ) {}
+    }
+    expect(adapter.inspect(Checkout)).toMatchObject({
+      kind: 'failure',
+      target: Checkout,
+      reason: 'undefined-dependency',
+      location: { kind: 'parameter', index: 1 },
+      cause: expect.any(Error),
+    });
+  });
+
+  it('accepts raw static tokens as the production resolver does', () => {
+    class Checkout {
+      static parameters = [new Inject(TOKEN)];
+      constructor(readonly repository: unknown) {}
+    }
+    const [dependency] = ReflectiveInjector.resolve([Checkout])[0].resolvedFactories[0]
+      .dependencies;
+    expect(registryFor(Checkout).list()[0].identifier).toBe(dependency.key.token);
+  });
+
+  it('handles lowered decorators in their array form with an explicit undefined token', () => {
+    class Checkout {
+      static ctorParameters = [{ type: Object, decorators: [{ type: Inject, args: [undefined] }] }];
+      constructor(readonly repository: unknown) {}
+    }
+    expect(adapter.inspect(Checkout)).toMatchObject({
+      kind: 'failure',
+      target: Checkout,
+      reason: 'undefined-token',
+      location: { kind: 'parameter', index: 0 },
+      cause: expect.any(Error),
+    });
+  });
+});
