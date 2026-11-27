@@ -84,6 +84,7 @@ function expectForbidden(use: () => string, identifier: string, path: RegExp): v
     caught = error;
   }
   expect(caught).toBeInstanceOf(Error);
+  expect(caught).toMatchObject({ code: 'ER051', severity: 'error' });
   if (!(caught instanceof Error)) throw new Error('Forbidden access did not throw');
   expect(caught.message).toMatch(new RegExp(`forbidden dependency '${identifier}'`, 'i'));
   expect(caught.message).toMatch(path);

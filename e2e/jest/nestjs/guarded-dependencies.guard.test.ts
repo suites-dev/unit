@@ -12,6 +12,7 @@ function expectCaughtGuard(unit: Checkout): void {
   expect(unit.availableOrFallback()).toBe(false);
   const caught = unit.caughtError;
   expect(caught).toBeInstanceOf(Error);
+  expect(caught).toMatchObject({ code: 'ER050', severity: 'error' });
   if (!(caught instanceof Error)) throw new Error('Checkout did not catch an error');
   expect(caught.message).toMatch(/Cannot read available on undeclared dependency 'Inventory'/i);
   expect(caught.message).toMatch(/Dependency path:[^\n]*Checkout[^\n]*->[^\n]*StockService[^\n]*->[^\n]*Inventory/i);

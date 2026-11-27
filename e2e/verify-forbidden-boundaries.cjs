@@ -55,6 +55,8 @@ try {
     ])
     .filter(Boolean)
     .join('\n');
+  assert.match(diagnostics, /\bER051\b/);
+  assert.match(diagnostics, /\bER052\b/);
   assert.match(diagnostics, /forbidden dependency/i, diagnostics || output);
   assert.match(diagnostics, /Dependency path:/i, diagnostics || output);
 
