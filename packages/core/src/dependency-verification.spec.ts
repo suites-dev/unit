@@ -26,6 +26,8 @@ describe('dependency violation verification', () => {
       expect.objectContaining({
         name: 'DependencyVerificationError',
         violations: [violation],
+        code: 'ER052',
+        severity: 'error',
       })
     );
 
@@ -69,18 +71,22 @@ describe('dependency violation verification', () => {
   it('schedules a one-time setup failure when runner integration is missing', () => {
     const violation = new Error('guarded access');
     const scheduledFailures: Array<() => void> = [];
-    const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => {
+      throw new Error('stderr is closed');
+    });
     const queue = jest
       .spyOn(global, 'queueMicrotask')
       .mockImplementation((callback) => scheduledFailures.push(callback));
 
     try {
       expect(() => reportDependencyViolation(violation)).toThrow(violation);
-      expect(stderr).toHaveBeenCalledWith(
-        expect.stringMatching(/dependency verification is not configured.*setupFiles/i)
-      );
+      expect(stderr).toHaveBeenCalledWith(expect.stringMatching(/ER053[\s\S]*setupFiles/i));
       expect(scheduledFailures).toHaveLength(1);
-      expect(scheduledFailures[0]).toThrow(/dependency verification is not configured/i);
+      expect(scheduledFailures[0]).toThrow(expect.objectContaining({
+        code: 'ER053',
+        severity: 'error',
+        message: expect.stringMatching(/dependency verification is not configured[\s\S]*setupFiles/i),
+      }));
 
       expect(() => reportDependencyViolation(violation)).toThrow(violation);
       expect(stderr).toHaveBeenCalledTimes(1);
@@ -89,6 +95,13 @@ describe('dependency violation verification', () => {
       queue.mockRestore();
       stderr.mockRestore();
     }
+  });
+
+  it('retains undefined thrown by a suite alongside the guard', () => {
+    const ledger = new DependencyViolationLedger();
+    ledger.record(new Error('guarded access'));
+
+    expect(ledger.finish(undefined)?.errors).toEqual([undefined, new Error('guarded access')]);
   });
 
   it('retains an ordinary suite failure alongside violations', () => {

@@ -90,7 +90,7 @@ describe('Unit Mocker Unit Spec', () => {
     underTest = new UnitMocker(
       Promise.resolve(() => MockedFromBuilder),
       Promise.resolve({
-        inspect: () => injectableRegistry,
+        inspect: () => ({ kind: 'success', registry: injectableRegistry }),
       })
     );
   });

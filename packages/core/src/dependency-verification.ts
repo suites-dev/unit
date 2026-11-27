@@ -92,8 +92,8 @@ export class DependencyVerification {
     return new DependencyVerification(target);
   }
 
-  public finish(suiteFailure?: unknown): Error | undefined {
-    return this.dependencyViolations.finish(suiteFailure);
+  public finish(...suiteFailure: [] | [unknown]): Error | undefined {
+    return this.dependencyViolations.finish(...suiteFailure);
   }
 
   public uninstall(): void {

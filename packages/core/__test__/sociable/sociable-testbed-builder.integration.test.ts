@@ -4,7 +4,6 @@ import { FakeAdapter } from './assets/integration.assets.js';
 import { mock } from '../mock.static.js';
 import type { Repository, User } from './assets/injectable-registry.fixture.js';
 import { DataMapper } from './assets/injectable-registry.fixture.js';
-import { Axios } from './assets/injectable-registry.fixture.js';
 import { HttpClient } from './assets/injectable-registry.fixture.js';
 import {
   TestLogger,
@@ -38,7 +37,7 @@ describe('Social TestBed Builder Integration Tests', () => {
     );
 
     const testBed = await unitBuilder
-      .expose(UserApiService, UserDal, HttpClient, DatabaseService)
+      .expose(UserApiService, UserDal, DatabaseService)
       .bind(DataMapper.token, DataMapper)
       .mock(UserVerificationService)
       .impl(() => ({}))
@@ -48,8 +47,6 @@ describe('Social TestBed Builder Integration Tests', () => {
       .impl(() => ({}))
       .mock(TestLogger)
       .impl((stubFn: Mock) => ({ log: stubFn().mockReturnValue('overridden') }))
-      .mock(Axios)
-      .impl(() => ({}))
       .mock<string[]>('SOME_VALUE_TOKEN')
       .final(['some value'])
       .compile();
@@ -60,17 +57,6 @@ describe('Social TestBed Builder Integration Tests', () => {
 
   it('should instantiate UserService with all dependencies properly resolved', () => {
     expect(userServiceAsIfItWasUnderTest).toBeInstanceOf(UserService);
-  });
-
-  it('should have log a warning message about http client cannot be exposed because it is not a direct dependency', () => {
-    expect(loggerMock.warn).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('Suites Warning: Unreachable Mock Configuration Detected')
-    );
-    expect(loggerMock.warn).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining('Suites Warning: Unreachable Exposed Dependency Detected')
-    );
   });
 
   it('should log messages impl the overridden Logger.log method when UserService is initialized', () => {
@@ -152,19 +138,23 @@ describe('Social TestBed Builder Integration Tests', () => {
     });
   });
 
-  it('warns about a mock whose class is outside the selected graph', async () => {
-    loggerMock.warn.mockClear();
-    class UnusedDependency {}
-    await unitBuilder
-      .expose(UserApiService)
-      .mock(UnusedDependency)
-      .impl(() => ({}))
-      .mock(TestLogger)
-      .final({ log: jest.fn() })
-      .compile();
-
-    expect(loggerMock.warn).toHaveBeenCalledWith(
-      expect.stringContaining("mock 'UnusedDependency'")
-    );
+  it('rejects unused declarations when a mock cuts off their branch', async () => {
+    const configure = jest.fn(() => ({}));
+    await expect(
+      unitBuilder
+        .expose(UserApiService, HttpClient)
+        .mock(ApiService)
+        .impl(() => ({}))
+        .mock(TestLogger)
+        .final({ log: jest.fn() })
+        .mock('absent')
+        .impl(configure)
+        .compile()
+    ).rejects.toMatchObject({
+      code: 'ER043',
+      message: expect.stringMatching(/mock 'absent'.*exposure 'HttpClient'/),
+    });
+    expect(configure).not.toHaveBeenCalled();
+    expect(loggerMock.warn).not.toHaveBeenCalled();
   });
 });

@@ -20,8 +20,8 @@ export interface MockedUnit<TClass> {
 
 export class UnitMocker {
   public constructor(
-    private readonly mockFunction: Promise<MockFunction>,
-    private readonly diAdapter: Promise<DependencyInjectionAdapter>
+    private readonly mockFunction: PromiseLike<MockFunction>,
+    private readonly diAdapter: PromiseLike<DependencyInjectionAdapter>
   ) {}
 
   public async constructUnit<TClass>(
@@ -35,7 +35,8 @@ export class UnitMocker {
       mockContainer,
       await this.diAdapter,
       await this.mockFunction,
-      resolverOptions
+      resolverOptions,
+      targetClass
     );
 
     const instance = dependencyResolver.instantiateClass(targetClass);

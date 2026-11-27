@@ -1,14 +1,10 @@
-import type { ClassInjectable } from '@suites/types.di';
-import { UndefinedDependency, UndefinedDependencyError } from '@suites/types.di';
+import type { ClassMetadata } from '@inversifyjs/core';
 import type { Type } from '@suites/types.common';
-import { getClassMetadata } from '@inversifyjs/core';
+import type { ClassInjectable, InspectionFailure, IdentifierMetadata } from '@suites/types.di';
+import { UndefinedDependency } from '@suites/types.di';
 import { toInjectableMetadata } from './class-metadata.js';
-import type {
-  InversifyInjectableIdentifierMetadata,
-  InversifyInjectableMetadata,
-  MetadataReflector,
-} from './types.js';
-import type { IdentifierObject, IdentifierBuilder } from './identifier-builder.static.js';
+import type { MetadataReflector } from './types.js';
+import type { IdentifierBuilder } from './identifier-builder.static.js';
 
 export type ClassPropsReflector = ReturnType<typeof ClassPropsReflector>;
 
@@ -16,60 +12,28 @@ export function ClassPropsReflector(
   reflector: MetadataReflector,
   identifierBuilder: IdentifierBuilder
 ) {
-  function reflectInjectables(targetClass: Type): ClassInjectable[] {
-    const classProperties = reflectProperties(targetClass);
-    const classInstance = Object.create(targetClass.prototype);
-
-    return Reflect.ownKeys(classProperties).map((propertyKey) => {
-      const propertyParamType = reflector.getMetadata('design:type', classInstance, propertyKey) as
-        Type | undefined;
-
-      const propertyMetadataItems = classProperties[propertyKey as never];
-
-      if (!propertyMetadataItems && !propertyParamType) {
-        throw new UndefinedDependencyError(`Suites encountered an error while attempting to detect a token or type for the dependency for property '${String(propertyKey)}' in the class '${targetClass.name}'.
-This issue is commonly caused by either improper decoration of the property or a problem during the reflection of the parameter type.
-In some cases, this error may arise due to circular dependencies. If this is the case, please ensure that the circular dependency
-is resolved, or consider using 'LazyServiceIdentifier' to address it.`);
+  function reflectInjectables(
+    target: Type,
+    metadata: ClassMetadata
+  ): ClassInjectable<IdentifierMetadata>[] | InspectionFailure {
+    const injectables: ClassInjectable<IdentifierMetadata>[] = [];
+    for (const [key, entry] of metadata.properties) {
+      const type: Type | undefined = reflector.getMetadata('design:type', target.prototype, key);
+      const result = identifierBuilder.toIdentifierObject(toInjectableMetadata(entry), type);
+      if (result.kind === 'failure') {
+        return { ...result, target, location: { kind: 'property', key }, cause: undefined };
       }
-
-      const identifierAndMetadata = identifierBuilder.toIdentifierObject(
-        propertyMetadataItems,
-        propertyParamType as Type
-      );
-
-      return {
-        metadata: identifierAndMetadata.metadata,
+      injectables.push({
         type: 'PROPERTY',
-        identifier: identifierAndMetadata.identifier,
-        value: setValue(propertyParamType, identifierAndMetadata),
-        property: { key: propertyKey },
-      } as InversifyInjectableIdentifierMetadata;
-    });
-  }
-
-  function setValue(propertyParamType: Type | undefined, identifierAndMetadata: IdentifierObject) {
-    if (propertyParamType) {
-      return propertyParamType;
+        property: { key },
+        identifier: result.identifier,
+        metadata: result.metadata,
+        value:
+          type ??
+          (typeof result.identifier === 'function' ? result.identifier : UndefinedDependency),
+      } satisfies ClassInjectable<IdentifierMetadata>);
     }
-
-    if (typeof identifierAndMetadata.identifier === 'function') {
-      return identifierAndMetadata.identifier;
-    }
-
-    return UndefinedDependency;
+    return injectables;
   }
-
-  function reflectProperties(
-    targetClass: Type
-  ): Record<string | symbol, InversifyInjectableMetadata[]> {
-    return Object.fromEntries(
-      [...getClassMetadata(targetClass).properties].map(([key, metadata]) => [
-        key,
-        toInjectableMetadata(metadata),
-      ])
-    );
-  }
-
   return { reflectInjectables };
 }

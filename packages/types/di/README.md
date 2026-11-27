@@ -37,7 +37,7 @@ Shared contracts between Suites core and DI adapters. Application tests select `
 
 Implement `canAutoConstruct(targetClass)` to identify classes your framework can construct automatically. Return `true` only when you have positive construction evidence, such as a framework-owned marker on the class. An empty dependency list could describe either an injectable leaf or a token.
 
-Existing adapters that implement only `inspect()` remain valid. Without `canAutoConstruct`, Suites can inspect an explicitly selected class, but composition cannot automatically expand through classes provided by that adapter. In a guarded sociable test, a required dependency without another declaration fails when used. Test both a marked class with no dependencies and a class token your adapter must leave unresolved.
+In v5, `inspect()` returns an `InspectionResult`. Wrap the former registry in `{ kind: 'success', registry }`. Return a failure with the declaring class, slot, reason and underlying cause when reflection fails. Suites translates this result into the error reported by `compile()`. Without `canAutoConstruct`, Suites can inspect an explicitly selected class, but composition cannot automatically expand through classes provided by that adapter. In a guarded sociable test, a required dependency without another declaration fails when used. Test both a marked class with no dependencies and a class token your adapter must leave unresolved.
 
 ## Load adapter declarations
 

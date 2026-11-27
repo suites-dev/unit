@@ -92,7 +92,10 @@ describe('guarded dependencies', () => {
     ]);
 
     expect(() => Reflect.apply(guard, undefined, [])).toThrow(DependencyRuleViolationError);
-    expect(ledger.finish()?.message).toMatch(/forbidden dependency 'Inventory'/i);
+    const failure = ledger.finish();
+    expect(failure?.violations[0]).toMatchObject({ code: 'ER051', severity: 'error' });
+    expect(failure?.violations[0]).not.toHaveProperty('identifier');
+    expect(failure?.message).toMatch(/forbidden dependency 'Inventory'/i);
   });
 
   it('reports opaque identifiers and qualifiers without invoking their hooks', () => {
@@ -177,7 +180,7 @@ describe('guarded dependencies', () => {
       { identifier: Checkout, metadata: { region: null } },
     ]);
     expect(() => guard()).toThrow(
-      /forbidden dependency 'PAYMENTS', with metadata \[opaque\].*'Checkout', with metadata {"region":null}/
+      /forbidden dependency 'TestToken PAYMENTS', with metadata \[opaque\].*'Checkout', with metadata {"region":null}/
     );
   });
 

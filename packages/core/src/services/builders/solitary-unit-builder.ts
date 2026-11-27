@@ -1,8 +1,12 @@
 import type { DoublesAdapter } from '@suites/types.doubles';
-import type { Type } from '@suites/types.common';
+import { SuitesWarningCode, type Type } from '@suites/types.common';
+import { stringifyIdentifier } from '../functions.static.js';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
-import type { IdentifierToMockOrFinal, IdentifierToMockImplWithCb } from '../dependency-container.js';
+import type {
+  IdentifierToMockOrFinal,
+  IdentifierToMockImplWithCb,
+} from '../dependency-container.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { UnitTestBed } from '../../types.js';
 import { TestBedBuilder } from './testbed-builder.js';
@@ -14,7 +18,7 @@ export class SolitaryTestBedBuilder<TClass>
   implements TestBedBuilder<TClass>
 {
   public constructor(
-    private readonly doublesAdapter: Promise<DoublesAdapter>,
+    private readonly doublesAdapter: PromiseLike<DoublesAdapter>,
     private readonly unitMocker: UnitMocker,
     private readonly targetClass: Type<TClass>,
     private readonly logger: Console
@@ -23,8 +27,7 @@ export class SolitaryTestBedBuilder<TClass>
   }
 
   public async compile(): Promise<UnitTestBed<TClass>> {
-    const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
-    const stubFn = await this.doublesAdapter.then((adapter) => adapter.stub);
+    const { mock: mockFn, stub: stubFn } = await this.doublesAdapter;
 
     const identifiersToMocksImpls: IdentifierToMockOrFinal[] = this.identifiersToBeMocked.map(
       ([identifier, mockImplCallback]: IdentifierToMockImplWithCb) => {
@@ -44,15 +47,14 @@ export class SolitaryTestBedBuilder<TClass>
       new DependencyContainer([...identifiersToMocksImpls, ...identifiersToFinal])
     );
 
-    if (resolution.notFound.length > 0) {
-      resolution.notFound.forEach(([identifier]) => {
-        this.logger.warn(`Suites Warning: Redundant Mock Configuration Detected.
-You are attempting to mock '${identifier.identifier.toString()}', which is not a dependency of the unit under test ('${this.targetClass.name}').
-This mock will have no effect as it does not interact directly with the tested unit. Such configurations may lead to
-misunderstandings about the test's behavior and can safely be removed if '${identifier.identifier.toString()}' does not
-impact the test outcomes. If you believe this mock is required, please double-check your unit's dependencies and their
-interactions. For detailed guidelines on setting up solitary tests, refer to: https://suites.dev/docs.`);
-      });
+    for (const entry of resolution.notFound) {
+      const [{ identifier, metadata }] = entry;
+      const kind = identifiersToFinal.includes(entry) ? 'final' : 'mock';
+      const dependency = stringifyIdentifier(identifier, metadata);
+      const root = stringifyIdentifier(this.targetClass, undefined);
+      this.logger.warn(
+        `Suites warning (${SuitesWarningCode.UNUSED_SOLITARY_OVERRIDE}): Unused ${kind} override for ${dependency} in solitary test of ${root}. Remove the override or check its identifier and qualifier.`
+      );
     }
 
     return {
