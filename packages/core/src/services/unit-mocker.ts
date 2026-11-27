@@ -20,8 +20,8 @@ export interface MockedUnit<TClass> {
 
 export class UnitMocker {
   public constructor(
-    private readonly mockFunction: Promise<MockFunction>,
-    private readonly diAdapter: Promise<DependencyInjectionAdapter>
+    private readonly mockFunction: PromiseLike<MockFunction>,
+    private readonly diAdapter: PromiseLike<DependencyInjectionAdapter>
   ) {}
 
   public async constructUnit<TClass>(

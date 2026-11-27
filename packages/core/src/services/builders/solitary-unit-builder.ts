@@ -18,7 +18,7 @@ export class SolitaryTestBedBuilder<TClass>
   implements TestBedBuilder<TClass>
 {
   public constructor(
-    private readonly doublesAdapter: Promise<DoublesAdapter>,
+    private readonly doublesAdapter: PromiseLike<DoublesAdapter>,
     private readonly unitMocker: UnitMocker,
     private readonly targetClass: Type<TClass>,
     private readonly logger: Console
@@ -27,8 +27,7 @@ export class SolitaryTestBedBuilder<TClass>
   }
 
   public async compile(): Promise<UnitTestBed<TClass>> {
-    const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
-    const stubFn = await this.doublesAdapter.then((adapter) => adapter.stub);
+    const { mock: mockFn, stub: stubFn } = await this.doublesAdapter;
 
     const identifiersToMocksImpls: IdentifierToMockOrFinal[] = this.identifiersToBeMocked.map(
       ([identifier, mockImplCallback]: IdentifierToMockImplWithCb) => {

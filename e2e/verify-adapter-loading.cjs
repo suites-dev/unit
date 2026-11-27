@@ -50,7 +50,7 @@ function installAdapter(kind, scenario) {
     malformed:
       kind === 'di' ? 'exports.adapter = { inspect: 1 };' : 'exports.adapter = { mock() {} };',
   };
-  writeFileSync(join(path, 'index.js'), sources[scenario]);
+  writeFileSync(join(path, 'index.js'), 'globalThis.adapterInitializations++;\n' + sources[scenario]);
 }
 
 try {
