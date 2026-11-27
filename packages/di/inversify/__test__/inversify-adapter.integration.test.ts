@@ -31,8 +31,8 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
   it('positively identifies only Inversify injectable classes for composition', () => {
     class Unmarked {}
 
-    expect(dependenciesAdapter.isConstructable?.(ConstructorBasedInjectionClass)).toBe(true);
-    expect(dependenciesAdapter.isConstructable?.(Unmarked)).toBe(false);
+    expect(dependenciesAdapter.canAutoConstruct?.(ConstructorBasedInjectionClass)).toBe(true);
+    expect(dependenciesAdapter.canAutoConstruct?.(Unmarked)).toBe(false);
   });
 
   describe('class constructor injection', () => {

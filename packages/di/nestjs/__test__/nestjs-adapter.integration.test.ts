@@ -21,8 +21,8 @@ describe('NestJS Suites DI Adapter Integration Test', () => {
   it('positively identifies only NestJS injectable classes for composition', () => {
     class Unmarked {}
 
-    expect(dependencyInjectionAdapter.isConstructable?.(ConstructorBasedInjectionClass)).toBe(true);
-    expect(dependencyInjectionAdapter.isConstructable?.(Unmarked)).toBe(false);
+    expect(dependencyInjectionAdapter.canAutoConstruct?.(ConstructorBasedInjectionClass)).toBe(true);
+    expect(dependencyInjectionAdapter.canAutoConstruct?.(Unmarked)).toBe(false);
   });
 
   describe('reflecting a class with constructor based injection', () => {
