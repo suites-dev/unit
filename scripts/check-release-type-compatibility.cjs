@@ -141,7 +141,8 @@ try {
         unpack(join(usePublished ? published : candidate, filename), join(modules, name));
       }
       writeFileSync(join(consumer, 'package.json'), '{"private":true}');
-      const files = ['legacy.ts', 'core.ts', 'testbed-subclasses.ts'];
+      const builderFixture = plan.fixtureSet === 'v4' ? 'legacy.ts' : 'public-builder-types.ts';
+      const files = [builderFixture, 'core.ts', 'testbed-subclasses.ts'];
       const hasCandidateUnit = current.includes('@suites/unit');
       if (hasCandidateUnit) files.push('fluent.ts', 'helpers.ts');
       for (const file of [...files, ...(hasCandidateUnit ? ['emitted.ts'] : [])]) {
