@@ -37,8 +37,8 @@ describe('InjectionJS constructor adapter', () => {
   it('positively identifies only InjectionJS injectable classes for composition', () => {
     class Unmarked {}
 
-    expect(adapter.isConstructable?.(Service)).toBe(true);
-    expect(adapter.isConstructable?.(Unmarked)).toBe(false);
+    expect(adapter.canAutoConstruct?.(Service)).toBe(true);
+    expect(adapter.canAutoConstruct?.(Unmarked)).toBe(false);
   });
 
   it('uses the same token identities and order as the production resolver', () => {

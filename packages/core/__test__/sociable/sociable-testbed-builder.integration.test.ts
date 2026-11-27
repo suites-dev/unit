@@ -151,8 +151,6 @@ describe('Social TestBed Builder Integration Tests', () => {
     class UnusedDependency {}
     await unitBuilder
       .expose(UserApiService)
-      .mock(TestLogger)
-      .impl((stub: Mock) => ({ log: stub() }))
       .mock(UnusedDependency)
       .impl(() => ({}))
       .compile();
