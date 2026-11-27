@@ -164,7 +164,7 @@ export class DependencyResolver {
     const advice =
       reason === 'unsupported-token'
         ? 'Use a dependency token supported by the installed adapter.'
-        : 'Check the injection decorator and emitted metadata.';
+        : 'Check the injection decorator and emitted metadata. Use @Inject(token) in NestJS or InjectionJS, or @inject(token) in InversifyJS, for an erased constructor type.';
     throw new UndefinedDependencyError(`${detail} ${advice}`, context);
   }
 
