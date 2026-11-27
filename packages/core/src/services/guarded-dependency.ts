@@ -1,5 +1,5 @@
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
-import { SuitesError, SuitesErrorCode } from '@suites/types.common';
+import { SuitesError, UnitErrorCode } from '@suites/types.common';
 import type { DependencyPathEntry } from './composition-boundary.js';
 import { reportDependencyViolation } from '../dependency-verification-internal.js';
 import { stringifyIdentifier } from './functions.static.js';
@@ -29,8 +29,8 @@ export class DependencyRuleViolationError extends SuitesError {
     const undeclared = category === 'undeclared dependency';
     super(
       undeclared
-        ? SuitesErrorCode.UNDECLARED_DEPENDENCY_ACCESS
-        : SuitesErrorCode.FORBIDDEN_DEPENDENCY_ACCESS,
+        ? UnitErrorCode.UNDECLARED_DEPENDENCY_ACCESS
+        : UnitErrorCode.FORBIDDEN_DEPENDENCY_ACCESS,
       `Suites Unit rule violation: Cannot ${operation} ${category} ${dependency}. ` +
         `Dependency path: ${path}.`,
       undeclared

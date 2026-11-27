@@ -1,3 +1,9 @@
+import { UnitErrorCode, UnitWarningCode } from '@suites/types.common';
+// @ts-expect-error v5 removed the old registry name.
+import type { SuitesErrorCode } from '@suites/types.common';
+// @ts-expect-error v5 exposes the warning registry under its Unit name.
+import type { SuitesWarningCode } from '@suites/types.common';
+
 import type {} from '@suites/doubles.jest/unit';
 import { SociableTestBedBuilder, SolitaryTestBedBuilder, UnitMocker } from '@suites/core.unit';
 import type { MockOverride, TestBedBuilder } from '@suites/core.unit';
@@ -58,3 +64,10 @@ configure(solitary)
   .compile();
 
 void CustomBuilder;
+
+const lookup: UnitErrorCode = UnitErrorCode.MOCK_LOOKUP_FAILED;
+const lookupLiteral: 'ER040' = lookup;
+const unused: 'WR001' = UnitWarningCode.UNUSED_SOLITARY_OVERRIDE;
+// @ts-expect-error v5 removed the old lookup member name.
+UnitErrorCode.DEPENDENCY_RESOLUTION_ERROR;
+void [lookupLiteral, unused];

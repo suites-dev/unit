@@ -1,19 +1,32 @@
-import { DependencyResolutionError, SuitesErrorCode, SuitesWarningCode } from '@suites/types.common';
+import * as diagnostics from '@suites/types.common';
 
-describe('Suites diagnostic codes', () => {
+const { DependencyResolutionError, UnitErrorCode, UnitWarningCode } = diagnostics;
+
+describe('Unit diagnostic codes', () => {
   it('preserves published identifiers for programmatic handling', () => {
-    const token: 'ER31' = SuitesErrorCode.UNDEFINED_TOKEN;
+    const token: 'ER31' = UnitErrorCode.INJECTION_TOKEN_UNDEFINED;
     expect(token).toBe('ER31');
-    expect(Object.isFrozen(SuitesErrorCode)).toBe(true);
-    expect(Object.isFrozen(SuitesWarningCode)).toBe(true);
-    expect(SuitesErrorCode).toMatchObject({
+    expect(diagnostics).not.toHaveProperty('SuitesErrorCode');
+    expect(diagnostics).not.toHaveProperty('SuitesWarningCode');
+    expect(Object.isFrozen(UnitErrorCode)).toBe(true);
+    expect(Object.isFrozen(UnitWarningCode)).toBe(true);
+    expect(UnitErrorCode).toEqual({
       IDENTIFIER_NOT_FOUND: 'ER010',
       ADAPTER_NOT_FOUND: 'ER020',
-      ADAPTER_ERROR: 'ER021',
-      UNDEFINED_DEPENDENCY: 'ER30',
-      DEPENDENCY_RESOLUTION_ERROR: 'ER040',
+      ADAPTER_UNUSABLE: 'ER021',
+      DEPENDENCY_IDENTIFIER_UNRESOLVED: 'ER30',
+      INJECTION_TOKEN_UNDEFINED: 'ER31',
+      MOCK_LOOKUP_FAILED: 'ER040',
+      INVALID_BUILDER_ARGUMENT: 'ER041',
+      CONFIGURATION_CONFLICT: 'ER042',
+      UNREACHABLE_DECLARATION: 'ER043',
+      DEPENDENCY_CYCLE: 'ER044',
+      UNDECLARED_DEPENDENCY_ACCESS: 'ER050',
+      FORBIDDEN_DEPENDENCY_ACCESS: 'ER051',
+      DEPENDENCY_VERIFICATION_FAILED: 'ER052',
+      VERIFICATION_NOT_CONFIGURED: 'ER053',
     });
-    expect(new Set(Object.values(SuitesErrorCode)).size).toBe(Object.keys(SuitesErrorCode).length);
+    expect(new Set(Object.values(UnitErrorCode)).size).toBe(Object.keys(UnitErrorCode).length);
   });
 
   it('distinguishes a failed lookup from a warning about an unused solitary override', () => {
@@ -21,6 +34,6 @@ describe('Suites diagnostic codes', () => {
       code: 'ER040',
       severity: 'error',
     });
-    expect(SuitesWarningCode.UNUSED_SOLITARY_OVERRIDE).toBe('WR001');
+    expect(UnitWarningCode.UNUSED_SOLITARY_OVERRIDE).toBe('WR001');
   });
 });
