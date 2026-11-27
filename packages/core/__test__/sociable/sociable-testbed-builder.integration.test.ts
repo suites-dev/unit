@@ -40,6 +40,12 @@ describe('Social TestBed Builder Integration Tests', () => {
     const testBed = await unitBuilder
       .expose(UserApiService, UserDal, HttpClient, DatabaseService)
       .bind(DataMapper.token, DataMapper)
+      .mock(UserVerificationService)
+      .impl(() => ({}))
+      .mock(ApiService)
+      .impl(() => ({}))
+      .mock<Repository>('Repository')
+      .impl(() => ({}))
       .mock(TestLogger)
       .impl((stubFn: Mock) => ({ log: stubFn().mockReturnValue('overridden') }))
       .mock(Axios)
@@ -153,6 +159,8 @@ describe('Social TestBed Builder Integration Tests', () => {
       .expose(UserApiService)
       .mock(UnusedDependency)
       .impl(() => ({}))
+      .mock(TestLogger)
+      .final({ log: jest.fn() })
       .compile();
 
     expect(loggerMock.warn).toHaveBeenCalledWith(

@@ -8,7 +8,8 @@
     "@suites/unit": "e2e",
     "@nestjs/common": "^12.0.1",
     "@nestjs/core": "^12.0.1",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "@suites/runners.jest": "e2e"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -20,10 +21,13 @@
     "@swc/core": "^1.16.21",
     "@jest/globals": "^30.5.2",
     "@types/node": "^26.6.6",
-    "@suites/types.common": "e2e"
+    "@suites/types.common": "e2e",
+    "jest-jasmine2": "^30.5.2",
+    "jest-environment-node": "^30.5.2"
   },
   "scripts": {
-    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && jest",
+    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && jest && pnpm test:guards",
+    "test:guards": "node ../../verify-guarded-dependencies.cjs jest",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {

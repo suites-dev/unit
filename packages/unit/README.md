@@ -36,7 +36,7 @@ pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.jest
 
 Use `@suites/di.inversify` or `@suites/di.injectionjs` for your DI framework, and `@suites/doubles.vitest` for Vitest. Your application must also have its DI framework and `reflect-metadata` installed.
 
-Suites 4 supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and ESM package entry points.
+Suites supports Node.js `^22.22.2 || ^24.15.0 || ^26.0.0`, with CommonJS and ESM package entry points.
 
 | Adapter                  | Supported framework versions        |
 | ------------------------ | ----------------------------------- |
@@ -138,7 +138,24 @@ A `.final()` dependency is injected as supplied and cannot be retrieved through 
 
 ## Sociable tests
 
-Use `TestBed.sociable(UserService).expose(Repository, ConcreteDependency).compile()` to keep selected class dependencies real and mock their remaining dependencies. Exposure is variadic, and the class under test and exposed classes must be concrete constructors. Abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
+In v5, choose the real collaborators before configuring replacements. Replace v4's `.expose(A).expose(B)` with one `.expose(A, B)` call. Declare each collaborator your code uses that should be mocked. For example, this test keeps pricing real and gives inventory a controlled response.
+
+```typescript
+const { unit } = await TestBed.sociable(Checkout)
+  .expose(Pricing)
+  .mock(Inventory)
+  .impl((stub) => ({ available: stub().mockReturnValue(true) }))
+  .compile();
+```
+
+An undeclared dependency can be injected and left unused. Reading or calling it records a dependency violation and throws immediately. Configure your runner once so a caught violation also fails the run.
+
+| Runner | Install alongside the doubles adapter | Project configuration |
+| --- | --- | --- |
+| Jest 30.5.2 or later in v30 | `pnpm add -D @suites/runners.jest` | Set `testEnvironment` to `'@suites/runners.jest/setup'`. |
+| Vitest 5.1 or later in v5 | `pnpm add -D @suites/runners.vitest` | Add `'@suites/runners.vitest/setup'` to `test.setupFiles`. |
+
+For a custom Jest environment, export `withDependencyVerification(ExistingEnvironment)` from your environment module using the helper in `@suites/runners.jest/setup`. Jest Circus and Vitest can report a caught assertion as passed while marking its suite failed and exiting with status 1.
 
 Choose one mode before configuring or compiling a sociable test. Replace repeated calls such as `.expose(A).expose(B)` with `.expose(A, B)`. Use `.compose()` to construct the injectable graph recursively:
 
