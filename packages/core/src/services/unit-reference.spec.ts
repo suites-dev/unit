@@ -94,6 +94,32 @@ describe('Unit Reference Unit Spec', () => {
 });
 
 describe('object token identity', () => {
+  it('can label tokens with no discoverable constructor', () => {
+    const reference = new UnitReference(new DependencyContainer([]), [], []);
+    const token = new TestToken('payment');
+    Object.defineProperty(token, '_desc', { value: 'payment' });
+    Reflect.setPrototypeOf(token, null);
+    expect(() => reference.get(token)).toThrow(/'payment'/);
+
+    const prototype = Object.create(null, {
+      constructor: {
+        get: () => {
+          throw new Error('constructor getter');
+        },
+      },
+    });
+    Reflect.setPrototypeOf(token, prototype);
+    expect(() => reference.get(token)).toThrow(/'payment'/);
+  });
+
+  it('preserves the lookup error on invalid identifiers from JavaScript', () => {
+    const reference = new UnitReference(new DependencyContainer([]), [], []);
+    expect(() => Reflect.apply(reference.get, reference, [null])).toThrow(/ER040/);
+    expect(() => Reflect.apply(reference.get, reference, [null, {}])).toThrow(
+      /with metadata \[opaque\]/
+    );
+  });
+
   it('reports a missing token without invoking its conversion hook', () => {
     class HostileToken extends TestToken {
       toString(): string {
@@ -193,6 +219,8 @@ describe('metadata-qualified final dependencies', () => {
     );
 
     expect(() => reference.get('QUALIFIED')).toThrow(/without a qualifier/);
-    expect(() => reference.get('QUALIFIED', { named: 'missing' })).toThrow(/No injection site matches/);
+    expect(() => reference.get('QUALIFIED', { named: 'missing' })).toThrow(
+      /No injection site matches/
+    );
   });
 });
