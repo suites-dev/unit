@@ -17,7 +17,7 @@ test('rejects chained assertions across authored package sources, tests and decl
     'packages/doubles/vitest/vitest.config.mts',
     'packages/unit/__test__/assets/test-adapter.ts',
     'packages/unit/__test__/package-resolver.base.spec.ts',
-    'packages/runners/jest/src/index.ts',
+    'packages/runners/jest/src/setup.ts',
   ]) {
     const [result] = await linter.lintText(
       'declare const input: unknown; const first = (input as string) as number; const second = <number><string>input;',
