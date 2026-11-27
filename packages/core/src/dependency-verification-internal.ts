@@ -1,4 +1,4 @@
-import { SuitesError, SuitesErrorCode } from '@suites/types.common';
+import { SuitesError, UnitErrorCode } from '@suites/types.common';
 
 export const dependencyVerificationKey = Symbol.for('@suites/dependency-verification');
 const missingDependencyVerificationKey = Symbol.for(
@@ -17,7 +17,7 @@ export class DependencyVerificationError extends SuitesError {
   ) {
     const details = violations.map((error) => error.message).join('\n');
     super(
-      SuitesErrorCode.DEPENDENCY_VERIFICATION_FAILED,
+      UnitErrorCode.DEPENDENCY_VERIFICATION_FAILED,
       'Suites Unit recorded dependency rule violations.',
       details
     );
@@ -36,8 +36,8 @@ export class DependencyViolationLedger {
     const recorded = new Error(error.message);
     const code: unknown = Object.getOwnPropertyDescriptor(error, 'code')?.value;
     if (
-      code === SuitesErrorCode.UNDECLARED_DEPENDENCY_ACCESS ||
-      code === SuitesErrorCode.FORBIDDEN_DEPENDENCY_ACCESS
+      code === UnitErrorCode.UNDECLARED_DEPENDENCY_ACCESS ||
+      code === UnitErrorCode.FORBIDDEN_DEPENDENCY_ACCESS
     ) {
       Object.defineProperties(recorded, {
         code: { value: code, enumerable: true },
@@ -75,7 +75,7 @@ export function reportDependencyViolation(error: Error): never {
       value: true,
     });
     const configurationError = new SuitesError(
-      SuitesErrorCode.VERIFICATION_NOT_CONFIGURED,
+      UnitErrorCode.VERIFICATION_NOT_CONFIGURED,
       'Suites Unit dependency verification is not configured.',
       "For Jest, set testEnvironment to '@suites/runners.jest/setup'. For Vitest, add '@suites/runners.vitest/setup' to setupFiles."
     );

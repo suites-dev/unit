@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { SuitesError, SuitesErrorCode } from '@suites/types.common';
+import { SuitesError, UnitErrorCode } from '@suites/types.common';
 import type { DependencyInjectionAdapter } from '@suites/types.di';
 import type { DoublesAdapter } from '@suites/types.doubles';
 
@@ -34,7 +34,7 @@ export const doublesContract: AdapterContract<DoublesAdapter> = {
 class AdapterNotFoundError extends SuitesError {
   public constructor(kind: string, packages: readonly string[]) {
     super(
-      SuitesErrorCode.ADAPTER_NOT_FOUND,
+      UnitErrorCode.ADAPTER_NOT_FOUND,
       'No compatible adapter found',
       `Install a Suites adapter for your ${kind}. Checked: ${packages.join(', ')}.`
     );
@@ -44,7 +44,7 @@ class AdapterNotFoundError extends SuitesError {
 
 class AdapterLoadError extends SuitesError {
   public constructor(name: string, detail: string, cause?: unknown) {
-    super(SuitesErrorCode.ADAPTER_ERROR, `Unable to load Suites adapter ${name}`, detail);
+    super(UnitErrorCode.ADAPTER_UNUSABLE, `Unable to load Suites adapter ${name}`, detail);
     this.name = 'AdapterLoadError';
     if (cause !== undefined)
       Object.defineProperty(this, 'cause', { value: cause, configurable: true, writable: true });
