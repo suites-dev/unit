@@ -1,5 +1,5 @@
 import type { DoublesAdapter } from '@suites/types.doubles';
-import { SuitesWarningCode, type Type } from '@suites/types.common';
+import { UnitWarningCode, type Type } from '@suites/types.common';
 import { stringifyIdentifier } from '../functions.static.js';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
@@ -53,7 +53,7 @@ export class SolitaryTestBedBuilder<TClass>
       const dependency = stringifyIdentifier(identifier, metadata);
       const root = stringifyIdentifier(this.targetClass, undefined);
       this.logger.warn(
-        `Suites warning (${SuitesWarningCode.UNUSED_SOLITARY_OVERRIDE}): Unused ${kind} override for ${dependency} in solitary test of ${root}. Remove the override or check its identifier and qualifier.`
+        `Suites warning (${UnitWarningCode.UNUSED_SOLITARY_OVERRIDE}): Unused ${kind} override for ${dependency} in solitary test of ${root}. Remove the override or check its identifier and qualifier.`
       );
     }
 
