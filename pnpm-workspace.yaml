@@ -4,6 +4,7 @@ packages:
   - 'packages/di/*'
   - 'packages/doubles/*'
   - 'packages/types/*'
+  - 'packages/runners/*'
 minimumReleaseAgeExclude:
   - '@vitest/coverage-v8@5.1.0'
   - '@vitest/mocker@5.1.0'

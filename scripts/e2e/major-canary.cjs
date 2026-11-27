@@ -9,11 +9,15 @@ const v5ReleaseGroup = new Set([
   '@suites/core.unit',
   '@suites/doubles.jest',
   '@suites/doubles.vitest',
+  '@suites/runners.jest',
+  '@suites/runners.vitest',
   '@suites/unit',
 ]);
 
 const packageManifestPaths = [
   'packages/core/package.json',
+  'packages/runners/jest/package.json',
+  'packages/runners/vitest/package.json',
   'packages/di/injection-js/package.json',
   'packages/di/inversify/package.json',
   'packages/di/nestjs/package.json',

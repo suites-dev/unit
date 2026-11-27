@@ -16,5 +16,5 @@
     }
   },
   "npmClient": "pnpm",
-  "packages": ["packages/*", "packages/di/*", "packages/doubles/*", "packages/types/*"]
+  "packages": ["packages/*", "packages/di/*", "packages/doubles/*", "packages/types/*", "packages/runners/*"]
 }

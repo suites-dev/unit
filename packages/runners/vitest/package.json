@@ -1,0 +1,40 @@
+{
+  "name": "@suites/runners.vitest",
+  "version": "5.0.0-next.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suites-dev/unit.git",
+    "directory": "packages/runners/vitest"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "packageManager": "pnpm@12.16.1",
+  "description": "Suites integration for the vitest test runner",
+  "type": "module",
+  "exports": {
+    "./setup": {
+      "types": "./dist/setup.d.ts",
+      "default": "./dist/setup.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src"
+  },
+  "files": [
+    "dist"
+  ],
+  "typesVersions": {
+    "*": {
+      "setup": [
+        "dist/setup.d.ts"
+      ]
+    }
+  }
+}

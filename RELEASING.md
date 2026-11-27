@@ -46,8 +46,11 @@ For each of these npm packages, open **Settings → Trusted Publisher → GitHub
 - `@suites/core.unit`
 - `@suites/di.nestjs`
 - `@suites/di.inversify`
+- `@suites/di.injectionjs`
 - `@suites/doubles.jest`
 - `@suites/doubles.vitest`
+- `@suites/runners.jest`
+- `@suites/runners.vitest`
 - `@suites/types.common`
 - `@suites/types.di`
 - `@suites/types.doubles`
@@ -62,6 +65,8 @@ Use these exact values:
 | Environment          | `release`              |
 
 The package repository URL must be `https://github.com/suites-dev/unit.git`. See [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) for authentication requirements. The release workflows do not use `GH_TOKEN` or `NPM_TOKEN` secrets.
+
+Before merging the first runner release PR, an npm organization maintainer must verify that both runner names exist and that their trusted publishers allow this workflow to publish directly. If a name is new, a maintainer can stage a prerelease of that runner under the Suites scope. Staging creates a public placeholder and makes the package settings available. Configure the publisher there before tagging the stable release. Lerna graduates the runner manifests from `5.0.0-next.0` to `5.0.0`. [npm staged publishing](https://docs.npmjs.com/staged-publishing/) · [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
 
 ## Prepare and review versions
 
@@ -100,7 +105,7 @@ Re-run the failed workflow using the same commit after fixing the cause. Do not 
 - **Checkout or bot authentication:** verify the app installation includes `unit`, and the organization variable and secret are accessible to it.
 - **Tag Release signing setup:** confirm the public key is registered as a Signing Key on the configured account and matches the environment secret. This workflow never publishes npm packages.
 - **Unverified tag:** inspect the tag object and GitHub verification reason. Do not overwrite it; rerun the same commit only after verification succeeds. An unsigned tag collision requires investigation because existing tags are immutable.
-- **npm authentication:** check all nine Trusted Publisher entries, especially the exact workflow filename and `release` environment. No long-lived npm token is needed.
+- **npm authentication:** check the Trusted Publisher entry for each package, especially the exact workflow filename and `release` environment. No long-lived npm token is needed.
 - **Missing package or overall tags:** complete **Tag Release** for the reviewed commit first. **Publish Packages** only verifies and consumes existing tags.
 - **Tags created but npm publication failed:** the tags remain at their original source commit. Re-run the original workflow at that same commit; it verifies and reuses them before retrying missing uploads. Do not move tags or dispatch a newer commit for the same unpublished versions.
 - **Partial npm upload:** existing versions are checked against their source commit and package contents. Matching published packages are preserved, and Lerna publishes only missing versions.

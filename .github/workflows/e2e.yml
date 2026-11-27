@@ -4,9 +4,6 @@ env:
 
 on:
   pull_request:
-    branches:
-      - master
-      - next
   workflow_dispatch:
 
 permissions:
