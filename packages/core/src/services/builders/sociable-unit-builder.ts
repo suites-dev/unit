@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { DependencyResolutionError, SuitesErrorCode } from '@suites/types.common';
+import { DependencyResolutionError, UnitErrorCode } from '@suites/types.common';
 import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { DoublesAdapter, StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
@@ -188,12 +188,12 @@ function configuredBuilder<TClass, TSelf extends { compile(): Promise<UnitTestBe
 }
 
 class InvalidBuilderArgument extends TypeError {
-  public readonly code = SuitesErrorCode.INVALID_BUILDER_ARGUMENT;
+  public readonly code = UnitErrorCode.INVALID_BUILDER_ARGUMENT;
   public readonly severity = 'error';
 
   public constructor(message: string) {
     super(
-      `Invalid builder argument (code ${SuitesErrorCode.INVALID_BUILDER_ARGUMENT})\n${message}`
+      `Invalid builder argument (code ${UnitErrorCode.INVALID_BUILDER_ARGUMENT})\n${message}`
     );
   }
 }
@@ -216,7 +216,7 @@ function isConstructor(value: unknown): boolean {
 }
 
 function conflict(message: string): never {
-  throw new DependencyResolutionError(message, SuitesErrorCode.CONFIGURATION_CONFLICT);
+  throw new DependencyResolutionError(message, UnitErrorCode.CONFIGURATION_CONFLICT);
 }
 
 function collectBindings(
@@ -354,7 +354,7 @@ async function compile<TClass>(
   if (unreachable.length > 0) {
     throw new DependencyResolutionError(
       `Unreachable declarations in the ${mode.kind} graph of ${stringifyIdentifier(context.targetClass, undefined)}: ${unreachable.join('; ')}. Remove these declarations or include their dependent classes in the graph.`,
-      SuitesErrorCode.UNREACHABLE_DECLARATION
+      UnitErrorCode.UNREACHABLE_DECLARATION
     );
   }
 

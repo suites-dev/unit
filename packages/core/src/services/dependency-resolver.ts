@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { DependencyResolutionError, SuitesError, SuitesErrorCode } from '@suites/types.common';
+import { DependencyResolutionError, SuitesError, UnitErrorCode } from '@suites/types.common';
 import { stringifyIdentifier } from './functions.static.js';
 import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
@@ -141,7 +141,7 @@ export class DependencyResolver {
     }
     if (!validFailure(result, target)) {
       throw new SuitesError(
-        SuitesErrorCode.ADAPTER_ERROR,
+        UnitErrorCode.ADAPTER_UNUSABLE,
         'Invalid DI adapter inspection result',
         'Update your DI adapter for v5. inspect() must return an InspectionResult containing a registry or a reflection failure.'
       );
@@ -238,7 +238,7 @@ export class DependencyResolver {
         .join(' -> ');
       throw new DependencyResolutionError(
         `Cannot compose circular constructor dependencies: ${path}. Declare an explicit dependency boundary to stop traversal.`,
-        SuitesErrorCode.DEPENDENCY_CYCLE
+        UnitErrorCode.DEPENDENCY_CYCLE
       );
     }
 

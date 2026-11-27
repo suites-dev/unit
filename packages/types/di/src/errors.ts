@@ -1,10 +1,10 @@
 import type { Type } from '@suites/types.common';
 import type { InspectionFailure } from './index.js';
-import { SuitesError, SuitesErrorCode } from '@suites/types.common';
+import { SuitesError, UnitErrorCode } from '@suites/types.common';
 
 export class IdentifierNotFoundError extends SuitesError {
   public constructor(message: string) {
-    super(SuitesErrorCode.IDENTIFIER_NOT_FOUND, 'Missing class dependency identifier', message);
+    super(UnitErrorCode.IDENTIFIER_NOT_FOUND, 'Missing class dependency identifier', message);
     this.name = 'IdentifierNotFoundError';
   }
 }
@@ -16,7 +16,7 @@ export interface InspectionContext {
 
 abstract class DIInspectionError extends SuitesError {
   protected constructor(
-    code: SuitesErrorCode,
+    code: UnitErrorCode,
     title: string,
     message: string,
     public readonly context: InspectionContext | undefined
@@ -31,7 +31,7 @@ abstract class DIInspectionError extends SuitesError {
 export class UndefinedDependencyError extends DIInspectionError {
   public constructor(message: string, context: InspectionContext | undefined = undefined) {
     super(
-      SuitesErrorCode.UNDEFINED_DEPENDENCY,
+      UnitErrorCode.DEPENDENCY_IDENTIFIER_UNRESOLVED,
       'Undefined dependency identifier',
       message,
       context
@@ -42,7 +42,7 @@ export class UndefinedDependencyError extends DIInspectionError {
 
 export class UndefinedTokenError extends DIInspectionError {
   public constructor(message: string, context: InspectionContext | undefined = undefined) {
-    super(SuitesErrorCode.UNDEFINED_TOKEN, 'Undefined token', message, context);
+    super(UnitErrorCode.INJECTION_TOKEN_UNDEFINED, 'Undefined token', message, context);
     this.name = 'UndefinedTokenError';
   }
 }
