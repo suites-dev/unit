@@ -10,7 +10,12 @@ it('creates independent mocks from a reused fixture and preserves its shared ref
   const entry = Object.freeze({ quantity: 2 });
   const when = new Date('2020-01-02T03:04:05Z');
   const fixture = Object.freeze({ entry, alias: entry, entries: [entry], when });
-  interface Order { entry: Entry; alias: Entry; entries: Entry[]; when: Date }
+  interface Order {
+    entry: Entry;
+    alias: Entry;
+    entries: Entry[];
+    when: Date;
+  }
   const first = mock<Order>(fixture);
   const second = mock<Order>(fixture);
 
@@ -31,12 +36,31 @@ it('creates independent mocks from a reused fixture and preserves its shared ref
 });
 
 it('preserves cycles within one mock', () => {
-  interface Branch { parent: Branch }
-  class Circular implements Branch { parent: Branch = this }
-  const implementation: Branch = { parent: new Circular() };
+  interface Branch {
+    parent: Branch | null;
+  }
+  const implementation: Branch = { parent: null };
   implementation.parent = implementation;
   const branch = mock<Branch>(implementation);
 
   expect(branch.parent).toBe(branch);
   expect(implementation.parent).toBe(implementation);
+});
+
+it('keeps the original receiver for a supplied class accessor', () => {
+  class Account {
+    #balance = 1;
+    get balance() {
+      return this.#balance;
+    }
+    set balance(next: number) {
+      this.#balance = next;
+    }
+  }
+  const input = new Account();
+  const account = mock<Account>(input);
+
+  account.balance = 5;
+  expect(account.balance).toBe(5);
+  expect(input.balance).toBe(5);
 });
