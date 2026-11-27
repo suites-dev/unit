@@ -1,6 +1,8 @@
 import type { DependencyInjectionAdapter } from '@suites/types.di';
 import { PackageResolver, type PackageResolverStrategy } from '../src/package-resolver.base.js';
 
+class EmptyService {}
+
 describe('PackageResolver Unit Spec', () => {
   describe('resolveCorrespondingAdapter', () => {
     describe('when strategy finds a matching adapter', () => {
@@ -22,7 +24,7 @@ describe('PackageResolver Unit Spec', () => {
 
       it('should successfully resolve the adapter', async () => {
         const adapter = await packageResolver.resolveCorrespondingAdapter();
-        expect(adapter.inspect({} as never)).toBe('success');
+        expect(adapter.inspect(EmptyService).list()).toEqual([]);
       });
     });
 
@@ -95,7 +97,7 @@ describe('PackageResolver Unit Spec', () => {
 
       it('should resolve the first matching adapter', async () => {
         const adapter = await packageResolver.resolveCorrespondingAdapter();
-        expect(adapter.inspect({} as never)).toBe('success');
+        expect(adapter.inspect(EmptyService).list()).toEqual([]);
       });
 
       it('should stop checking once a match is found', async () => {
@@ -122,5 +124,3 @@ describe('PackageResolver Unit Spec', () => {
     });
   });
 });
-
-

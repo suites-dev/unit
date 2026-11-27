@@ -1,32 +1,86 @@
-import type { FinalValue, Type, AbstractType } from '@suites/types.common';
+import { isDeepStrictEqual } from 'node:util';
+import { DependencyResolutionError } from '@suites/types.common';
+import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
 import type {
   ClassInjectable,
   DependencyInjectionAdapter,
   IdentifierMetadata,
   InjectableIdentifier,
-  WithMetadata,
 } from '@suites/types.di';
+import type { CompositionBoundaryLookup, DependencyPathEntry } from './composition-boundary.js';
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
 import { DependencyMap } from './dependency-map.js';
+
+export type ResolverOptions =
+  | { readonly mode: 'solitary' }
+  | { readonly mode: 'selective' }
+  | { readonly mode: 'composed'; readonly boundaries: CompositionBoundaryLookup };
+
+type ResolvedDependency = Type | FinalValue | StubbedInstance<unknown>;
+type ResolvedBoundary = { value: ResolvedDependency };
 
 export class DependencyResolver {
   private readonly dependencyMap = new DependencyMap();
   private readonly usedMockEntries = new Set<IdentifierToMockOrFinal>();
-  private readonly availableClassesToExpose = new Set<AbstractType>();
+  private readonly availableClassesToExpose = new Set<InjectableIdentifier>();
+  private readonly constructionPath: DependencyPathEntry[] = [];
+  private readonly composedDependencies: IdentifierToMockOrFinal[0][] = [];
 
   constructor(
-    private readonly classesToExpose: Type[],
+    private readonly classesToExpose: readonly Type[],
     private readonly mockedFromBeforeContainer: DependencyContainer,
     private readonly adapter: DependencyInjectionAdapter,
-    private readonly mockFunction: MockFunction
+    private readonly mockFunction: MockFunction,
+    private readonly options: ResolverOptions = { mode: 'solitary' }
   ) {}
 
   private isExposedClass(identifier: InjectableIdentifier): identifier is Type {
-    // Only explicitly exposed, concrete constructors may be instantiated.
     return (
       typeof identifier === 'function' && this.classesToExpose.some((type) => type === identifier)
     );
+  }
+
+  private isComposableClass(identifier: InjectableIdentifier): identifier is Type {
+    if (typeof identifier !== 'function') {
+      return false;
+    }
+
+    return this.adapter.canAutoConstruct?.(identifier as Type) === true;
+  }
+
+  private resolveBoundary(
+    identifier: InjectableIdentifier,
+    metadata?: IdentifierMetadata
+  ): ResolvedBoundary | undefined {
+    const boundary =
+      this.options.mode === 'composed'
+        ? this.options.boundaries.resolve(identifier, metadata)
+        : undefined;
+    if (boundary !== undefined) {
+      if (boundary.kind === 'guard') {
+        return {
+          value: boundary.create([...this.constructionPath, { identifier, metadata }]),
+        };
+      }
+
+      const selectedEntry = this.mockedFromBeforeContainer.resolveEntry(
+        identifier,
+        boundary.metadata
+      );
+      if (selectedEntry !== undefined) {
+        this.usedMockEntries.add(selectedEntry);
+      }
+      return { value: boundary.value };
+    }
+
+    const existingEntry = this.mockedFromBeforeContainer.resolveEntry(identifier, metadata);
+    if (existingEntry !== undefined) {
+      this.usedMockEntries.add(existingEntry);
+      return { value: existingEntry[1] };
+    }
+
+    return undefined;
   }
 
   public isLeafOrPrimitive(identifier: InjectableIdentifier): boolean {
@@ -39,18 +93,21 @@ export class DependencyResolver {
   public resolveOrMock(
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
-  ): Type | FinalValue | StubbedInstance<unknown> {
+  ): ResolvedDependency {
     if (this.dependencyMap.has(identifier, metadata)) {
-      return this.dependencyMap.get(identifier, metadata) as Type | FinalValue | ClassInjectable;
+      return this.dependencyMap.get(identifier, metadata) as ResolvedDependency;
     }
 
-    const existingEntry = this.mockedFromBeforeContainer.resolveEntry(identifier, metadata);
+    const boundary = this.resolveBoundary(identifier, metadata);
+    if (boundary !== undefined) {
+      this.dependencyMap.set(identifier, boundary.value, metadata);
+      return boundary.value;
+    }
 
-    if (existingEntry !== undefined && existingEntry[1] !== undefined) {
-      const existingMock = existingEntry[1];
-      this.usedMockEntries.add(existingEntry);
-      this.dependencyMap.set(identifier, existingMock, metadata as never);
-      return existingMock;
+    if (this.options.mode === 'composed' && this.isComposableClass(identifier)) {
+      const instance = this.instantiateClass(identifier, metadata);
+      this.composedDependencies.push({ identifier, metadata });
+      return instance;
     }
 
     if (this.isLeafOrPrimitive(identifier)) {
@@ -59,58 +116,88 @@ export class DependencyResolver {
       }
 
       const mock = this.mockFunction();
-      this.dependencyMap.set(identifier, mock, metadata as never);
+      this.dependencyMap.set(identifier, mock, metadata);
       return mock;
     }
 
-    // Non-leaf classes that are not exposed should also be mocked
     if (typeof identifier === 'function' && !this.isExposedClass(identifier)) {
       const mock = this.mockFunction();
-      this.dependencyMap.set(identifier, mock, metadata as never);
-
-      return mock as StubbedInstance<unknown>;
+      this.dependencyMap.set(identifier, mock, metadata);
+      return mock;
     }
 
-    // Instantiate class if it's not a leaf or primitive
     return this.instantiateClass(identifier as Type, metadata);
   }
 
   public instantiateClass(
     type: Type,
-    metadata: IdentifierMetadata | undefined = undefined
-  ): Type | FinalValue | StubbedInstance<unknown> {
-    if (this.dependencyMap.has(type, metadata)) {
-      return this.dependencyMap.get(type, metadata) as Type | FinalValue | StubbedInstance<unknown>;
+    metadata: IdentifierMetadata | undefined = undefined,
+    identifier: InjectableIdentifier = type
+  ): ResolvedDependency {
+    if (this.dependencyMap.has(identifier, metadata)) {
+      return this.dependencyMap.get(identifier, metadata) as ResolvedDependency;
     }
 
-    const injectableRegistry = this.adapter.inspect(type);
+    const tracksCycles = this.options.mode === 'composed';
+    if (
+      tracksCycles &&
+      this.constructionPath.some(
+        (entry) => entry.identifier === identifier && isDeepStrictEqual(entry.metadata, metadata)
+      )
+    ) {
+      const path = [...this.constructionPath, { identifier, metadata }]
+        .map(({ identifier: pathIdentifier }) =>
+          typeof pathIdentifier === 'function' ? pathIdentifier.name : String(pathIdentifier)
+        )
+        .join(' -> ');
+      throw new DependencyResolutionError(
+        `Cannot compose circular constructor dependencies: ${path}. Declare an explicit dependency boundary to stop traversal.`
+      );
+    }
 
-    injectableRegistry.list().forEach((injectable: ClassInjectable) => {
-      if (typeof injectable.identifier === 'function') {
+    if (tracksCycles) {
+      this.constructionPath.push({ identifier, metadata });
+    }
+
+    try {
+      const injectableRegistry = this.adapter.inspect(type);
+
+      injectableRegistry.list().forEach((injectable: ClassInjectable) => {
         this.availableClassesToExpose.add(injectable.identifier);
+      });
+
+      const ctorInjectables = injectableRegistry.list().filter(({ type }) => type === 'PARAM');
+      const ctorParams = ctorInjectables.map((injectable) =>
+        this.resolveOrMock(
+          injectable.identifier,
+          'metadata' in injectable ? injectable.metadata : undefined
+        )
+      );
+
+      const instance = new type(...ctorParams);
+      this.dependencyMap.set(identifier, instance, metadata);
+
+      const propsInjectables = injectableRegistry.list().filter(({ type }) => type === 'PROPERTY');
+      propsInjectables.forEach((injectable) => {
+        instance[injectable.property!.key] = this.resolveOrMock(
+          injectable.identifier,
+          'metadata' in injectable ? injectable.metadata : undefined
+        );
+      });
+
+      return instance;
+    } finally {
+      if (tracksCycles) {
+        this.constructionPath.pop();
       }
-    });
-
-    const ctorInjectables = injectableRegistry.list().filter(({ type }) => type === 'PARAM');
-
-    const ctorParams = ctorInjectables.map(({ identifier, metadata }: WithMetadata<never>) => {
-      return this.resolveOrMock(identifier, metadata);
-    });
-
-    const instance = new type(...ctorParams);
-    this.dependencyMap.set(type, instance, metadata as never);
-
-    const propsInjectables = injectableRegistry.list().filter(({ type }) => type === 'PROPERTY');
-
-    propsInjectables.forEach(({ identifier, metadata, property }: WithMetadata<never>) => {
-      const propValue = this.resolveOrMock(identifier, metadata);
-      instance[property!.key] = propValue;
-    });
-
-    return instance;
+    }
   }
 
-  public getResolvedDependencies() {
+  public getComposedDependencies(): IdentifierToMockOrFinal[0][] {
+    return this.composedDependencies;
+  }
+
+  public getResolvedDependencies(): IdentifierToMockOrFinal[] {
     return this.dependencyMap.entries();
   }
 
@@ -120,14 +207,12 @@ export class DependencyResolver {
     notFound: IdentifierToMockOrFinal[];
   } {
     const exposes = this.classesToExpose.filter((cls) => !this.availableClassesToExpose.has(cls));
-
     const mocks = this.mockedFromBeforeContainer
       .list()
       .filter(([injectable]) => typeof injectable.identifier === 'function')
       .filter(
         ([injectable]) => !this.availableClassesToExpose.has(injectable.identifier as AbstractType)
       );
-
     const notFound = this.mockedFromBeforeContainer
       .list()
       .filter((entry) => !this.usedMockEntries.has(entry));

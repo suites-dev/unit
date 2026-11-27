@@ -10,7 +10,7 @@ import {
   SkipSelf,
 } from 'injection-js';
 import { UndefinedDependency, UndefinedDependencyError } from '@suites/types.di';
-import type { InjectableIdentifier } from '@suites/types.di';
+import type {} from '../metadata.js';
 import { adapter } from '../src/index.js';
 
 @Injectable()
@@ -59,7 +59,7 @@ describe('InjectionJS constructor adapter', () => {
       value: Repository,
       type: 'PARAM',
     });
-    expect(registry.resolve(TOKEN as unknown as InjectableIdentifier)).toEqual({
+    expect(registry.resolve(TOKEN)).toEqual({
       identifier: TOKEN,
       value: UndefinedDependency,
       type: 'PARAM',
@@ -69,9 +69,7 @@ describe('InjectionJS constructor adapter', () => {
 
   it('keeps different InjectionTokens with the same description distinct', () => {
     const other = new InjectionToken('repository');
-    expect(
-      adapter.inspect(Service).resolve(other as unknown as InjectableIdentifier)
-    ).toBeUndefined();
+    expect(adapter.inspect(Service).resolve(other)).toBeUndefined();
   });
 
   it('reads the public static parameters format', () => {

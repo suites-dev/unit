@@ -13,7 +13,7 @@ describe('Social TestBed Builder (Empty Constructor) Integration Tests', () => {
   let testServiceAsIfItWasUnderTest: TestService;
   let unitRef: UnitReference;
 
-  const loggerMock = { warn: jest.fn() } as unknown as jest.Mocked<Console>;
+  const loggerMock = { warn: jest.fn() } satisfies Pick<Console, 'warn'>;
 
   beforeAll(async () => {
     unitBuilder = new SociableTestBedBuilder(

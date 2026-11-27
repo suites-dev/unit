@@ -1,82 +1,167 @@
-import type { DoublesAdapter } from '@suites/types.doubles';
-import type { Type } from '@suites/types.common';
+import type { FinalValue, Type } from '@suites/types.common';
+import type { DoublesAdapter, StubbedInstance } from '@suites/types.doubles';
+import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
+import type { MockOverride, UnitTestBed } from '../../types.js';
+import type { IdentifierToFinal, IdentifierToMockOrFinal } from '../dependency-container.js';
+import { normalizeIdentifier } from '../../normalize-identifier.static.js';
+import { DependencyContainer } from '../dependency-container.js';
+import type { ResolverOptions } from '../dependency-resolver.js';
+import { CompositionBoundaryContainer, type CompositionBoundary } from '../composition-boundary.js';
 import { UnitReference } from '../unit-reference.js';
 import type { UnitMocker } from '../unit-mocker.js';
-import type { IdentifierToMockOrFinal } from '../dependency-container.js';
-import { DependencyContainer } from '../dependency-container.js';
-import type { UnitTestBed } from '../../types.js';
-import { TestBedBuilder } from './testbed-builder.js';
 
-export interface SociableTestBedBuilder<TClass> {
-  expose(dependency: Type): SociableTestBedBuilder<TClass>;
+export interface SociableTestBedBuilderState<TClass, TMode extends 'selective' | 'composed'> {
+  mock<TDependency>(
+    identifier: InjectableIdentifier<TDependency>,
+    metadata?: IdentifierMetadata
+  ): MockOverride<TDependency, TClass, SociableTestBedBuilderState<TClass, TMode>>;
+  compile(): Promise<UnitTestBed<TClass>>;
 }
 
-export class SociableTestBedBuilder<TClass> extends TestBedBuilder<TClass> {
-  private readonly classesToExpose: Type[] = [];
+interface BuilderContext<TClass> {
+  readonly doubles: Promise<DoublesAdapter>;
+  readonly mocker: UnitMocker;
+  readonly targetClass: Type<TClass>;
+  readonly logger: Pick<Console, 'warn'>;
+}
 
-  public constructor(
-    private readonly doublesAdapter: Promise<DoublesAdapter>,
-    private readonly unitMocker: UnitMocker,
-    private readonly targetClass: Type<TClass>,
-    private readonly logger: Console
+type ConstructionMode =
+  { readonly kind: 'selective'; readonly classes: readonly Type[] } | { readonly kind: 'composed' };
+
+type Override = (
+  | {
+      readonly kind: 'mock';
+      readonly create: (doubles: DoublesAdapter) => StubbedInstance<unknown>;
+    }
+  | { readonly kind: 'final'; readonly value: FinalValue }
+) & {
+  readonly identifier: InjectableIdentifier;
+  readonly metadata: IdentifierMetadata | undefined;
+};
+
+interface SociableConfiguration {
+  readonly mode: ConstructionMode;
+  readonly overrides: readonly Override[];
+}
+
+export class SociableTestBedBuilder<TClass> {
+  readonly #context: BuilderContext<TClass>;
+
+  constructor(
+    doubles: Promise<DoublesAdapter>,
+    mocker: UnitMocker,
+    targetClass: Type<TClass>,
+    logger: Pick<Console, 'warn'>
   ) {
-    super();
+    this.#context = { doubles, mocker, targetClass, logger };
   }
 
-  public expose(dependency: Type): SociableTestBedBuilder<TClass> & TestBedBuilder<TClass> {
-    this.classesToExpose.push(dependency);
-    return this;
+  public expose(first: Type, ...rest: Type[]): SociableTestBedBuilderState<TClass, 'selective'> {
+    if (!first) {
+      throw new TypeError('Selective exposure requires at least one dependency');
+    }
+
+    return configuredBuilder(this.#context, {
+      mode: { kind: 'selective', classes: [first, ...rest] },
+      overrides: [],
+    });
   }
 
-  public async compile(): Promise<UnitTestBed<TClass>> {
-    const mockFn = await this.doublesAdapter.then((adapter) => adapter.mock);
-    const stubCb = await this.doublesAdapter.then((adapter) => adapter.stub);
+  public compose(): SociableTestBedBuilderState<TClass, 'composed'> {
+    return configuredBuilder(this.#context, { mode: { kind: 'composed' }, overrides: [] });
+  }
+}
 
-    const identifiersToMocks: IdentifierToMockOrFinal[] = this.identifiersToBeMocked.map(
-      ([identifier, mockImplCallback]) => {
-        return [identifier, mockFn(mockImplCallback(stubCb))];
-      }
+function configuredBuilder<TClass, TMode extends 'selective' | 'composed'>(
+  context: BuilderContext<TClass>,
+  configuration: SociableConfiguration
+): SociableTestBedBuilderState<TClass, TMode> {
+  const withOverride = (override: Override) =>
+    configuredBuilder<TClass, TMode>(context, {
+      ...configuration,
+      overrides: [...configuration.overrides, override],
+    });
+
+  return {
+    mock(identifier, metadata) {
+      return {
+        impl: (implementation) =>
+          withOverride({
+            kind: 'mock',
+            identifier,
+            metadata,
+            create: (doubles) => doubles.mock(implementation(doubles.stub)),
+          }),
+        final: (value) => withOverride({ kind: 'final', identifier, metadata, value }),
+      };
+    },
+    compile: () => compile(context, configuration),
+  };
+}
+
+async function compile<TClass>(
+  context: BuilderContext<TClass>,
+  configuration: SociableConfiguration
+): Promise<UnitTestBed<TClass>> {
+  const doubles = await context.doubles;
+  const entries: IdentifierToMockOrFinal[] = [];
+  const finalized: IdentifierToFinal[] = [];
+  const boundaries: CompositionBoundary[] = [];
+
+  const mocks = configuration.overrides.filter(({ kind }) => kind === 'mock');
+  const finals = configuration.overrides.filter(({ kind }) => kind === 'final');
+  for (const override of [...mocks, ...finals]) {
+    const { identifier, metadata } = override;
+    const key = normalizeIdentifier(identifier, metadata);
+    if (override.kind === 'mock') {
+      const value = override.create(doubles);
+      entries.push([key, value]);
+      boundaries.push({ kind: 'mock', identifier, metadata, value });
+    } else {
+      const entry: IdentifierToFinal = [key, override.value];
+      entries.push(entry);
+      finalized.push(entry);
+      boundaries.push({ kind: 'final', identifier, metadata, value: override.value });
+    }
+  }
+
+  const { mode } = configuration;
+  const classes = mode.kind === 'selective' ? mode.classes : [];
+  const options = (
+    mode.kind === 'selective'
+      ? { mode: 'selective' }
+      : { mode: 'composed', boundaries: new CompositionBoundaryContainer(boundaries) }
+  ) satisfies ResolverOptions;
+  const { container, instance, resolution, composedDependencies } =
+    await context.mocker.constructUnit(
+      context.targetClass,
+      classes,
+      new DependencyContainer(entries),
+      options
     );
 
-    const identifiersToFinal: IdentifierToMockOrFinal[] = this.identifiersToBeFinalized.map(
-      ([identifier, finalImpl]: IdentifierToMockOrFinal) => {
-        return [identifier, finalImpl];
-      }
-    );
-
-    const { container, instance, resolution } = await this.unitMocker.constructUnit<TClass>(
-      this.targetClass,
-      this.classesToExpose,
-      new DependencyContainer([...identifiersToMocks, ...identifiersToFinal])
-    );
-
-    if (resolution.mocks.length > 0) {
-      resolution.mocks.forEach((identifier) => {
-        this.logger.warn(`Suites Warning: Unreachable Mock Configuration Detected.
-You attempted to mock '${identifier.identifier.name}', which is not directly involved in the current testing context of '${this.targetClass.name}'.
+  resolution.mocks.forEach((identifier) => {
+    context.logger.warn(`Suites Warning: Unreachable Mock Configuration Detected.
+You attempted to mock '${identifier.identifier.name}', which is not directly involved in the current testing context of '${context.targetClass.name}'.
 This mock will not affect the outcome of your tests because '${identifier.identifier.name}' is neither a direct dependency of the tested unit nor is it
 among the dependencies explicitly exposed. If '${identifier.identifier.name}' does not influence the unit under test, consider removing this mock from your
 setup to streamline your test configuration. However, if this mock is crucial, verify that all required dependencies are correctly exposed.
 For detailed guidance on configuring sociable tests, please consult: https://suites.dev/docs.`);
-      });
-    }
+  });
 
-    if (resolution.exposes.length > 0) {
-      resolution.exposes.forEach((identifier) => {
-        this.logger.warn(`Suites Warning: Unreachable Exposed Dependency Detected.
+  resolution.exposes.forEach((identifier) => {
+    context.logger.warn(`Suites Warning: Unreachable Exposed Dependency Detected.
 The dependency '${identifier.name}' has been exposed but cannot be reached within the current testing context.
-This typically occurs because '${identifier.name}' is not a direct dependency of the unit under test (${this.targetClass.name}) nor any
+This typically occurs because '${identifier.name}' is not a direct dependency of the unit under test (${context.targetClass.name}) nor any
 of its other exposed dependencies. Exposing '${identifier.name}' without it being accessible from the unit under test or
 its dependencies may lead to incorrect test configurations. To resolve this, please review and adjust your testing
 setup to ensure all necessary dependencies are interconnected. Alternatively, if '${identifier.name}' does not influence
 the unit under test, consider removing its exposure from your test setup.
 For detailed instructions and best practices, refer to our documentation: https://suites.dev/docs.`);
-      });
-    }
+  });
 
-    return {
-      unit: instance as TClass,
-      unitRef: new UnitReference(container, this.classesToExpose, this.identifiersToBeFinalized),
-    };
-  }
+  return {
+    unit: instance,
+    unitRef: new UnitReference(container, classes, finalized, composedDependencies),
+  };
 }

@@ -39,7 +39,7 @@ export abstract class TestBedBuilder<TClass> implements TestBedBuilder<TClass> {
         ) => DeepPartial<TDependency>
       ): TestBedBuilder<TClass> => {
         this.identifiersToBeMocked.push([
-          normalizeIdentifier(identifier, metadata as never),
+          normalizeIdentifier(identifier, metadata),
           mockImplementation,
         ]);
 
@@ -47,7 +47,7 @@ export abstract class TestBedBuilder<TClass> implements TestBedBuilder<TClass> {
       },
       final: (finalImplementation: FinalValue<TDependency>): TestBedBuilder<TClass> => {
         this.identifiersToBeFinalized.push([
-          normalizeIdentifier(identifier, metadata as never),
+          normalizeIdentifier(identifier, metadata),
           finalImplementation,
         ]);
 

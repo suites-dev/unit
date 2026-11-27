@@ -15,13 +15,13 @@ class Subject {
 }
 
 const selective = TestBed.sociable(Subject)
+  .expose(Service)
   .mock(Service)
-  .impl((stub) => ({ read: stub().mockReturnValue('yes') }))
-  .expose(Service);
+  .impl((stub) => ({ read: stub().mockReturnValue('yes') }));
 const composed = TestBed.sociable(Subject)
+  .compose()
   .mock(Service)
-  .final({ read: () => 'yes' })
-  .compose();
+  .final({ read: () => 'yes' });
 
 // @ts-expect-error Selective mode does not expose compose().
 selective.compose();

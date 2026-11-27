@@ -138,7 +138,15 @@ A `.final()` dependency is injected as supplied and cannot be retrieved through 
 
 ## Sociable tests
 
-Use `TestBed.sociable(UserService).expose(ConcreteDependency).compile()` to keep selected class dependencies real and mock their remaining dependencies. The class under test and exposed classes must be concrete constructors; abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
+Use `TestBed.sociable(UserService).expose(Repository, ConcreteDependency).compile()` to keep selected class dependencies real and mock their remaining dependencies. Exposure is variadic, and the class under test and exposed classes must be concrete constructors. Abstract classes can be used as dependency tokens in `.mock()` and `unitRef.get()`.
+
+Choose one mode before configuring or compiling a sociable test. Replace repeated calls such as `.expose(A).expose(B)` with `.expose(A, B)`. Use `.compose()` to construct the injectable graph recursively:
+
+```typescript
+const { unit } = await TestBed.sociable(UserService).compose().compile();
+```
+
+Selective exposure and recursive composition are mutually exclusive choices: neither `.expose(...).compose()` nor `.compose().expose(...)` is available. Composition recursively constructs a class only when the selected DI adapter positively identifies it as constructable by that framework. Suites does not infer constructibility from a function token or implemented prototype members. Unmarked classes, including ambiguous concrete leaves, remain unresolved in composed mode until a token-to-implementation binding or explicit boundary is supplied. TypeScript erases the `abstract` modifier, so a framework decorator applied directly to an abstract class can still make it indistinguishable from a concrete class at runtime.
 
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 

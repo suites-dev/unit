@@ -1,3 +1,4 @@
+import type { normalizeIdentifier } from '../normalize-identifier.static.js';
 import { isDeepStrictEqual } from 'node:util';
 import type { ClassInjectable, IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { Stub, StubbedInstance } from '@suites/types.doubles';
@@ -9,7 +10,7 @@ export type IdentifierToMockOrFinal = [
 ];
 
 export type IdentifierToFinal = [
-  Pick<ClassInjectable, 'identifier'> & { metadata?: never },
+  ReturnType<typeof normalizeIdentifier>,
   FinalValue,
 ];
 

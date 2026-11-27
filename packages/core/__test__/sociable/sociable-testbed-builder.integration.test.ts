@@ -1,3 +1,4 @@
+import { ok } from 'node:assert/strict';
 import type { StubbedInstance } from '@suites/types.doubles';
 import { FakeAdapter } from './assets/integration.assets.js';
 import { mock } from '../mock.static.js';
@@ -13,8 +14,8 @@ import {
   ApiService,
   DatabaseService,
 } from './assets/injectable-registry.fixture.js';
-import type { UnitReference } from '../../src.js';
-import { SociableTestBedBuilder, UnitMocker } from '../../src.js';
+import type { UnitReference } from '../../src/index.js';
+import { SociableTestBedBuilder, UnitMocker } from '../../src/index.js';
 import Mock = jest.Mock;
 
 describe('Social TestBed Builder Integration Tests', () => {
@@ -22,7 +23,7 @@ describe('Social TestBed Builder Integration Tests', () => {
   let userServiceAsIfItWasUnderTest: UserService;
   let unitRef: UnitReference;
 
-  const loggerMock = { warn: jest.fn() } as unknown as jest.Mocked<Console>;
+  const loggerMock = { warn: jest.fn() } satisfies Pick<Console, 'warn'>;
 
   beforeAll(async () => {
     unitBuilder = new SociableTestBedBuilder(
@@ -36,10 +37,7 @@ describe('Social TestBed Builder Integration Tests', () => {
     );
 
     const testBed = await unitBuilder
-      .expose(UserApiService)
-      .expose(UserDal)
-      .expose(HttpClient)
-      .expose(DatabaseService)
+      .expose(UserApiService, UserDal, HttpClient, DatabaseService)
       .mock(TestLogger)
       .impl((stubFn: Mock) => ({ log: stubFn().mockReturnValue('overridden') }))
       .mock(Axios)
@@ -82,18 +80,17 @@ describe('Social TestBed Builder Integration Tests', () => {
 
   describe('creating a user with UserService', () => {
     let repository: StubbedInstance<Repository>;
-    let userVerService: jest.Mocked<UserVerificationService>;
+    let userVerService: StubbedInstance<UserVerificationService>;
     let createdUser: User;
 
     const userFixture = { name: 'Test User', email: 'test@example.com' } as const;
 
     beforeAll(async () => {
-      userVerService = unitRef.get(
-        UserVerificationService
-      ) as unknown as jest.Mocked<UserVerificationService>;
+      userVerService = unitRef.get(UserVerificationService);
 
       repository = unitRef.get<Repository>('Repository');
 
+      ok(jest.isMockFunction(userVerService.verify));
       userVerService.verify.mockReturnValue(true);
       createdUser = await userServiceAsIfItWasUnderTest.create(userFixture);
     });
@@ -145,25 +142,17 @@ describe('Social TestBed Builder Integration Tests', () => {
     });
   });
 
-  it('should trigger the logger warning when the HttpClient is attempted to be mocked', async () => {
+  it('warns about a mock whose class is outside the selected graph', async () => {
+    loggerMock.warn.mockClear();
+    class UnusedDependency {}
     await unitBuilder
-      .mock('non-existing-dep')
+      .expose(UserApiService)
+      .mock(UnusedDependency)
       .impl(() => ({}))
       .compile();
 
     expect(loggerMock.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Suites Warning: Unreachable Mock Configuration Detected')
-    );
-  });
-
-  it('should trigger the logger warning when the HttpClient is attempted to be mocked', async () => {
-    await unitBuilder
-      .mock(UserDal)
-      .impl(() => ({}))
-      .compile();
-
-    expect(loggerMock.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Suites Warning: Unreachable Mock Configuration Detected')
+      expect.stringContaining("mock 'UnusedDependency'")
     );
   });
 });

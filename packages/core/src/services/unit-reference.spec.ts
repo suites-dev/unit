@@ -1,3 +1,4 @@
+import { TestToken } from '../../__test__/test-token.js';
 import type { InjectableIdentifier } from '@suites/types.di';
 import type { ConstantValue } from '@suites/types.common';
 import type { StubbedInstance } from '@suites/types.doubles';
@@ -34,8 +35,8 @@ describe('Unit Reference Unit Spec', () => {
     ]);
 
     const fakedDependencies: IdentifierToFinal[] = [
-      [{ identifier: RealDependencyThree }, 'fake-value-1'],
-      [{ identifier: RealDependencyFour }, 'another-fake-value-2'],
+      [{ identifier: RealDependencyThree, metadata: undefined }, 'fake-value-1'],
+      [{ identifier: RealDependencyFour, metadata: undefined }, 'another-fake-value-2'],
     ];
 
     unitReference = new UnitReference(
@@ -76,12 +77,12 @@ describe('Unit Reference Unit Spec', () => {
   it('should return the corresponding class or value impl unique identifier with metadata combined', () => {
     expect(
       unitReference.get<DependencyTwoStubbed>('DEPENDENCY_TWO', {
-        dependency: 'two' as never,
+        dependency: 'two',
       })
     ).toEqual(DependencyTwoStubbed);
 
     expect(
-      unitReference.get<DependencyTwoStubbed>(DependencyTwoSymbol, { dependency: 'two' } as never)
+      unitReference.get<DependencyTwoStubbed>(DependencyTwoSymbol, { dependency: 'two' })
     ).toEqual(DependencyTwoStubbed);
   });
 
@@ -94,13 +95,13 @@ describe('Unit Reference Unit Spec', () => {
 
 describe('object token identity', () => {
   it('does not treat a different token with the same properties as finalized', () => {
-    const finalized = { description: 'repository' } as unknown as InjectableIdentifier;
-    const mocked = { description: 'repository' } as unknown as InjectableIdentifier;
+    const finalized = new TestToken('repository');
+    const mocked = new TestToken('repository');
     const mock = { find: jest.fn() };
     const reference = new UnitReference(
       new DependencyContainer([[{ identifier: mocked }, mock]]),
       [],
-      [[{ identifier: finalized }, { find: () => 'final' }]]
+      [[{ identifier: finalized, metadata: undefined }, { find: () => 'final' }]]
     );
     expect(reference.get(mocked)).toBe(mock);
     expect(() => reference.get(finalized)).toThrow(/faked dependency/);
@@ -108,12 +109,12 @@ describe('object token identity', () => {
 });
 
 describe('metadata-qualified final dependencies', () => {
-  const metadata = { named: 'primary' } as never;
+  const metadata = { named: 'primary' };
   const identifiers: InjectableIdentifier[] = [
     'QUALIFIED',
     Symbol('QUALIFIED'),
     class Qualified {},
-    { description: 'QUALIFIED' } as unknown as InjectableIdentifier,
+    new TestToken('QUALIFIED'),
   ];
 
   it.each(identifiers)('rejects a final selected by bare-token fallback (%s)', (identifier) => {
@@ -182,8 +183,6 @@ describe('metadata-qualified final dependencies', () => {
     );
 
     expect(() => reference.get('QUALIFIED')).toThrow(/could not be located/);
-    expect(() => reference.get('QUALIFIED', { named: 'missing' } as never)).toThrow(
-      /could not be located/
-    );
+    expect(() => reference.get('QUALIFIED', { named: 'missing' })).toThrow(/could not be located/);
   });
 });

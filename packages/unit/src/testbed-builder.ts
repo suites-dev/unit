@@ -2,7 +2,6 @@ import * as console from 'console';
 import type { Type } from '@suites/types.common';
 import { SuitesError, SuitesErrorCode } from '@suites/types.common';
 import type { DependencyInjectionAdapter } from '@suites/types.di';
-import type { TestBedBuilder } from '@suites/core.unit';
 import { UnitMocker } from '@suites/core.unit';
 import { createPackageResolver } from './package-resolver.js';
 import type { DoublesAdapter } from '@suites/types.doubles';
@@ -69,12 +68,19 @@ export const SuitesDIAdapters = {
  * @since 3.0.0
  */
 export function testBedBuilderFactory<TClass>(
-  diAdapters: typeof SuitesDIAdapters,
-  doublesAdapters: typeof SuitesDoublesAdapters,
+  diAdapters: Readonly<Record<string, string>>,
+  doublesAdapters: Readonly<Record<string, string>>,
   targetClass: Type<TClass>
-): { create: <TBuilder>(testbedBuilderType: Type<TestBedBuilder<TClass>>) => TBuilder } {
+) {
   return {
-    create: <TBuilder>(testbedBuilderType: Type<TestBedBuilder<TClass>>): TBuilder => {
+    create<TBuilder>(
+      testbedBuilderType: new (
+        doubles: Promise<DoublesAdapter>,
+        mocker: UnitMocker,
+        target: Type<TClass>,
+        logger: Console
+      ) => TBuilder
+    ): TBuilder {
       const diPackageResolver = createPackageResolver<DependencyInjectionAdapter>(diAdapters);
 
       const diAdapter = diPackageResolver
@@ -104,7 +110,7 @@ For more details, refer to our docs website: https://suites.dev/docs`);
         diAdapter
       );
 
-      return new testbedBuilderType(doublesAdapter, unitMocker, targetClass, console) as TBuilder;
+      return new testbedBuilderType(doublesAdapter, unitMocker, targetClass, console);
     },
   };
 }

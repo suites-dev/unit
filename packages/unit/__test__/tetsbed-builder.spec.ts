@@ -7,10 +7,10 @@ class TargetClass {}
 
 class FakeBuilderType {
   public constructor(
-    private doublesAdapter: never,
-    private unitMocker: never,
-    private targetClass: never,
-    private console: never
+    doublesAdapter: unknown,
+    unitMocker: unknown,
+    targetClass: unknown,
+    console: unknown
   ) {
     initiationStub(doublesAdapter, unitMocker, targetClass, console);
   }
@@ -21,10 +21,10 @@ describe('Testbed Builder Unit Spec', () => {
 
   beforeAll(async () => {
     result = testBedBuilderFactory(
-      { test: __dirname + '/assets/test-adapter' } as never,
-      { test: __dirname + '/assets/test-adapter' } as never,
+      { test: __dirname + '/assets/test-adapter' },
+      { test: __dirname + '/assets/test-adapter' },
       TargetClass
-    ).create(FakeBuilderType as never);
+    ).create(FakeBuilderType);
   });
 
   it('should call the constructor of the fake builder type', async () => {

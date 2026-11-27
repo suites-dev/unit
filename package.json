@@ -19,7 +19,8 @@
   ],
   "scripts": {
     "build": "pnpm lerna run build --stream",
-    "lint": "pnpm lerna run lint --parallel && pnpm --filter suites-e2e lint",
+    "lint": "pnpm lint:contracts && pnpm lerna run lint --parallel && pnpm --filter suites-e2e lint",
+    "lint:contracts": "node --test scripts/lint/type-contracts.test.cjs && eslint --config scripts/eslint-type-contracts.config.mjs packages",
     "prepare": "husky",
     "test": "pnpm lerna exec pnpm test",
     "e2e": "ts-node local-e2e.ts",

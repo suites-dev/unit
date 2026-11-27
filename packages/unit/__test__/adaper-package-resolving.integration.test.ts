@@ -3,6 +3,8 @@ import { createPackageResolver } from '../src/package-resolver.js';
 import type { PackageResolver } from '../src/package-resolver.base.js';
 import { SuitesDIAdapters, SuitesDoublesAdapters } from '../src/testbed-builder.js';
 
+class EmptyService {}
+
 describe('Suites Adapter Package Resolving Integration Test', () => {
   describe('DI Adapters Registry', () => {
     it('should include all supported DI adapters', () => {
@@ -29,7 +31,7 @@ describe('Suites Adapter Package Resolving Integration Test', () => {
 
     it('should successfully resolve the adapter package', async () => {
       const diAdapter = await packageResolver.resolveCorrespondingAdapter();
-      expect(diAdapter.inspect({} as never)).toBe('success');
+      expect(diAdapter.inspect(EmptyService).list()).toEqual([]);
     });
   });
 

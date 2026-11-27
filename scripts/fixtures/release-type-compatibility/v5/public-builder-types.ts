@@ -26,9 +26,10 @@ const composed = TestBed.sociable(Subject).compose();
 const selectiveBase: TestBedBuilder<Subject> = selective;
 const composedBase: TestBedBuilder<Subject> = composed;
 
-const configuredInitial: SociableTestBedBuilder<Subject> = initial
-  .mock(Service)
-  .final({ read: () => 'initial' });
+// @ts-expect-error Mode selection is required before configuring mocks.
+initial.mock(Service);
+// @ts-expect-error Mode selection is required before compiling.
+initial.compile();
 const configuredSelective = selective
   .mock(Service)
   .impl((stub) => ({ read: stub().mockReturnValue('selective') }));
@@ -39,11 +40,13 @@ selective.compose();
 // @ts-expect-error Composed mode cannot transition to selective exposure.
 composed.expose(Service);
 // @ts-expect-error Class-token inference preserves scalar property types.
-initial.mock(Service).final({ name: 1 });
+selective.mock(Service).final({ name: 1 });
 
-const override: MockOverride<Service, Subject, SociableTestBedBuilder<Subject>> = initial.mock(
-  Service
-);
+const override: MockOverride<
+  Service,
+  Subject,
+  SociableTestBedBuilder<Subject, 'selective'>
+> = selective.mock(Service);
 
 async function run() {
   const result: UnitTestBed<Subject> = await override.final({ read: () => 'value' }).compile();
@@ -55,6 +58,5 @@ async function run() {
 void run;
 void selectiveBase;
 void composedBase;
-void configuredInitial;
 void configuredSelective;
 void configuredComposed;
