@@ -1,33 +1,21 @@
 /**
- * Error codes used throughout the Suites framework to identify specific error conditions.
- * Each code corresponds to a specific error type and helps with debugging and error handling.
+ * Stable error identifiers for Suites Unit, keyed by the condition a consumer can handle.
  *
- * @since 3.0.0
- * @see https://suites.dev/docs
- *
- * @example
- * ```
- * import { SuitesErrorCode } from '@suites/types.common';
- *
- * // Check for specific error code
- * if (error.code === SuitesErrorCode.IDENTIFIER_NOT_FOUND) {
- *   // Handle identifier not found error
- * }
- * ```
+ * @since 5.0.0
  */
-export const SuitesErrorCode = Object.freeze({
-  /** Identifier not found in dependency container (ER010) */
+export const UnitErrorCode = Object.freeze({
+  /** Legacy code used by IdentifierNotFoundError (ER010) */
   IDENTIFIER_NOT_FOUND: 'ER010',
   /** No supported DI or doubles adapter found (ER020) */
   ADAPTER_NOT_FOUND: 'ER020',
-  /** An installed DI or doubles adapter could not be loaded (ER021) */
-  ADAPTER_ERROR: 'ER021',
+  /** An installed adapter failed to load or returned an invalid contract (ER021) */
+  ADAPTER_UNUSABLE: 'ER021',
   /** Dependency type could not be detected from metadata (ER30) */
-  UNDEFINED_DEPENDENCY: 'ER30',
-  /** Token type could not be detected (ER31) */
-  UNDEFINED_TOKEN: 'ER31',
-  /** Dependency could not be resolved from container (ER040) */
-  DEPENDENCY_RESOLUTION_ERROR: 'ER040',
+  DEPENDENCY_IDENTIFIER_UNRESOLVED: 'ER30',
+  /** An explicit injection token resolved to undefined (ER31) */
+  INJECTION_TOKEN_UNDEFINED: 'ER31',
+  /** A mock could not be retrieved from unitRef.get() (ER040) */
+  MOCK_LOOKUP_FAILED: 'ER040',
   INVALID_BUILDER_ARGUMENT: 'ER041',
   CONFIGURATION_CONFLICT: 'ER042',
   UNREACHABLE_DECLARATION: 'ER043',
@@ -38,16 +26,17 @@ export const SuitesErrorCode = Object.freeze({
   VERIFICATION_NOT_CONFIGURED: 'ER053',
 });
 
-export const SuitesWarningCode = Object.freeze({
+/** Stable warning identifiers for Suites Unit. */
+export const UnitWarningCode = Object.freeze({
   UNUSED_SOLITARY_OVERRIDE: 'WR001',
 });
 
 /**
- * Type representing all possible Suites error codes.
+ * String literals emitted by Suites Unit errors.
  *
- * @since 3.0.0
+ * @since 5.0.0
  */
-export type SuitesErrorCode = (typeof SuitesErrorCode)[keyof typeof SuitesErrorCode];
+export type UnitErrorCode = (typeof UnitErrorCode)[keyof typeof UnitErrorCode];
 
 /**
  * Base error class for all Suites framework errors. All specific error types extend this class,
@@ -62,7 +51,7 @@ export class SuitesError extends Error {
   public readonly severity = 'error';
 
   public constructor(
-    public readonly code: SuitesErrorCode,
+    public readonly code: UnitErrorCode,
     title: string,
     message: string
   ) {
@@ -83,7 +72,7 @@ export class SuitesError extends Error {
 export class DependencyResolutionError extends SuitesError {
   public constructor(
     message: string,
-    code: SuitesErrorCode = SuitesErrorCode.DEPENDENCY_RESOLUTION_ERROR
+    code: UnitErrorCode = UnitErrorCode.MOCK_LOOKUP_FAILED
   ) {
     super(code, 'Dependency resolution error', message);
     this.name = 'DependencyResolutionError';

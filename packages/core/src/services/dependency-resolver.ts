@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { DependencyResolutionError, SuitesError, SuitesErrorCode } from '@suites/types.common';
+import { DependencyResolutionError, SuitesError, UnitErrorCode } from '@suites/types.common';
 import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
 import type {
@@ -139,7 +139,7 @@ export class DependencyResolver {
     }
     if (!validFailure(result, target)) {
       throw new SuitesError(
-        SuitesErrorCode.ADAPTER_ERROR,
+        UnitErrorCode.ADAPTER_UNUSABLE,
         'Invalid DI adapter inspection result',
         'Update your DI adapter for v5. inspect() must return an InspectionResult containing a registry or a reflection failure.'
       );
