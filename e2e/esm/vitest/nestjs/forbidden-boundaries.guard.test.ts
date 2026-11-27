@@ -166,6 +166,9 @@ it('observes the original forbidden access after a nested integration uninstalls
   const nested = commonJs.DependencyVerification.install(globalThis);
   const unsubscribe = verification.subscribeDependencyViolationObserver(globalThis, observer);
   try {
+    expect(() => unit.read()).toThrow(/forbidden dependency/i);
+    expect(observed).toHaveLength(1);
+    expect(nested.finish()?.message).toMatch(/forbidden dependency/i);
     nested.uninstall();
     let caught: unknown;
     try {
@@ -173,9 +176,9 @@ it('observes the original forbidden access after a nested integration uninstalls
     } catch (error) {
       caught = error;
     }
-    expect(observed).toHaveLength(1);
-    expect(observed[0]).toBe(caught);
-    expect(observed[0].message).toMatch(/forbidden dependency.*Boundary/i);
+    expect(observed).toHaveLength(2);
+    expect(observed[1]).toBe(caught);
+    expect(observed[1].message).toMatch(/forbidden dependency.*Boundary/i);
   } finally {
     unsubscribe();
     nested.uninstall();
