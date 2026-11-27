@@ -67,6 +67,8 @@ test('V5 canary staging keeps supporting packages and their dependency ranges on
     readManifest('packages/core/package.json').dependencies['@suites/types.di'],
     'workspace:^4.1.2'
   );
+  assert.equal(readManifest('packages/types/common/package.json').version, '5.0.0-e2e.0');
+  assert.equal(readManifest('packages/types/di/package.json').dependencies['@suites/types.common'], 'workspace:^5.0.0-e2e.0');
   assert.equal(readManifest('packages/types/di/package.json').version, '4.1.3');
   assert.equal(
     readManifest('packages/unit/package.json').dependencies['@suites/core.unit'],

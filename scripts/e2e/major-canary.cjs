@@ -7,6 +7,7 @@ const { automaticCompatibility } = require('./targets.cjs');
 
 const v5ReleaseGroup = new Set([
   '@suites/core.unit',
+  '@suites/types.common',
   '@suites/doubles.jest',
   '@suites/doubles.vitest',
   '@suites/runners.jest',

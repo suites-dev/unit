@@ -15,7 +15,7 @@
  * }
  * ```
  */
-export const SuitesErrorCode = {
+export const SuitesErrorCode = Object.freeze({
   /** Identifier not found in dependency container (ER010) */
   IDENTIFIER_NOT_FOUND: 'ER010',
   /** No supported DI or doubles adapter found (ER020) */
@@ -28,7 +28,19 @@ export const SuitesErrorCode = {
   UNDEFINED_TOKEN: 'ER31',
   /** Dependency could not be resolved from container (ER040) */
   DEPENDENCY_RESOLUTION_ERROR: 'ER040',
-};
+  INVALID_BUILDER_ARGUMENT: 'ER041',
+  CONFIGURATION_CONFLICT: 'ER042',
+  UNREACHABLE_DECLARATION: 'ER043',
+  DEPENDENCY_CYCLE: 'ER044',
+  UNDECLARED_DEPENDENCY_ACCESS: 'ER050',
+  FORBIDDEN_DEPENDENCY_ACCESS: 'ER051',
+  DEPENDENCY_VERIFICATION_FAILED: 'ER052',
+  VERIFICATION_NOT_CONFIGURED: 'ER053',
+});
+
+export const SuitesWarningCode = Object.freeze({
+  UNUSED_SOLITARY_OVERRIDE: 'WR001',
+});
 
 /**
  * Type representing all possible Suites error codes.
@@ -47,6 +59,8 @@ export type SuitesErrorCode = (typeof SuitesErrorCode)[keyof typeof SuitesErrorC
  * @since 3.0.0
  */
 export class SuitesError extends Error {
+  public readonly severity = 'error';
+
   public constructor(
     public readonly code: SuitesErrorCode,
     title: string,
@@ -67,8 +81,11 @@ export class SuitesError extends Error {
  * @see https://suites.dev/docs
  */
 export class DependencyResolutionError extends SuitesError {
-  public constructor(message: string) {
-    super(SuitesErrorCode.DEPENDENCY_RESOLUTION_ERROR, 'Dependency resolution error', message);
+  public constructor(
+    message: string,
+    code: SuitesErrorCode = SuitesErrorCode.DEPENDENCY_RESOLUTION_ERROR
+  ) {
+    super(code, 'Dependency resolution error', message);
     this.name = 'DependencyResolutionError';
   }
 }
