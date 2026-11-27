@@ -26,6 +26,8 @@ describe('dependency violation verification', () => {
       expect.objectContaining({
         name: 'DependencyVerificationError',
         violations: [violation],
+        code: 'ER052',
+        severity: 'error',
       })
     );
 
@@ -76,19 +78,28 @@ describe('dependency violation verification', () => {
 
     try {
       expect(() => reportDependencyViolation(violation)).toThrow(violation);
-      expect(stderr).toHaveBeenCalledWith(
-        expect.stringMatching(/dependency verification is not configured.*setupFiles/i)
-      );
+      expect(stderr).not.toHaveBeenCalled();
       expect(scheduledFailures).toHaveLength(1);
-      expect(scheduledFailures[0]).toThrow(/dependency verification is not configured/i);
+      expect(scheduledFailures[0]).toThrow(expect.objectContaining({
+        code: 'ER053',
+        severity: 'error',
+        message: expect.stringMatching(/dependency verification is not configured[\s\S]*setupFiles/i),
+      }));
 
       expect(() => reportDependencyViolation(violation)).toThrow(violation);
-      expect(stderr).toHaveBeenCalledTimes(1);
+      expect(stderr).not.toHaveBeenCalled();
       expect(scheduledFailures).toHaveLength(1);
     } finally {
       queue.mockRestore();
       stderr.mockRestore();
     }
+  });
+
+  it('retains undefined thrown by a suite alongside the guard', () => {
+    const ledger = new DependencyViolationLedger();
+    ledger.record(new Error('guarded access'));
+
+    expect(ledger.finish(undefined)?.errors).toEqual([undefined, new Error('guarded access')]);
   });
 
   it('retains an ordinary suite failure alongside violations', () => {

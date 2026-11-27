@@ -1,4 +1,5 @@
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
+import { SuitesError, SuitesErrorCode } from '@suites/types.common';
 import type { DependencyPathEntry } from './composition-boundary.js';
 import { reportDependencyViolation } from '../dependency-verification-internal.js';
 import { stringifyIdentifier } from './functions.static.js';
@@ -13,7 +14,7 @@ export function isGuardedDependency(value: unknown): boolean {
   return typeof value === 'function' && guardedDependencies.has(value);
 }
 
-export class DependencyRuleViolationError extends Error {
+export class DependencyRuleViolationError extends SuitesError {
   public constructor(
     public readonly category: DependencyViolationCategory,
     public readonly identifier: InjectableIdentifier,
@@ -25,9 +26,16 @@ export class DependencyRuleViolationError extends Error {
     const path = dependencyPath
       .map((entry) => stringifyIdentifier(entry.identifier, entry.metadata))
       .join(' -> ');
+    const undeclared = category === 'undeclared dependency';
     super(
+      undeclared
+        ? SuitesErrorCode.UNDECLARED_DEPENDENCY_ACCESS
+        : SuitesErrorCode.FORBIDDEN_DEPENDENCY_ACCESS,
       `Suites Unit rule violation: Cannot ${operation} ${category} ${dependency}. ` +
-        `Dependency path: ${path}.`
+        `Dependency path: ${path}.`,
+      undeclared
+        ? 'Declare this dependency in the test setup to allow access.'
+        : 'Remove the forbidden access or change the test boundary.'
     );
     this.name = 'DependencyRuleViolationError';
   }
