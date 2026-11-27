@@ -177,7 +177,7 @@ describe('guarded dependencies', () => {
       { identifier: Checkout, metadata: { region: null } },
     ]);
     expect(() => guard()).toThrow(
-      /forbidden dependency 'PAYMENTS', with metadata \[opaque\].*'Checkout', with metadata {"region":null}/
+      /forbidden dependency 'TestToken PAYMENTS', with metadata \[opaque\].*'Checkout', with metadata {"region":null}/
     );
   });
 
