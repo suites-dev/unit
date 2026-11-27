@@ -1,99 +1,24 @@
 import { jest as jestGlobals } from '@jest/globals';
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { types } from 'node:util';
 import type { DeepPartial } from '@suites/types.common';
 import type { Mocked } from './types.js';
 
-type ProxiedProperty = string | number | symbol;
+type MockTarget = Parameters<typeof Reflect.get>[0];
 
-const overrideMockImp = <T>(obj: DeepPartial<T>): Mocked<T> => {
-  const proxy = new Proxy<Mocked<T>>(obj as Mocked<T>, handler(true));
-
-  for (const name of Object.keys(obj)) {
-    const descriptor = Object.getOwnPropertyDescriptor(obj, name);
-    // Accessors already live on the proxy target; preserve them without evaluating or assigning.
-    if (descriptor && ('get' in descriptor || 'set' in descriptor)) {
-      continue;
-    }
-
-    if (descriptor && !descriptor.writable && !descriptor.configurable) {
-      continue;
-    }
-
-    if (typeof obj[name as never] === 'object' && obj[name as never] !== null) {
-      // @ts-ignore
-      proxy[name] = overrideMockImp(obj[name as never]);
-    } else {
-      // @ts-ignore
-      proxy[name] = obj[name];
-    }
+function fixtureTarget(source: MockTarget): MockTarget {
+  if (Array.isArray(source) || types.isDate(source)) {
+    const target = Array.isArray(source) ? [] : new Date(Date.prototype.getTime.call(source));
+    Reflect.setPrototypeOf(target, Reflect.getPrototypeOf(source));
+    return target;
   }
-
-  return proxy;
-};
-
-const handler = <T>(deepMockAccessors = false) => {
-  const accessorMocks = new WeakMap<WeakKey, unknown>();
-
-  return {
-    set: (obj: Mocked<T>, property: ProxiedProperty, value: T) => {
-      const descriptor = Object.getOwnPropertyDescriptor(obj, property);
-      if (descriptor && 'value' in descriptor && !descriptor.writable && !descriptor.configurable) {
-        return true;
-      }
-      // @ts-ignore https://github.com/microsoft/TypeScript/issues/1863
-      obj[property] = value;
-      return true;
-    },
-
-    get: (obj: Mocked<T>, property: ProxiedProperty) => {
-      // @ts-ignore
-      if (!(property in obj)) {
-        if (property === 'then') {
-          return undefined;
-        }
-
-        // Jest's internal equality checking does some weird stuff to check for iterable equality
-        if (property === Symbol.iterator) {
-          // @ts-ignore
-          return obj[property];
-        }
-
-        if (property !== 'calls') {
-          // @ts-ignore
-          obj[property] = new Proxy<jest.Mock<T>>(jestGlobals.fn(), handler());
-          // @ts-ignore private property
-          obj[property as never]._isMockObject = true;
-        }
-      }
-
-      const value: unknown = Reflect.get(obj, property);
-      const descriptor = Object.getOwnPropertyDescriptor(obj, property);
-      if (
-        deepMockAccessors &&
-        descriptor?.enumerable &&
-        descriptor.get &&
-        descriptor.set &&
-        typeof value === 'object' &&
-        value !== null
-      ) {
-        const cached = accessorMocks.get(value);
-        if (cached) {
-          return cached;
-        }
-        const mocked = overrideMockImp(value);
-        accessorMocks.set(value, mocked);
-        accessorMocks.set(mocked, mocked);
-        return mocked;
-      }
-
-      if (obj instanceof Date && typeof value === 'function') {
-        return value.bind(obj);
-      }
-
-      return value;
-    },
-  };
-};
+  if (typeof source === 'function') {
+    return new Proxy(Function.prototype.bind.call(source, undefined), {
+      apply: (_bound, receiver, args) => Reflect.apply(source, receiver, args),
+      construct: (_bound, args, constructor) => Reflect.construct(source, args, constructor),
+    });
+  }
+  return Object.create(Reflect.getPrototypeOf(source));
+}
 
 /**
  * Creates a fully mocked instance with auto-generated Jest stub methods.
@@ -113,7 +38,7 @@ const handler = <T>(deepMockAccessors = false) => {
  * @example
  * ```ts
  * // Basic usage - mock an interface
- * import { mock } from '@suites/unit';
+ * import { mock } from '@suites/doubles.jest';
  *
  * interface PaymentGateway {
  *   charge(amount: number): Promise<{ status: string }>;
@@ -130,8 +55,78 @@ const handler = <T>(deepMockAccessors = false) => {
  * @see {@link https://suites.dev/docs/api-reference/mock | Mock API Reference}
  */
 export const mock = <T>(mockImplementation: DeepPartial<T> = {} as DeepPartial<T>): Mocked<T> => {
-  // @ts-ignore private property
-  mockImplementation!._isMockObject = true;
+  const copies = new WeakMap<WeakKey, MockTarget>();
 
-  return overrideMockImp<T>(mockImplementation);
+  function handler(source: MockTarget, mockAccessors: boolean): ProxyHandler<MockTarget> {
+    return {
+      get(target, key) {
+        if (!Reflect.has(target, key)) {
+          if (key === 'then' || key === 'calls' || key === Symbol.iterator) return undefined;
+          const stub = jestGlobals.fn();
+          Reflect.set(stub, '_isMockObject', true);
+          Reflect.set(target, key, new Proxy(stub, handler(stub, false)));
+        }
+
+        const value: unknown = Reflect.get(target, key, source);
+        const own = Reflect.getOwnPropertyDescriptor(target, key);
+        if (mockAccessors && own?.enumerable && own.get && own.set) {
+          return copyValue(value);
+        }
+        return types.isDate(target) && typeof value === 'function' ? value.bind(target) : value;
+      },
+      set(target, key, value) {
+        let owner: MockTarget | null = target;
+        while (owner !== null) {
+          const descriptor = Reflect.getOwnPropertyDescriptor(owner, key);
+          if (descriptor !== undefined) {
+            if (!('value' in descriptor)) return Reflect.set(target, key, value, source);
+            if (!descriptor.writable && !descriptor.configurable)
+              return Object.is(descriptor.value, value);
+            break;
+          }
+          owner = Reflect.getPrototypeOf(owner);
+        }
+        return Reflect.set(target, key, value);
+      },
+    };
+  }
+
+  function copyValue(value: unknown): unknown {
+    return value !== null && typeof value === 'object' ? copy(value) : value;
+  }
+
+  function copy(source: MockTarget): MockTarget {
+    const known = copies.get(source);
+    if (known !== undefined) return known;
+    const target = fixtureTarget(source);
+    const proxy = new Proxy(target, handler(source, true));
+    copies.set(source, proxy);
+    copies.set(proxy, proxy);
+    for (const key of Reflect.ownKeys(source)) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(source, key);
+      if (descriptor === undefined) continue;
+      if ('value' in descriptor && !(typeof source === 'function' && key === 'prototype')) {
+        descriptor.value = copyValue(descriptor.value);
+      }
+      Object.defineProperty(target, key, descriptor);
+    }
+    return proxy;
+  }
+
+  if (
+    mockImplementation === null ||
+    (typeof mockImplementation !== 'object' && typeof mockImplementation !== 'function')
+  ) {
+    throw new TypeError('A mock implementation must be an object or function.');
+  }
+  const proxy = copy(mockImplementation);
+  if (!Reflect.has(proxy, '_isMockObject')) {
+    Object.defineProperty(proxy, '_isMockObject', {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: true,
+    });
+  }
+  return proxy as Mocked<T>;
 };
