@@ -4,11 +4,15 @@ import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { DoublesAdapter, StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
 import type { MockOverride, UnitTestBed } from '../../types.js';
-import type { IdentifierToFinal } from '../dependency-container.js';
+import type { IdentifierToFinal, IdentifierToMockOrFinal } from '../dependency-container.js';
 import { normalizeIdentifier } from '../../normalize-identifier.static.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
-import { CompositionBoundaryContainer, type CompositionBoundary } from '../composition-boundary.js';
+import {
+  CompositionBoundaryContainer,
+  matchDeclaration,
+  type CompositionBoundary,
+} from '../composition-boundary.js';
 import { stringifyIdentifier } from '../functions.static.js';
 import { createGuardedDependency } from '../guarded-dependency.js';
 import { UnitReference } from '../unit-reference.js';
@@ -256,6 +260,43 @@ function validateOverrides(
   }
 }
 
+class SociableOverrides extends DependencyContainer {
+  readonly pending: Set<Override>;
+  readonly finalized: IdentifierToFinal[] = [];
+  private readonly mocks = new Map<Override, StubbedInstance<unknown>>();
+
+  constructor(
+    private readonly declarations: readonly Override[],
+    private readonly doubles: DoublesAdapter
+  ) {
+    super([]);
+    this.pending = new Set(declarations);
+  }
+
+  public override resolveEntry(
+    identifier: InjectableIdentifier,
+    metadata?: IdentifierMetadata
+  ): IdentifierToMockOrFinal | undefined {
+    const match = matchDeclaration(this.declarations, identifier, metadata);
+    if (match === undefined) return undefined;
+
+    this.pending.delete(match);
+    const key = normalizeIdentifier(identifier, metadata);
+    if (match.kind === 'final') {
+      const final: IdentifierToFinal = [key, match.value];
+      this.finalized.push(final);
+      this.list().push(final);
+      return final;
+    }
+
+    const mock = this.mocks.get(match) ?? match.create(this.doubles);
+    this.mocks.set(match, mock);
+    const entry: IdentifierToMockOrFinal = [key, mock];
+    this.list().push(entry);
+    return entry;
+  }
+}
+
 async function compile<TClass>(
   context: BuilderContext<TClass>,
   configuration: SociableConfiguration,
@@ -288,43 +329,18 @@ async function compile<TClass>(
     }
   }
 
-  const doubles = await context.doubles;
-  const pending = new Set(configuration.overrides);
-  const finalized: IdentifierToFinal[] = [];
-  for (const override of configuration.overrides) {
-    let mock: StubbedInstance<unknown> | undefined;
-    boundaries.push({
-      kind: 'override',
-      identifier: override.identifier,
-      metadata: override.metadata,
-      create: (path) => {
-        pending.delete(override);
-        if (override.kind === 'final') {
-          const { identifier, metadata } = path[path.length - 1];
-          finalized.push([normalizeIdentifier(identifier, metadata), override.value]);
-          return override.value;
-        }
-        return (mock ??= override.create(doubles));
-      },
-    });
-  }
-
+  const overrides = new SociableOverrides(configuration.overrides, await context.doubles);
   const classes = mode.kind === 'selective' ? mode.classes : [];
-  const options = {
-    mode: mode.kind,
-    bindings,
-    boundaries: new CompositionBoundaryContainer(boundaries),
-  } satisfies ResolverOptions;
+  const options = (
+    mode.kind === 'selective'
+      ? { mode: 'selective', bindings }
+      : { mode: 'composed', bindings, boundaries: new CompositionBoundaryContainer(boundaries) }
+  ) satisfies ResolverOptions;
   const { container, instance, resolution, composedDependencies, exposedDependencies } =
-    await context.mocker.constructUnit(
-      context.targetClass,
-      classes,
-      new DependencyContainer([]),
-      options
-    );
+    await context.mocker.constructUnit(context.targetClass, classes, overrides, options);
 
   const unreachable = Array.from(
-    pending,
+    overrides.pending,
     ({ kind, identifier, metadata }) => `${kind} ${stringifyIdentifier(identifier, metadata)}`
   );
   for (const identifier of new Set(resolution.exposes)) {
@@ -344,6 +360,12 @@ async function compile<TClass>(
 
   return {
     unit: instance,
-    unitRef: new UnitReference(container, [], finalized, composedDependencies, exposedDependencies),
+    unitRef: new UnitReference(
+      container,
+      [],
+      overrides.finalized,
+      composedDependencies,
+      exposedDependencies
+    ),
   };
 }

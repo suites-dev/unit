@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import nodeConsole from 'node:console';
 import { describe, expect, it, jest } from '@jest/globals';
 import { inject, injectable, named } from 'inversify';
 import { TestBed } from '@suites/unit';
@@ -85,7 +86,7 @@ describe('sociable declaration validation', () => {
   });
 
   it('warns for an unmatched solitary qualifier and still compiles', async () => {
-    const warning = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warning = jest.spyOn(nodeConsole, 'warn').mockImplementation(() => undefined);
     try {
       await TestBed.solitary(Root)
         .mock(PORT, { named: 'primary' })

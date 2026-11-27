@@ -22,7 +22,7 @@ export type ResolverOptions =
   | { readonly mode: 'solitary' }
   | { readonly mode: 'selective'; readonly bindings: ReadonlyMap<InjectableIdentifier, Type> }
   | {
-      readonly mode: 'composed' | 'selective';
+      readonly mode: 'composed';
       readonly bindings: ReadonlyMap<InjectableIdentifier, Type>;
       readonly boundaries: CompositionBoundaryLookup;
     };
@@ -89,16 +89,25 @@ export class DependencyResolver {
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
   ): ResolvedBoundary | undefined {
-    if ('boundaries' in this.options) {
-      const boundary = this.options.boundaries.resolve(identifier, metadata);
-      if (boundary !== undefined) {
-        if (boundary.kind === 'guard' || boundary.kind === 'override') {
-          return { value: boundary.create([...this.constructionPath, { identifier, metadata }]) };
-        }
-        const selected = this.mockedFromBeforeContainer.resolveEntry(identifier, boundary.metadata);
-        if (selected !== undefined) this.usedMockEntries.add(selected);
-        return { value: boundary.value };
+    const boundary =
+      this.options.mode === 'composed'
+        ? this.options.boundaries.resolve(identifier, metadata)
+        : undefined;
+    if (boundary !== undefined) {
+      if (boundary.kind === 'guard') {
+        return {
+          value: boundary.create([...this.constructionPath, { identifier, metadata }]),
+        };
       }
+
+      const selectedEntry = this.mockedFromBeforeContainer.resolveEntry(
+        identifier,
+        boundary.metadata
+      );
+      if (selectedEntry !== undefined) {
+        this.usedMockEntries.add(selectedEntry);
+      }
+      return { value: boundary.value };
     }
 
     if (
