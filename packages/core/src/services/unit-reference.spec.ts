@@ -88,12 +88,48 @@ describe('Unit Reference Unit Spec', () => {
 
   it('should throw an error indicating the dependency not found in case the identifier is missing', () => {
     expect(() => unitReference.get('does-not-exist')).toThrow(
-      /is correctly mocked or explicitly exposed in the/
+      /Check that the token identifies a dependency/
     );
   });
 });
 
 describe('object token identity', () => {
+  it('can label tokens with no discoverable constructor', () => {
+    const reference = new UnitReference(new DependencyContainer([]), [], []);
+    const token = new TestToken('payment');
+    Object.defineProperty(token, '_desc', { value: 'payment' });
+    Reflect.setPrototypeOf(token, null);
+    expect(() => reference.get(token)).toThrow(/'payment'/);
+
+    const prototype = Object.create(null, {
+      constructor: {
+        get: () => {
+          throw new Error('constructor getter');
+        },
+      },
+    });
+    Reflect.setPrototypeOf(token, prototype);
+    expect(() => reference.get(token)).toThrow(/'payment'/);
+  });
+
+  it('preserves the lookup error on invalid identifiers from JavaScript', () => {
+    const reference = new UnitReference(new DependencyContainer([]), [], []);
+    expect(() => Reflect.apply(reference.get, reference, [null])).toThrow(/ER040/);
+    expect(() => Reflect.apply(reference.get, reference, [null, {}])).toThrow(
+      /with metadata \[opaque\]/
+    );
+  });
+
+  it('reports a missing token without invoking its conversion hook', () => {
+    class HostileToken extends TestToken {
+      toString(): string {
+        throw new Error('token conversion');
+      }
+    }
+    const reference = new UnitReference(new DependencyContainer([]), [], []);
+    expect(() => reference.get(new HostileToken('payments'))).toThrow(/ER040/);
+  });
+
   it('does not treat a different token with the same properties as finalized', () => {
     const finalized = new TestToken('repository');
     const mocked = new TestToken('repository');
@@ -182,7 +218,9 @@ describe('metadata-qualified final dependencies', () => {
       [[finalKey, { endpoint: 'fixed' }]]
     );
 
-    expect(() => reference.get('QUALIFIED')).toThrow(/could not be located/);
-    expect(() => reference.get('QUALIFIED', { named: 'missing' })).toThrow(/could not be located/);
+    expect(() => reference.get('QUALIFIED')).toThrow(/without a qualifier/);
+    expect(() => reference.get('QUALIFIED', { named: 'missing' })).toThrow(
+      /No injection site matches/
+    );
   });
 });
