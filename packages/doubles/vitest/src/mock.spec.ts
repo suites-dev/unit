@@ -102,6 +102,9 @@ describe('Mocking Proxy Mechanism Unit Spec', () => {
       if (typeof wrapped !== 'function') throw new Error('Expected a constructable mock');
 
       const receipt = Reflect.construct(wrapped, [5]);
+      expect(receipt).toBeInstanceOf(Receipt);
+      expect(receipt).toBeInstanceOf(wrapped);
+      expect(Reflect.get(wrapped, 'prototype')).toBe(Receipt.prototype);
       expect(receipt).toHaveProperty('id', 5);
       expect(receipt.constructorUsed).toBe(wrapped);
     });

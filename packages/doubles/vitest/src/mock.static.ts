@@ -108,7 +108,9 @@ export const mock = <T>(mockImplementation: DeepPartial<T> = {} as DeepPartial<T
     for (const key of Reflect.ownKeys(source)) {
       const descriptor = Reflect.getOwnPropertyDescriptor(source, key);
       if (descriptor === undefined) continue;
-      if ('value' in descriptor) descriptor.value = copyValue(descriptor.value);
+      if ('value' in descriptor && !(typeof source === 'function' && key === 'prototype')) {
+        descriptor.value = copyValue(descriptor.value);
+      }
       Object.defineProperty(target, key, descriptor);
     }
     return proxy;
