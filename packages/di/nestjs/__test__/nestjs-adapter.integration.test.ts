@@ -10,12 +10,20 @@ import {
   DependencyTwo,
   PropsBasedMainClass,
 } from './assets/integration.assets.js';
-import { InjectableIdentifier, UndefinedDependency, WithoutMetadata } from '@suites/types.di';
-import { Type } from '@suites/types.common';
+import type { InjectableIdentifier, WithoutMetadata } from '@suites/types.di';
+import { UndefinedDependency } from '@suites/types.di';
+import type { Type } from '@suites/types.common';
 import { adapter } from '../src.js';
 
 describe('NestJS Suites DI Adapter Integration Test', () => {
   const dependencyInjectionAdapter = adapter;
+
+  it('positively identifies only NestJS injectable classes for composition', () => {
+    class Unmarked {}
+
+    expect(dependencyInjectionAdapter.canAutoConstruct?.(ConstructorBasedInjectionClass)).toBe(true);
+    expect(dependencyInjectionAdapter.canAutoConstruct?.(Unmarked)).toBe(false);
+  });
 
   describe('reflecting a class with constructor based injection', () => {
     const injectablesContainer = dependencyInjectionAdapter.inspect(ConstructorBasedInjectionClass);

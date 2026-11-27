@@ -28,6 +28,13 @@ import { adapter } from '../src.js';
 describe('InversifyJS Suites DI Adapter Integration Test', () => {
   const dependenciesAdapter = adapter;
 
+  it('positively identifies only Inversify injectable classes for composition', () => {
+    class Unmarked {}
+
+    expect(dependenciesAdapter.canAutoConstruct?.(ConstructorBasedInjectionClass)).toBe(true);
+    expect(dependenciesAdapter.canAutoConstruct?.(Unmarked)).toBe(false);
+  });
+
   describe('class constructor injection', () => {
     let injectablesRegistry: InjectableRegistry;
 

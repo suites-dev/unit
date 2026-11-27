@@ -1,5 +1,6 @@
 import type { Type } from '@suites/types.common';
 import type { DependencyInjectionAdapter, InjectableIdentifier } from '@suites/types.di';
+import { Injectable } from 'injection-js';
 import type { ClassCtorReflector } from './class-ctor-reflector.js';
 
 /**
@@ -10,6 +11,13 @@ export function DependenciesAdapter(
   classCtorReflector: ClassCtorReflector
 ): DependencyInjectionAdapter {
   return {
+    canAutoConstruct(targetClass: Type): boolean {
+      const annotations: unknown = Reflect.getOwnMetadata('annotations', targetClass);
+      return (
+        Array.isArray(annotations) &&
+        annotations.some((annotation: unknown) => annotation instanceof Injectable)
+      );
+    },
     inspect(targetClass: Type) {
       const injectables = classCtorReflector.reflectInjectables(targetClass);
       return {
