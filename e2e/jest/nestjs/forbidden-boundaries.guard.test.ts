@@ -1,3 +1,4 @@
+import { DependencyVerification, subscribeDependencyViolationObserver } from '@suites/core.unit/verification';
 import 'reflect-metadata';
 import { beforeEach, expect, it } from '@jest/globals';
 import { Inject, Injectable } from '@nestjs/common';
@@ -193,4 +194,27 @@ it('fails when a caught token forbidden boundary is accessed', async () => {
     /Dependency path:\s*'TokenCheckout'\s*->\s*'AUDIT'/i
   );
   recordStep(`${env.SUITES_FORBID_RUNNER}:token-caught`);
+});
+
+it('observes the original forbidden access after a nested integration uninstalls', async () => {
+  const { unit } = await TestBed.sociable(Checkout).compose().forbid(Boundary).compile();
+  const observed: Error[] = [];
+  const observer = (violation: Error) => observed.push(violation);
+  const nested = DependencyVerification.install(global);
+  const unsubscribe = subscribeDependencyViolationObserver(global, observer);
+  try {
+    nested.uninstall();
+    let caught: unknown;
+    try {
+      unit.read();
+    } catch (error) {
+      caught = error;
+    }
+    expect(observed).toHaveLength(1);
+    expect(observed[0]).toBe(caught);
+    expect(observed[0].message).toMatch(/forbidden dependency.*Boundary/i);
+  } finally {
+    unsubscribe();
+    nested.uninstall();
+  }
 });

@@ -9,6 +9,7 @@
     "@suites/di.nestjs": "e2e",
     "@suites/doubles.vitest": "e2e",
     "@suites/unit": "e2e",
+    "@suites/core.unit": "e2e",
     "reflect-metadata": "^0.2.2",
     "@suites/runners.vitest": "e2e"
   },

@@ -54,6 +54,20 @@ Abstract classes are accepted as dependency tokens. The class under test and exp
 
 DI adapters implement contracts from `@suites/types.di`; doubles adapters implement contracts from `@suites/types.doubles`. Use `@suites/types.common` for shared constructor types. Read the [DI adapter contracts](https://github.com/suites-dev/unit/tree/master/packages/types/di#readme) before building an integration.
 
+## Runner integrations
+
+Import `subscribeDependencyViolationObserver` from `@suites/core.unit/verification` to associate a caught dependency violation with the current test attempt. Subscribe on the same test global that the runner uses for `DependencyVerification.install()`.
+
+```typescript
+import { subscribeDependencyViolationObserver } from '@suites/core.unit/verification';
+
+const unsubscribe = subscribeDependencyViolationObserver(testGlobal, (error) => {
+  currentAttempt.record(error);
+});
+```
+
+The callback runs synchronously after the active installation records its reporting snapshot. It receives the original error. Call `unsubscribe()` when the integration finishes. Subscriptions are independent of the installation lifecycle. When installations overlap, the most recent active installation receives violations and owns the corresponding `finish()` check.
+
 ## Community and contributing
 
 Ask questions in [GitHub Discussions](https://github.com/suites-dev/unit/discussions), [report an issue](https://github.com/suites-dev/unit/issues), or read the [contribution guidelines](https://github.com/suites-dev/unit/blob/master/CONTRIBUTING.md).

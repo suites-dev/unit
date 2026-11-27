@@ -4,7 +4,8 @@ import {
   dependencyVerificationKey,
   reportDependencyViolation,
 } from './dependency-verification-internal.js';
-import { DependencyVerification } from './dependency-verification.js';
+import { createContext, runInContext } from 'node:vm';
+import { DependencyVerification, subscribeDependencyViolationObserver } from './dependency-verification.js';
 
 const missingDependencyVerificationKey = Symbol.for(
   '@suites/dependency-verification-missing-reported'
@@ -101,5 +102,99 @@ describe('dependency violation verification', () => {
     expect(result).toBeInstanceOf(DependencyVerificationError);
     expect(result?.errors).toEqual([suiteFailure, violation]);
     expect(result?.cause).toBe(suiteFailure);
+  });
+});
+
+describe('runner integration lifecycle', () => {
+  it('delivers the original violation after recording a safe reporting copy', () => {
+    const verification = DependencyVerification.install(global);
+    const original = new Error('forbidden access');
+    const listener = jest.fn((error: Error) => {
+      error.message = 'changed by observer';
+      throw new Error('observer failed');
+    });
+    const remove = subscribeDependencyViolationObserver(global, listener);
+    const deliveries: Error[] = [];
+    const second = (error: Error) => deliveries.push(error);
+    const removeDuplicate = subscribeDependencyViolationObserver(global, second);
+    const removeSecond = subscribeDependencyViolationObserver(global, second);
+    try {
+      removeDuplicate();
+      removeDuplicate();
+      let caught: unknown;
+      try {
+        reportDependencyViolation(original);
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught).toBe(original);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(deliveries).toHaveLength(1);
+      expect(deliveries[0]).toBe(original);
+      expect(verification.finish()?.message).toContain('forbidden access');
+    } finally {
+      removeSecond();
+      remove();
+      verification.uninstall();
+    }
+  });
+
+  it('subscribes before installation and isolates observers by test global', () => {
+    const foreign = createContext({});
+    const observer = runInContext('(error) => { globalThis.observed = error }', foreign);
+    const unsubscribe = subscribeDependencyViolationObserver(foreign, observer);
+    const otherListener = jest.fn();
+    const removeOther = subscribeDependencyViolationObserver(global, otherListener);
+    const verification = DependencyVerification.install(foreign);
+    const error = new Error('foreign violation');
+    try {
+      Reflect.get(foreign, dependencyVerificationKey)(error);
+      expect(foreign.observed).toBe(error);
+      expect(otherListener).not.toHaveBeenCalled();
+    } finally {
+      unsubscribe();
+      removeOther();
+      verification.uninstall();
+    }
+  });
+
+  it('keeps the active installation when a previous one is removed first', () => {
+    const first = DependencyVerification.install(global);
+    const second = DependencyVerification.install(global);
+    first.uninstall();
+    try {
+      expect(() => reportDependencyViolation(new Error('inner violation'))).toThrow('inner violation');
+      expect(second.finish()?.message).toContain('inner violation');
+      expect(first.finish()).toBeUndefined();
+    } finally {
+      second.uninstall();
+    }
+    expect(Reflect.has(global, dependencyVerificationKey)).toBe(false);
+  });
+
+  it('resumes the previous installation and restores the original property descriptor', () => {
+    const getter = jest.fn();
+    const descriptor = { configurable: true, enumerable: true, get: getter };
+    Object.defineProperty(global, dependencyVerificationKey, descriptor);
+    const first = DependencyVerification.install(global);
+    const second = DependencyVerification.install(global);
+    second.uninstall();
+    second.uninstall();
+    try {
+      expect(() => reportDependencyViolation(new Error('outer violation'))).toThrow('outer violation');
+      expect(first.finish()?.message).toContain('outer violation');
+    } finally {
+      first.uninstall();
+    }
+    expect(getter).not.toHaveBeenCalled();
+    expect(Object.getOwnPropertyDescriptor(global, dependencyVerificationKey)).toMatchObject(descriptor);
+  });
+
+  it('leaves an independently installed replacement reporter in place', () => {
+    const verification = DependencyVerification.install(global);
+    const external = jest.fn();
+    Object.defineProperty(global, dependencyVerificationKey, { configurable: true, value: external });
+    verification.uninstall();
+    expect(Reflect.get(global, dependencyVerificationKey)).toBe(external);
   });
 });
