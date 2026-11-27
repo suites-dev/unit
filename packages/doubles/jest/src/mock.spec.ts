@@ -53,6 +53,97 @@ class TestClass implements ArbitraryMock {
 }
 
 describe('Mocking Proxy Mechanism Unit Spec', () => {
+  describe('fixture ownership', () => {
+    test('isolates data writes and lazy stubs while retaining aliases and cycles', () => {
+      interface FixtureNode {
+        count: number;
+        next: FixtureNode | null;
+      }
+      interface Node extends FixtureNode {
+        visit(): void;
+      }
+      const node: FixtureNode = { count: 1, next: null };
+      node.next = node;
+      const source = { first: node, entries: [node] };
+      const first = mock<{ first: Node; entries: Node[] }>(source);
+      const second = mock<{ first: Node; entries: Node[] }>(source);
+
+      expect(first.first.next).toBe(first.first);
+      expect(first.entries[0]).toBe(first.first);
+      first.first.count = 2;
+      first.first.visit();
+      expect(first.entries[0].count).toBe(2);
+      expect(first.entries[0].visit).toHaveBeenCalledTimes(1);
+      expect(second.first.visit).not.toHaveBeenCalled();
+      expect(node.count).toBe(1);
+      expect(node).not.toHaveProperty('visit');
+      first.entries.pop();
+      expect(source.entries).toHaveLength(1);
+    });
+
+    test('forwards calls to a supplied function with its caller and arguments', () => {
+      function label(this: { name: string }, suffix: string) {
+        return this.name + suffix;
+      }
+      const wrapped = mock(label);
+      if (typeof wrapped !== 'function') throw new Error('Expected a callable mock');
+
+      expect(Reflect.apply(wrapped, { name: 'checkout' }, ['-ready'])).toBe('checkout-ready');
+      expect(label).not.toHaveProperty('_isMockObject');
+    });
+
+    test('forwards construction with the supplied arguments and new target', () => {
+      class Receipt {
+        readonly constructorUsed = new.target;
+        constructor(readonly id: number) {}
+      }
+      const wrapped = mock(Receipt);
+      if (typeof wrapped !== 'function') throw new Error('Expected a constructable mock');
+
+      const receipt = Reflect.construct(wrapped, [5]);
+      expect(receipt).toHaveProperty('id', 5);
+      expect(receipt.constructorUsed).toBe(wrapped);
+    });
+
+    test('uses the original receiver for a private-field accessor and isolates native dates', () => {
+      class Settings {
+        #name = 'before';
+        get name() {
+          return this.#name;
+        }
+        set name(next: string) {
+          this.#name = next;
+        }
+      }
+      const settings = new Settings();
+      const source = { settings, created: new Date('2020-05-04T00:00:00Z') };
+      const wrapped = mock(source);
+
+      wrapped.settings.name = 'after';
+      expect(settings.name).toBe('after');
+      expect(wrapped.settings.name).toBe('after');
+      wrapped.created.setUTCFullYear(2024);
+      expect(source.created.getUTCFullYear()).toBe(2020);
+      expect(wrapped.created.getUTCFullYear()).toBe(2024);
+    });
+
+    test('preserves locked data descriptors and leaves reserved lazy lookups absent', () => {
+      const source = Object.freeze({ name: 'fixed' });
+      const wrapped = mock(source);
+
+      expect(Reflect.set(wrapped, 'name', 'fixed')).toBe(true);
+      expect(Reflect.set(wrapped, 'name', 'changed')).toBe(false);
+      for (const key of ['then', 'calls', Symbol.iterator]) {
+        expect(Reflect.get(wrapped, key)).toBeUndefined();
+        expect(Reflect.has(wrapped, key)).toBe(false);
+      }
+    });
+
+    test.each([null, 7])('rejects the invalid JavaScript fixture %s', (fixture) => {
+      expect(() => Reflect.apply(mock, undefined, [fixture])).toThrow(TypeError);
+    });
+  });
+
   describe('basic functionality', () => {
     test('should allow assignment to itself even with private parts', () => {
       const mockObject: Mocked<TestClass> = mock<TestClass>();
