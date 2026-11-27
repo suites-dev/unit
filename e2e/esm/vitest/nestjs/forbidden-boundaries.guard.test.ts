@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+import * as verification from '@suites/core.unit/verification';
 import 'reflect-metadata';
 import { beforeEach, expect, it } from 'vitest';
 import { Inject, Injectable } from '@nestjs/common';
@@ -154,4 +156,28 @@ it('fails when a caught token forbidden boundary is accessed', async () => {
     /forbidden dependency.*AUDIT/i,
     `${env.SUITES_FORBID_RUNNER}:token-caught`
   );
+});
+
+it('observes the original forbidden access after a nested integration uninstalls', async () => {
+  const { unit } = await TestBed.sociable(Checkout).compose().forbid(Boundary).compile();
+  const observed: Error[] = [];
+  const observer = (violation: Error) => observed.push(violation);
+  const commonJs: typeof verification = createRequire(import.meta.url)('@suites/core.unit/verification');
+  const nested = commonJs.DependencyVerification.install(globalThis);
+  const unsubscribe = verification.subscribeDependencyViolationObserver(globalThis, observer);
+  try {
+    nested.uninstall();
+    let caught: unknown;
+    try {
+      unit.read();
+    } catch (error) {
+      caught = error;
+    }
+    expect(observed).toHaveLength(1);
+    expect(observed[0]).toBe(caught);
+    expect(observed[0].message).toMatch(/forbidden dependency.*Boundary/i);
+  } finally {
+    unsubscribe();
+    nested.uninstall();
+  }
 });
