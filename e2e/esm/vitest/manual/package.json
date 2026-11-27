@@ -1,0 +1,23 @@
+{
+  "name": "suites-esm-vitest-manual",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "@suites/unit": "e2e",
+    "@suites/doubles.vitest": "e2e"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "5.1.0",
+    "@vitest/spy": "5.1.0",
+    "@types/node": "^26.6.6"
+  },
+  "scripts": {
+    "test": "tsc --noEmit && vitest --run"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || ^26.0.0"
+  },
+  "packageManager": "pnpm@12.16.1"
+}
