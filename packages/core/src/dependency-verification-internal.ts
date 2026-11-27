@@ -82,6 +82,12 @@ export function reportDependencyViolation(error: Error): never {
     queueMicrotask(() => {
       throw configurationError;
     });
+    // Without the setup hook, a runner's JSON report can omit unhandled errors.
+    try {
+      process.stderr.write(`${configurationError.message}\n`);
+    } catch {
+      // A closed output stream must preserve the original guard and the scheduled setup failure.
+    }
   }
 
   throw error;

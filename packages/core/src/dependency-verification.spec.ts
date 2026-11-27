@@ -71,14 +71,16 @@ describe('dependency violation verification', () => {
   it('schedules a one-time setup failure when runner integration is missing', () => {
     const violation = new Error('guarded access');
     const scheduledFailures: Array<() => void> = [];
-    const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => {
+      throw new Error('stderr is closed');
+    });
     const queue = jest
       .spyOn(global, 'queueMicrotask')
       .mockImplementation((callback) => scheduledFailures.push(callback));
 
     try {
       expect(() => reportDependencyViolation(violation)).toThrow(violation);
-      expect(stderr).not.toHaveBeenCalled();
+      expect(stderr).toHaveBeenCalledWith(expect.stringMatching(/ER053[\s\S]*setupFiles/i));
       expect(scheduledFailures).toHaveLength(1);
       expect(scheduledFailures[0]).toThrow(expect.objectContaining({
         code: 'ER053',
@@ -87,7 +89,7 @@ describe('dependency violation verification', () => {
       }));
 
       expect(() => reportDependencyViolation(violation)).toThrow(violation);
-      expect(stderr).not.toHaveBeenCalled();
+      expect(stderr).toHaveBeenCalledTimes(1);
       expect(scheduledFailures).toHaveLength(1);
     } finally {
       queue.mockRestore();
