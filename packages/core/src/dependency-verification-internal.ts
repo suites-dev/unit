@@ -55,7 +55,7 @@ export function reportDependencyViolation(error: Error): never {
         value: true,
       });
       const configurationError = new Error(
-        "Suites Unit dependency verification is not configured. For Jest, set testEnvironment to '@suites/runners.jest/environment'. For Vitest, add '@suites/runners.vitest/setup' to setupFiles. The test process must fail because the immediate dependency violation may be caught."
+        "Suites Unit dependency verification is not configured. For Jest, set testEnvironment to '@suites/runners.jest'. For Vitest, add '@suites/runners.vitest' to setupFiles. The test process must fail because the immediate dependency violation may be caught."
       );
       process.stderr.write(`${configurationError.message}\n`);
       queueMicrotask(() => {
