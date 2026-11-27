@@ -1,3 +1,5 @@
+import { Inject, forwardRef } from '@nestjs/common';
+import { PARAMTYPES_METADATA } from '@nestjs/common/constants';
 import { ok } from 'node:assert/strict';
 import {
   ClassWithUndefinedDependency,
@@ -276,5 +278,43 @@ describe('missing constructor metadata', () => {
       reason: 'undefined-dependency',
       location: { kind: 'parameter', index: 0 },
     });
+  });
+});
+
+describe('explicit tokens', () => {
+  it('reads a token recorded without any design:paramtypes metadata', () => {
+    class Checkout {
+      constructor(@Inject('payment') readonly payment: unknown) {}
+    }
+    Reflect.deleteMetadata(PARAMTYPES_METADATA, Checkout);
+    expect(registryFor(Checkout).resolve('payment')).toEqual({
+      identifier: 'payment',
+      type: 'PARAM',
+      value: UndefinedDependency,
+    });
+  });
+
+  it('reports the symbol property of an undefined lazy token', () => {
+    const key = Symbol('audit');
+    class Checkout {
+      @Inject(forwardRef(() => undefined))
+      readonly [key]!: unknown;
+    }
+    expect(adapter.inspect(Checkout)).toEqual({
+      kind: 'failure',
+      reason: 'undefined-token',
+      target: Checkout,
+      location: { kind: 'property', key },
+      cause: undefined,
+    });
+  });
+
+  it('keeps a usable explicit token when its design type is Object', () => {
+    class Checkout {
+      constructor(@Inject('payment') readonly payment: unknown) {}
+    }
+    expect(registryFor(Checkout).list()).toEqual([
+      { identifier: 'payment', type: 'PARAM', value: Object },
+    ]);
   });
 });
