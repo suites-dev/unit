@@ -1,4 +1,4 @@
-import { formatGuardedIdentifier, isGuardedDependency } from './guarded-dependency.js';
+import { isGuardedDependency } from './guarded-dependency.js';
 import { isDeepStrictEqual } from 'node:util';
 import type { StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
@@ -9,7 +9,7 @@ import type {
   IdentifierToFinal,
   IdentifierToMockOrFinal,
 } from './dependency-container.js';
-import { referenceDependencyNotFoundError, stringifyIdentifier } from './functions.static.js';
+import { stringifyIdentifier } from './functions.static.js';
 
 /**
  * Provides access to mocked dependencies within a test environment.
@@ -179,7 +179,7 @@ export class UnitReference {
     const selectedDependency = this.mocksContainer.resolveEntry(identifier, identifierMetadata);
 
     if (isGuardedDependency(selectedDependency?.[1])) {
-      const name = formatGuardedIdentifier(identifier, identifierMetadata);
+      const name = stringifyIdentifier(identifier, identifierMetadata);
       throw new DependencyResolutionError(
         `Cannot retrieve guarded dependency ${name}. Declare a mock for this identifier before compiling the test.`
       );
@@ -235,8 +235,21 @@ testing context or container. Refer to the docs for further information: https:/
     const dependency = selectedDependency?.[1];
 
     if (!dependency) {
-      const message = referenceDependencyNotFoundError(identifier, identifierMetadata);
-      throw new DependencyResolutionError(message);
+      const details = stringifyIdentifier(identifier, identifierMetadata);
+      const registered = this.mocksContainer.list().some(([key]) => key.identifier === identifier);
+      if (registered && identifierMetadata === undefined) {
+        throw new DependencyResolutionError(
+          `The mock for ${details} could not be located without a qualifier. Pass the metadata for the injection site to unitRef.get().`
+        );
+      }
+      if (registered) {
+        throw new DependencyResolutionError(
+          `The mock for ${details} could not be located. No injection site matches this qualifier.`
+        );
+      }
+      throw new DependencyResolutionError(
+        `The mock for ${details} could not be located. Check that the token identifies a dependency of this unit.`
+      );
     }
 
     return dependency as StubbedInstance<TDependency>;

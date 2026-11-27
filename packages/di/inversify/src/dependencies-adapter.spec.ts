@@ -1,3 +1,6 @@
+import 'reflect-metadata';
+import type { Type } from '@suites/types.common';
+import { ok } from 'node:assert/strict';
 import type { DependencyInjectionAdapter, ClassInjectable } from '@suites/types.di';
 import { DependenciesAdapter } from './dependencies-adapter.js';
 import type { IdentifierMetadata } from './types.js';
@@ -51,6 +54,12 @@ const injectablesFixture: ClassInjectable[] = [
   },
 ];
 
+function registryFor(target: Type) {
+  const result = dependenciesAdapter.inspect(target);
+  ok(result.kind === 'success');
+  return result.registry;
+}
+
 describe('Dependencies Adapter Unit Spec', () => {
   beforeEach(() => {
     classPropsReflector.reflectInjectables.mockReturnValue([]);
@@ -59,44 +68,42 @@ describe('Dependencies Adapter Unit Spec', () => {
 
   it('should return undefined if no matching injectables are found', () => {
     classCtorReflector.reflectInjectables.mockReturnValue([]);
-    const result = dependenciesAdapter.inspect(targetClass).resolve('Interface', metadata as never);
+    const result = registryFor(targetClass).resolve('Interface', metadata as never);
 
     expect(result).toBeUndefined();
   });
 
   it('should return the injectable if only one matching injectable is found and no metadata is provided', () => {
     classCtorReflector.reflectInjectables.mockReturnValue(injectablesFixture);
-    const result = dependenciesAdapter.inspect(targetClass).resolve('Interface');
+    const result = registryFor(targetClass).resolve('Interface');
 
     expect(result).toEqual(injectablesFixture[2]);
   });
 
   it('should return the injectable with matching metadata if metadata is provided', () => {
     classCtorReflector.reflectInjectables.mockReturnValue(injectablesFixture);
-    const result = dependenciesAdapter.inspect(targetClass).resolve('Interface', metadata as never);
+    const result = registryFor(targetClass).resolve('Interface', metadata as never);
 
     expect(result).toEqual(injectablesFixture[0]);
   });
 
   it('should return undefined if no injectable with matching metadata is found', () => {
     classCtorReflector.reflectInjectables.mockReturnValue(injectablesFixture);
-    const result = dependenciesAdapter
-      .inspect(targetClass)
-      .resolve('Interface', { metadataKey: 'other' } as never);
+    const result = registryFor(targetClass).resolve('Interface', { metadataKey: 'other' } as never);
 
     expect(result).toBeUndefined();
   });
 
   it('should return the injectable with matching identifier and no metadata if metadata is not provided', () => {
     classCtorReflector.reflectInjectables.mockReturnValue(injectablesFixture);
-    const result = dependenciesAdapter.inspect(targetClass).resolve(arbitraryClassAsIdentifier);
+    const result = registryFor(targetClass).resolve(arbitraryClassAsIdentifier);
 
     expect(result).toEqual(injectablesFixture[4]);
   });
 
   it('should return the injectable if there is exactly one, even no metadata provided', () => {
     classCtorReflector.reflectInjectables.mockReturnValue(injectablesFixture);
-    const result = dependenciesAdapter.inspect(targetClass).resolve('IdentifierWithMetadata');
+    const result = registryFor(targetClass).resolve('IdentifierWithMetadata');
 
     expect(result).toEqual(injectablesFixture[5]);
   });

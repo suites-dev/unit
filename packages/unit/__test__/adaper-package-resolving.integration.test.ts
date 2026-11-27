@@ -1,3 +1,4 @@
+import { ok } from 'node:assert/strict';
 import type { DependencyInjectionAdapter } from '@suites/types.di';
 import { createPackageResolver } from '../src/package-resolver.js';
 import { diContract, type PackageResolver } from '../src/package-resolver.base.js';
@@ -34,7 +35,9 @@ describe('Suites Adapter Package Resolving Integration Test', () => {
 
     it('should successfully resolve the adapter package', async () => {
       const diAdapter = await packageResolver.resolveCorrespondingAdapter();
-      expect(diAdapter.inspect(EmptyService).list()).toEqual([]);
+      const inspection = diAdapter.inspect(EmptyService);
+      ok(inspection.kind === 'success');
+      expect(inspection.registry.list()).toEqual([]);
     });
   });
 

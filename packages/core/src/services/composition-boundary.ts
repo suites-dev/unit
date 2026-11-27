@@ -12,7 +12,10 @@ export type CompositionBoundary = DependencyPathEntry &
   (
     | { readonly kind: 'mock'; readonly value: StubbedInstance<unknown> }
     | { readonly kind: 'final'; readonly value: FinalValue }
-    | { readonly kind: 'guard'; readonly create: (path: readonly DependencyPathEntry[]) => FinalValue }
+    | {
+        readonly kind: 'guard';
+        readonly create: (path: readonly DependencyPathEntry[]) => FinalValue;
+      }
   );
 
 export interface CompositionBoundaryLookup {
@@ -29,21 +32,22 @@ export class CompositionBoundaryContainer implements CompositionBoundaryLookup {
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
   ): CompositionBoundary | undefined {
-    const matchingIdentifier = this.boundaries.filter(
-      (boundary) => boundary.identifier === identifier
-    );
-    const exact = matchingIdentifier.find((boundary) =>
-      isDeepStrictEqual(boundary.metadata, metadata)
-    );
-
-    if (exact !== undefined) {
-      return exact;
-    }
-
-    return matchingIdentifier.find((boundary) => boundary.metadata === undefined);
+    return matchDeclaration(this.boundaries, identifier, metadata);
   }
 
   public list(): readonly CompositionBoundary[] {
     return this.boundaries;
   }
+}
+
+export function matchDeclaration<T extends DependencyPathEntry>(
+  declarations: readonly T[],
+  identifier: InjectableIdentifier,
+  metadata: IdentifierMetadata | undefined
+): T | undefined {
+  const candidates = declarations.filter((entry) => entry.identifier === identifier);
+  return (
+    candidates.find((entry) => isDeepStrictEqual(entry.metadata, metadata)) ??
+    candidates.find((entry) => entry.metadata === undefined)
+  );
 }

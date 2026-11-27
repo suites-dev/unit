@@ -5,7 +5,7 @@ import type { Stub, StubbedInstance } from '@suites/types.doubles';
 import type { ConstantValue, DeepPartial, FinalValue } from '@suites/types.common';
 
 export type IdentifierToMockOrFinal = [
-  Pick<ClassInjectable, 'identifier'> & { metadata?: unknown },
+  Pick<ClassInjectable, 'identifier'> & { readonly metadata?: IdentifierMetadata },
   StubbedInstance<unknown> | FinalValue,
 ];
 
@@ -15,7 +15,7 @@ export type IdentifierToFinal = [
 ];
 
 export type IdentifierToMockImplWithCb = [
-  Pick<ClassInjectable, 'identifier'> & { metadata?: unknown },
+  Pick<ClassInjectable, 'identifier'> & { readonly metadata?: IdentifierMetadata },
   (stubFn: () => Stub<unknown, any[]>) => DeepPartial<unknown>,
 ];
 
