@@ -1,2 +1,2 @@
-/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.inversify/metadata" />

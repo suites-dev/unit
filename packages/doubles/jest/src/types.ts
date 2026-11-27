@@ -1,4 +1,9 @@
-type MockFunction<T extends (...args: any[]) => any> = jest.Mock<ReturnType<T>, Parameters<T>> & T;
+import type { stub } from './stub.js';
+
+type MockFunction<T extends (...args: any[]) => any> = ReturnType<
+  typeof stub<ReturnType<T>, Parameters<T>>
+> &
+  T;
 
 type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : Mocked<T>;
 
@@ -14,7 +19,7 @@ type MockedProperty<T> = T extends (...args: any[]) => any ? MockFunction<T> : M
  * @template T The type of the object being mocked
  *
  * @remarks
- * When `@suites/doubles.jest/unit` is referenced, this type augments the base
+ * When `@suites/doubles.jest/metadata` is referenced, this type augments the base
  * `Mocked<T>` type from `@suites/unit` with Jest-specific functionality.
  * All mocked methods support Jest's mock API including `mockReturnValue`,
  * `mockResolvedValue`, `mockImplementation`, and assertion matchers.
@@ -57,7 +62,7 @@ export type Mocked<T> = {
  * @template TArgs The tuple type of the function's arguments
  *
  * @remarks
- * When `@suites/doubles.jest/unit` is referenced, this type augments the base
+ * When `@suites/doubles.jest/metadata` is referenced, this type augments the base
  * `Stub` type from `@suites/unit` with Jest's mock function capabilities.
  * It's the fundamental building block for all function mocking in Jest.
  *
@@ -66,4 +71,4 @@ export type Mocked<T> = {
  * @see {@link https://jestjs.io/docs/mock-function-api#jestfnimplementation | Jest Function Mocks}
  * @see {@link https://suites.dev/docs/api-reference/mock | Stub Reference}
  */
-export type Stub<TArgs extends any[] = any[]> = jest.Mock<any, TArgs>;
+export type Stub<TArgs extends any[] = any[]> = ReturnType<typeof stub<any, TArgs>>;

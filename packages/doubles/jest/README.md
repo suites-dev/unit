@@ -31,7 +31,7 @@ Generate typed dependency mocks backed by Jest's mock functions. Configure respo
 For NestJS with Jest:
 
 ```sh
-pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.jest
+pnpm add -D @suites/unit @suites/di.nestjs @suites/doubles.jest @types/jest
 ```
 
 Replace `@suites/di.nestjs` with `@suites/di.inversify` or `@suites/di.injectionjs` for your DI framework. Install one doubles adapter per test project.
@@ -40,10 +40,10 @@ Requires `jest` and `@jest/globals` in `^30.5.2`. Suites 4 supports Node.js `^22
 
 ## Configuration
 
-Create `suites.d.ts` and include it in your test `tsconfig.json`:
+The Jest metadata declaration loads `@types/jest`. Create `suites.d.ts` and include it in your test `tsconfig.json`.
 
 ```typescript
-/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
@@ -112,7 +112,7 @@ it('creates standalone doubles', async () => {
 });
 ```
 
-Import `Mocked<T>` and `Stub` from `@suites/unit` when declaring your test variables. The `/unit` declaration reference supplies the Jest mock APIs to those types. Create a fresh test bed per test to keep mock state isolated.
+Import `Mocked<T>` and `Stub` from `@suites/unit` when declaring your test variables. The `/metadata` declaration reference supplies the Jest mock APIs to those types. Create a fresh test bed per test to keep mock state isolated.
 
 The examples use `.js` import paths for TypeScript ESM compatibility. When Jest transforms TypeScript source directly, configure its [relative import mapping](https://github.com/suites-dev/unit/tree/master/packages/doubles/jest#typescript-import-paths).
 

@@ -208,13 +208,13 @@ For complete installation instructions, see the [Installation Guide](https://sui
 Create a `suites.d.ts` file included by your test `tsconfig.json`:
 
 ```typescript
-/// <reference types="@suites/doubles.jest/unit" />
+/// <reference types="@suites/doubles.jest/metadata" />
 /// <reference types="@suites/di.nestjs/metadata" />
 ```
 
-Use `@suites/doubles.vitest/unit` for Vitest, `@suites/di.inversify/metadata` for Inversify, or `@suites/di.injectionjs/metadata` for InjectionJS. Include one test-double adapter and one DI adapter per test TypeScript project.
+Use `@suites/doubles.vitest/metadata` for Vitest, `@suites/di.inversify/metadata` for Inversify, or `@suites/di.injectionjs/metadata` for InjectionJS. Include one test-double adapter and one DI adapter per test TypeScript project.
 
-The `/unit` reference supplies mock types and methods. The `/metadata` reference enforces the DI adapter's metadata rules: NestJS and InjectionJS have no identifier metadata; Inversify supports named and tagged bindings. InjectionJS also registers `InjectionToken` identifiers. These are packaged type declarations, so no postinstall script or edits to `node_modules` are required.
+The doubles reference supplies mock types and methods. The DI reference enforces the adapter's metadata rules: NestJS and InjectionJS have no identifier metadata; Inversify supports named and tagged bindings. InjectionJS also registers `InjectionToken` identifiers. These are packaged type declarations, so no postinstall script or edits to `node_modules` are required.
 
 For detailed configuration instructions, see the [Installation Guide](https://suites.dev/docs/get-started/installation).
 

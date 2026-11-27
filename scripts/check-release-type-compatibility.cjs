@@ -4,6 +4,7 @@ const {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  copyFileSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -25,6 +26,7 @@ const scratch = mkdtempSync(join(tmpdir(), 'suites-type-compatibility-'));
 const candidate = join(scratch, 'candidate');
 const published = join(scratch, 'published');
 const fixtureRoot = join(__dirname, 'fixtures', 'release-type-compatibility');
+const metadataEntries = ['metadata-reference.ts', 'metadata-import.ts'];
 const results = [];
 let plan;
 const registry = process.env.SUITES_TYPE_COMPAT_REGISTRY || 'https://registry.npmjs.org';
@@ -34,6 +36,7 @@ const packages = [
   ['@suites/doubles.jest', 'packages/doubles/jest'],
   ['@suites/doubles.vitest', 'packages/doubles/vitest'],
   ['@suites/types.common', 'packages/types/common'],
+  ['@suites/di.nestjs', 'packages/di/nestjs'],
   ['@suites/types.di', 'packages/types/di'],
   ['@suites/types.doubles', 'packages/types/doubles'],
 ];
@@ -58,7 +61,9 @@ function dependencies(destination) {
   }
   for (const [name, folder] of [
     ['@vitest/spy', 'packages/doubles/vitest'],
+    ['vitest', 'packages/doubles/vitest'],
     ['@jest/globals', 'packages/doubles/jest'],
+    ['jest-mock', 'packages/doubles/jest'],
   ]) {
     link(join(root, folder, 'node_modules', name), join(destination, name));
   }
@@ -148,6 +153,21 @@ try {
           )
         );
       }
+      if (label === 'aligned') {
+        if (framework === 'jest') {
+          copyFileSync(join(fixtureRoot, 'jest-globals.ts'), join(consumer, 'jest-globals.ts'));
+        }
+        copyFileSync(join(fixtureRoot, 'adapter-metadata.ts'), join(consumer, 'adapter-metadata.ts'));
+        for (const entry of metadataEntries) {
+          writeFileSync(
+            join(consumer, entry),
+            readFileSync(join(fixtureRoot, entry), 'utf8').replace(
+              '@suites/doubles.jest/metadata',
+              `@suites/doubles.${framework}/metadata`
+            )
+          );
+        }
+      }
       for (const [version, compiler, module, moduleResolution] of compilers) {
         const config = join(consumer, 'tsconfig.json');
         writeFileSync(
@@ -187,6 +207,25 @@ try {
         );
         try {
           run(process.execPath, [compiler, '-p', config]);
+          if (label === 'aligned') {
+            const metadataConfig = join(consumer, 'tsconfig.metadata.json');
+            const files = ['adapter-metadata.ts'];
+            if (framework === 'jest') files.push('jest-globals.ts');
+            for (const entry of metadataEntries) {
+              stage = `adapter metadata selection through ${entry}`;
+              writeFileSync(
+                metadataConfig,
+                JSON.stringify({
+                  extends: './tsconfig.json',
+                  compilerOptions: {
+                    types: framework === 'vitest' && version === 'current' ? ['node', 'vitest/globals'] : [],
+                  },
+                  files: [entry, ...files],
+                })
+              );
+              run(process.execPath, [compiler, '-p', metadataConfig]);
+            }
+          }
           if (hasCandidateUnit) {
             stage = 'declaration emission';
             run(process.execPath, [

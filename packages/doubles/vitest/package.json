@@ -19,6 +19,9 @@
     },
     "./unit": {
       "types": "./unit.d.ts"
+    },
+    "./metadata": {
+      "types": "./metadata.d.ts"
     }
   },
   "keywords": [
@@ -54,6 +57,7 @@
     "test:types": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target es2020 --module esnext --moduleResolution bundler src/types.spec.ts"
   },
   "files": [
+    "metadata.d.ts",
     "unit.d.ts",
     "dist"
   ],
