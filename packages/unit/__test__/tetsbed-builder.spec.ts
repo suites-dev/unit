@@ -29,7 +29,7 @@ describe('Testbed Builder Unit Spec', () => {
 
   it('should call the constructor of the fake builder type', async () => {
     expect(initiationStub).toHaveBeenCalledWith(
-      expect.any(Promise),
+      expect.objectContaining({ then: expect.any(Function) }),
       expect.any(Object),
       TargetClass,
       expect.any(Object)

@@ -57,7 +57,7 @@ export type SociableTestBedBuilderState<
 };
 
 interface BuilderContext<TClass> {
-  readonly doubles: Promise<DoublesAdapter>;
+  readonly doubles: PromiseLike<DoublesAdapter>;
   readonly mocker: UnitMocker;
   readonly targetClass: Type<TClass>;
 }
@@ -89,7 +89,7 @@ export class SociableTestBedBuilder<TClass> {
   readonly #context: BuilderContext<TClass>;
 
   constructor(
-    doubles: Promise<DoublesAdapter>,
+    doubles: PromiseLike<DoublesAdapter>,
     mocker: UnitMocker,
     targetClass: Type<TClass>,
     logger: Pick<Console, 'warn'>

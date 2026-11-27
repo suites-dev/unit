@@ -6,7 +6,7 @@ import { createPackageResolver } from './package-resolver.js';
 import type { DoublesAdapter } from '@suites/types.doubles';
 
 /**
- * Registry of supported mocking library adapter packages.
+ * Discovery order for mocking library adapter packages. Suites ships the Jest and Vitest adapters.
  *
  * Maps mocking library names to their corresponding Suites adapter package names.
  * Suites automatically detects which library is installed and loads the appropriate adapter.
@@ -22,7 +22,7 @@ export const SuitesDoublesAdapters = {
 } as const;
 
 /**
- * Registry of supported dependency injection framework adapter packages.
+ * Discovery order for DI adapters. Suites ships NestJS, InversifyJS and InjectionJS adapters.
  *
  * Maps DI framework names to their corresponding Suites adapter package names.
  * Suites automatically detects which DI framework is installed and loads the appropriate adapter.
@@ -35,6 +35,16 @@ export const SuitesDIAdapters = {
   injectionjs: '@suites/di.injectionjs',
   tsyringe: '@suites/di.tsyringe',
 } as const;
+
+function onCompile<T>(load: () => Promise<T>): PromiseLike<T> {
+  let pending: Promise<T> | undefined;
+  return {
+    then(onFulfilled, onRejected) {
+      pending ??= load();
+      return pending.then(onFulfilled, onRejected);
+    },
+  };
+}
 
 /**
  * Factory function for creating TestBedBuilder instances with automatic adapter resolution.
@@ -58,22 +68,19 @@ export function testBedBuilderFactory<TClass>(
   return {
     create<TBuilder>(
       testbedBuilderType: new (
-        doubles: Promise<DoublesAdapter>,
+        doubles: PromiseLike<DoublesAdapter>,
         mocker: UnitMocker,
         target: Type<TClass>,
         logger: Console
       ) => TBuilder
     ): TBuilder {
-      const diAdapter = createPackageResolver(diAdapters, diContract).resolveCorrespondingAdapter();
-      const doublesAdapter = createPackageResolver(
-        doublesAdapters,
-        doublesContract
-      ).resolveCorrespondingAdapter();
-      const mock = doublesAdapter.then((adapter) => adapter.mock);
-
-      // Compilation can start on a later turn or stop after the first adapter failure.
-      // Observe both pending inputs while retaining their rejections for compile().
-      void Promise.allSettled([diAdapter, mock]);
+      const diAdapter = onCompile(() =>
+        createPackageResolver(diAdapters, diContract).resolveCorrespondingAdapter()
+      );
+      const doublesAdapter = onCompile(() =>
+        createPackageResolver(doublesAdapters, doublesContract).resolveCorrespondingAdapter()
+      );
+      const mock = onCompile(async () => (await doublesAdapter).mock);
       const unitMocker = new UnitMocker(mock, diAdapter);
       return new testbedBuilderType(doublesAdapter, unitMocker, targetClass, console);
     },
