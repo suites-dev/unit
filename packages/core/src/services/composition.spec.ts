@@ -13,7 +13,7 @@ import { UnitMocker } from './unit-mocker.js';
 
 function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdapter {
   return {
-    isConstructable: (type: Type) => entries.some(([target]) => type === target),
+    canAutoConstruct: (type: Type) => entries.some(([target]) => type === target),
     inspect: (type: Type) => ({
       list: () => entries.find(([target]) => type === target)?.[1] ?? [],
       resolve: () => undefined,
@@ -164,7 +164,7 @@ describe('opt-in composition', () => {
     const current = new DependencyResolver(
       [],
       new DependencyContainer([]),
-      { inspect, isConstructable: adapter.isConstructable },
+      { inspect, canAutoConstruct: adapter.canAutoConstruct },
       jest.fn(() => ({})),
       {
         mode: 'composed',
@@ -185,7 +185,7 @@ describe('opt-in composition', () => {
     const current = new DependencyResolver(
       [],
       new DependencyContainer([]),
-      { inspect, isConstructable: adapter.isConstructable },
+      { inspect, canAutoConstruct: adapter.canAutoConstruct },
       jest.fn(() => ({})),
       {
         mode: 'composed',
