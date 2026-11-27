@@ -63,7 +63,7 @@ export function DependenciesAdapter(
 
   return {
     inspect,
-    isConstructable: (targetClass: Type): boolean =>
+    canAutoConstruct: (targetClass: Type): boolean =>
       Reflect.getOwnMetadata('@inversifyjs/core/classIsInjectableFlagReflectKey', targetClass) ===
       true,
   };
