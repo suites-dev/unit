@@ -1,4 +1,5 @@
 import type { Type } from '@suites/types.common';
+import { TestToken } from '../test-token.js';
 import type { TestBedBuilder, UnitTestBed } from '../../src.js';
 import { UnitMocker, SolitaryTestBedBuilder } from '../../src.js';
 import {
@@ -97,6 +98,31 @@ describe('Solitary TestBed Builder Integration Test', () => {
       expect(unitTestBed.unit).toBeInstanceOf(ClassUnderTest);
     });
 
+    it('formats an unused qualified final without invoking token coercion or qualifier getters', async () => {
+      const warn = jest.fn();
+      const builder = new SolitaryTestBedBuilder(
+        Promise.resolve({ mock: mockFunctionMockOfBuilder, stub: jest.fn }),
+        new UnitMocker(Promise.resolve(mockFunctionMockOfMocker), Promise.resolve(FakeDIAdapter)),
+        ClassUnderTest,
+        { ...console, warn }
+      );
+      const coercion = jest.fn(() => {
+        throw new Error('unsafe token coercion');
+      });
+      class OpaqueToken extends TestToken {
+        readonly [Symbol.toPrimitive] = coercion;
+      }
+      const metadata = {
+        get named() {
+          return coercion();
+        },
+      };
+      await builder.mock(new OpaqueToken('unused'), metadata).final({}).compile();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(expect.stringMatching(/WR001.*Unused final.*named/));
+      expect(coercion).not.toHaveBeenCalled();
+    });
+
     it('should log a warning indicating the dependency was not found when mocking missing dependency', async () => {
       await underTest
         .mock('does-not-exists')
@@ -104,7 +130,7 @@ describe('Solitary TestBed Builder Integration Test', () => {
         .compile();
 
       expect(loggerMock.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Suites Warning: Redundant Mock Configuration Detected.')
+        expect.stringContaining("WR001): Unused mock override for 'does-not-exists'")
       );
     });
   });

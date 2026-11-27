@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import { DependencyResolutionError, SuitesError, UnitErrorCode } from '@suites/types.common';
+import { stringifyIdentifier } from './functions.static.js';
 import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
 import type {
@@ -55,6 +56,7 @@ export class DependencyResolver {
   private readonly inspected = new Map<Type, InjectableRegistry>();
   private readonly dependencyMap = new DependencyMap();
   private readonly usedMockEntries = new Set<IdentifierToMockOrFinal>();
+  private readonly selectedExposures = new Set<Type>();
   private readonly availableClassesToExpose = new Set<InjectableIdentifier>();
   private readonly constructionPath: DependencyPathEntry[] = [];
   private readonly exposedDependencies: IdentifierToMockOrFinal[0][] = [];
@@ -205,7 +207,11 @@ export class DependencyResolver {
       return guard;
     }
 
-    if (this.isExposedClass(identifier)) return this.instantiateClass(identifier, metadata);
+    if (this.isExposedClass(identifier)) {
+      this.selectedExposures.add(identifier);
+      this.exposedDependencies.push({ identifier, metadata });
+      return this.instantiateClass(identifier, metadata);
+    }
     const mock = this.mockFunction();
     this.dependencyMap.set(identifier, mock, metadata);
     return mock;
@@ -228,12 +234,11 @@ export class DependencyResolver {
       )
     ) {
       const path = [...this.constructionPath, { identifier, metadata }]
-        .map(({ identifier: pathIdentifier }) =>
-          typeof pathIdentifier === 'function' ? pathIdentifier.name : String(pathIdentifier)
-        )
+        .map((entry) => stringifyIdentifier(entry.identifier, entry.metadata))
         .join(' -> ');
       throw new DependencyResolutionError(
-        `Cannot compose circular constructor dependencies: ${path}. Declare an explicit dependency boundary to stop traversal.`
+        `Cannot compose circular constructor dependencies: ${path}. Declare an explicit dependency boundary to stop traversal.`,
+        UnitErrorCode.DEPENDENCY_CYCLE
       );
     }
 
@@ -292,7 +297,7 @@ export class DependencyResolver {
     exposes: Type[];
     notFound: IdentifierToMockOrFinal[];
   } {
-    const exposes = this.classesToExpose.filter((cls) => !this.availableClassesToExpose.has(cls));
+    const exposes = this.classesToExpose.filter((cls) => !this.selectedExposures.has(cls));
     const mocks = this.mockedFromBeforeContainer
       .list()
       .filter(([injectable]) => typeof injectable.identifier === 'function')

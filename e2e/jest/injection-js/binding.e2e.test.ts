@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 import { Inject, Injectable, InjectionToken } from 'injection-js';
 import { TestBed } from '@suites/unit';
 
@@ -45,6 +45,22 @@ describe('v5 explicit token bindings', () => {
     expect(unit.repository).toBe(unit.repeated);
     expect(unit.read()).toBe('live:value');
     expect(() => unitRef.get(REPOSITORY)).toThrow(/exposed dependency/);
+  });
+
+  it('rejects declarations for a different InjectionToken with the same description', async () => {
+    const absent = new InjectionToken<RepositoryPort>('repository');
+    const configure = jest.fn(() => ({ read: () => 'unused' }));
+    const selector = TestBed.sociable(Root);
+    for (const mode of [selector.expose(Leaf), selector.compose()]) {
+      const bound = mode.bind<RepositoryPort>(REPOSITORY, Repository);
+      await expect(bound.mock(absent).impl(configure).compile()).rejects.toMatchObject({
+        code: 'ER043',
+      });
+      await expect(bound.bind<RepositoryPort>(absent, Repository).compile()).rejects.toMatchObject({
+        code: 'ER043',
+      });
+    }
+    expect(configure).not.toHaveBeenCalled();
   });
 
   it('recursively constructs the dependencies of a bound repository in composed mode', async () => {
