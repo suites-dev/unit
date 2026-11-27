@@ -19,7 +19,7 @@ export const diContract: AdapterContract<DependencyInjectionAdapter> = {
     return (
       isObject(value) &&
       typeof value.inspect === 'function' &&
-      (value.isConstructable === undefined || typeof value.isConstructable === 'function')
+      (value.canAutoConstruct === undefined || typeof value.canAutoConstruct === 'function')
     );
   },
 };
