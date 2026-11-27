@@ -3,10 +3,10 @@ const { test } = require('node:test');
 const { ESLint } = require('eslint');
 const { join } = require('node:path');
 
-const root = join(__dirname, '..');
+const root = join(__dirname, '../..');
 const linter = new ESLint({
   cwd: root,
-  overrideConfigFile: join(__dirname, 'eslint-type-contracts.config.mjs'),
+  overrideConfigFile: join(root, 'scripts/eslint-type-contracts.config.mjs'),
 });
 
 test('rejects chained assertions across authored package sources, tests and declarations', async () => {

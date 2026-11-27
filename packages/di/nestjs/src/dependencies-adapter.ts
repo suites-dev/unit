@@ -29,7 +29,7 @@ export function DependenciesAdapter(
 
   return {
     inspect,
-    isConstructable: (targetClass: Type): boolean =>
+    canAutoConstruct: (targetClass: Type): boolean =>
       Reflect.getOwnMetadata(INJECTABLE_WATERMARK, targetClass) === true,
   };
 }
