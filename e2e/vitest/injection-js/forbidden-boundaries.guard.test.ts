@@ -157,3 +157,20 @@ it('fails when a caught token forbidden boundary is accessed', async () => {
   );
   recordStep(`${env.SUITES_FORBID_RUNNER}:token-caught`);
 });
+
+it('records caught access to a forbidden object token', async () => {
+  const token = new InjectionToken<Boundary>('PAYMENTS');
+
+  @Injectable()
+  class PaymentCheckout {
+    constructor(@Inject(token) readonly payments: Boundary) {}
+  }
+
+  const { unit } = await TestBed.sociable(PaymentCheckout).compose().forbid(token).compile();
+  token.toString = () => {
+    recordStep('diagnostic-hook-called');
+    throw new Error('Token cannot be coerced');
+  };
+
+  expect(() => unit.payments.read()).toThrow();
+});

@@ -25,7 +25,12 @@ export class DependencyViolationLedger {
   private readonly violations: Error[] = [];
 
   public record(error: Error): void {
-    this.violations.push(error);
+    // Runners serialize recorded errors after the test. Keep application-owned tokens and
+    // qualifiers on the immediate error, and retain the original guard call site here.
+    const recorded = new Error(error.message);
+    recorded.name = error.name;
+    recorded.stack = error.stack;
+    this.violations.push(recorded);
   }
 
   public finish(suiteFailure?: unknown): DependencyVerificationError | undefined {
