@@ -8,7 +8,8 @@
     "@suites/unit": "e2e",
     "reflect-metadata": "^0.2.2",
     "injection-js": "2.6.1",
-    "@suites/di.injectionjs": "e2e"
+    "@suites/di.injectionjs": "e2e",
+    "@suites/runners.jest": "e2e"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -21,7 +22,7 @@
     "@suites/types.common": "e2e"
   },
   "scripts": {
-    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" NODE_NO_WARNINGS=1 jest",
+    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" NODE_NO_WARNINGS=1 jest && NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" NODE_NO_WARNINGS=1 node ../../../verify-forbidden-boundaries.cjs jest jest.forbid.config.mjs",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {

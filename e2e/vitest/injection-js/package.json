@@ -8,7 +8,8 @@
     "@suites/unit": "e2e",
     "reflect-metadata": "^0.2.2",
     "injection-js": "2.6.1",
-    "@suites/di.injectionjs": "e2e"
+    "@suites/di.injectionjs": "e2e",
+    "@suites/runners.vitest": "e2e"
   },
   "devDependencies": {
     "@swc/core": "^1.16.2",
@@ -22,7 +23,7 @@
     "@suites/types.common": "e2e"
   },
   "scripts": {
-    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && vitest --run",
+    "test": "tsc --noEmit && tsc -p tsconfig.skipLibCheck.json --noEmit && vitest --run && node ../../verify-forbidden-boundaries.cjs vitest",
     "lint": "eslint '**/*.ts'"
   },
   "engines": {

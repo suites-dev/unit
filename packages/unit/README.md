@@ -185,6 +185,23 @@ Class tokens check the implementation's instance type. Use `.bind<Contract>(TOKE
 
 Composition constructs a class when the DI adapter identifies it as constructable. For an unmarked class or an abstract token, select a real implementation with `.bind()` or configure a mock. TypeScript erases the abstract modifier, so a framework decorator on an abstract class can make it indistinguishable from a concrete class at runtime.
 
+### Forbidding a dependency in a composed test
+
+A checkout preview can calculate a total without contacting the payment gateway. Pass the gateway's injection identifier to `.forbid()` to enforce that boundary:
+
+```typescript
+const { unit } = await TestBed.sociable(CheckoutService)
+  .compose()
+  .forbid(PAYMENT_GATEWAY)
+  .compile();
+
+expect(unit.preview(cart).total).toBe(25);
+```
+
+Suites stops construction at `PAYMENT_GATEWAY` and injects a guard. Receiving the guard is safe. Reading a member or calling the guard throws an error with the dependency path. With the Suites Jest environment or Vitest setup file configured, the file fails even when the application catches that error and returns a fallback.
+
+Pass several identifiers to `.forbid(PAYMENT_GATEWAY, EmailSender)` to stop at each one. A forbidden identifier covers all of its metadata qualifiers. Declaring a mock or binding for that same identifier makes `.compile()` reject the conflicting setup.
+
 See [solitary tests](https://suites.dev/docs/guides/solitary/), [sociable tests](https://suites.dev/docs/guides/sociable/), and [mock configuration](https://suites.dev/docs/api-reference/mock-configuration/).
 
 ## Migration
