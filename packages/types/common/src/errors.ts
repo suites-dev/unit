@@ -18,9 +18,9 @@
 export const SuitesErrorCode = {
   /** Identifier not found in dependency container (ER010) */
   IDENTIFIER_NOT_FOUND: 'ER010',
-  /** DI adapter not found or not configured (ER020) */
+  /** No supported DI or doubles adapter found (ER020) */
   ADAPTER_NOT_FOUND: 'ER020',
-  /** Error occurred within DI adapter (ER021) */
+  /** An installed DI or doubles adapter could not be loaded (ER021) */
   ADAPTER_ERROR: 'ER021',
   /** Dependency type could not be detected from metadata (ER30) */
   UNDEFINED_DEPENDENCY: 'ER30',

@@ -1,26 +1,9 @@
 import * as console from 'console';
 import type { Type } from '@suites/types.common';
-import { SuitesError, SuitesErrorCode } from '@suites/types.common';
-import type { DependencyInjectionAdapter } from '@suites/types.di';
+import { diContract, doublesContract } from './package-resolver.base.js';
 import { UnitMocker } from '@suites/core.unit';
 import { createPackageResolver } from './package-resolver.js';
 import type { DoublesAdapter } from '@suites/types.doubles';
-
-/**
- * Thrown when Suites cannot find a compatible adapter package for the DI framework or mocking library.
- *
- * This occurs when the required adapter package is not installed or cannot be resolved.
- * Install the appropriate adapter package to resolve this error.
- *
- * @since 3.0.0
- * @see {@link https://suites.dev/docs/get-started/installation | Installation Guide}
- */
-export class AdapterNotFoundError extends SuitesError {
-  public constructor(message: string) {
-    super(SuitesErrorCode.ADAPTER_NOT_FOUND, 'No compatible adapter found', message);
-    this.name = 'AdapterNotFoundError';
-  }
-}
 
 /**
  * Registry of supported mocking library adapter packages.
@@ -81,35 +64,17 @@ export function testBedBuilderFactory<TClass>(
         logger: Console
       ) => TBuilder
     ): TBuilder {
-      const diPackageResolver = createPackageResolver<DependencyInjectionAdapter>(diAdapters);
+      const diAdapter = createPackageResolver(diAdapters, diContract).resolveCorrespondingAdapter();
+      const doublesAdapter = createPackageResolver(
+        doublesAdapters,
+        doublesContract
+      ).resolveCorrespondingAdapter();
+      const mock = doublesAdapter.then((adapter) => adapter.mock);
 
-      const diAdapter = diPackageResolver
-        .resolveCorrespondingAdapter()
-        .then((adapter) => adapter)
-        .catch(() => {
-          throw new AdapterNotFoundError(`It seems that there is an issue with the adapter package needed to integrate Suites
-with your dependency injection framework. To resolve this issue, please install the
-correct Suites adapter package that is compatible with your dependency injection framework.
-For more details, refer to our docs website: https://suites.dev/docs`);
-        });
-
-      const doublesPackageResolver = createPackageResolver<DoublesAdapter>(doublesAdapters);
-
-      const doublesAdapter = doublesPackageResolver
-        .resolveCorrespondingAdapter()
-        .then((adapter) => adapter)
-        .catch(() => {
-          throw new AdapterNotFoundError(`It seems that there is an issue with the adapter package needed to integrate Suites
-with your mocking library. To resolve this issue, please install the
-correct Suites adapter package that is compatible with mocking library.
-For more details, refer to our docs website: https://suites.dev/docs`);
-        });
-
-      const unitMocker = new UnitMocker(
-        doublesAdapter.then((adapter) => adapter.mock),
-        diAdapter
-      );
-
+      // Compilation can start on a later turn or stop after the first adapter failure.
+      // Observe both pending inputs while retaining their rejections for compile().
+      void Promise.allSettled([diAdapter, mock]);
+      const unitMocker = new UnitMocker(mock, diAdapter);
       return new testbedBuilderType(doublesAdapter, unitMocker, targetClass, console);
     },
   };

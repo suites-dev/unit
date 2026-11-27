@@ -1,6 +1,6 @@
 import type { DependencyInjectionAdapter } from '@suites/types.di';
 import { createPackageResolver } from '../src/package-resolver.js';
-import type { PackageResolver } from '../src/package-resolver.base.js';
+import { diContract, type PackageResolver } from '../src/package-resolver.base.js';
 import { SuitesDIAdapters, SuitesDoublesAdapters } from '../src/testbed-builder.js';
 
 class EmptyService {}
@@ -24,9 +24,12 @@ describe('Suites Adapter Package Resolving Integration Test', () => {
 
   let packageResolver: PackageResolver<DependencyInjectionAdapter>;
 
-  describe('Resolving an adapter with default export', () => {
+  describe('Resolving an adapter with named adapter export', () => {
     beforeAll(() => {
-      packageResolver = createPackageResolver({ test: __dirname + '/assets/test-adapter' });
+      packageResolver = createPackageResolver(
+        { test: __dirname + '/assets/test-adapter' },
+        diContract
+      );
     });
 
     it('should successfully resolve the adapter package', async () => {
@@ -35,14 +38,17 @@ describe('Suites Adapter Package Resolving Integration Test', () => {
     });
   });
 
-  describe('Resolving an adapter with no default export', () => {
+  describe('Resolving an adapter without a named adapter export', () => {
     beforeAll(() => {
-      packageResolver = createPackageResolver({ test: __dirname + '/assets/invalid-adapter' });
+      packageResolver = createPackageResolver(
+        { test: __dirname + '/assets/invalid-adapter' },
+        diContract
+      );
     });
 
-    it('should failed resolving the adapter package and throw an error', async () => {
+    it('should reject the invalid adapter export', async () => {
       await expect(() => packageResolver.resolveCorrespondingAdapter()).rejects.toThrow(
-        new Error('Adapter has no export')
+        'Expected a named "adapter" export'
       );
     });
   });
