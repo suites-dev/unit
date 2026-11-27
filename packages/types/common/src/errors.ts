@@ -15,7 +15,7 @@
  * }
  * ```
  */
-export const SuitesErrorCode = {
+export const SuitesErrorCode = Object.freeze({
   /** Identifier not found in dependency container (ER010) */
   IDENTIFIER_NOT_FOUND: 'ER010',
   /** No supported DI or doubles adapter found (ER020) */
@@ -36,11 +36,11 @@ export const SuitesErrorCode = {
   FORBIDDEN_DEPENDENCY_ACCESS: 'ER051',
   DEPENDENCY_VERIFICATION_FAILED: 'ER052',
   VERIFICATION_NOT_CONFIGURED: 'ER053',
-} as const;
+});
 
-export const SuitesWarningCode = {
+export const SuitesWarningCode = Object.freeze({
   UNUSED_SOLITARY_OVERRIDE: 'WR001',
-} as const;
+});
 
 /**
  * Type representing all possible Suites error codes.
