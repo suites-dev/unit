@@ -1,50 +1,32 @@
 import { LazyServiceIdentifier } from 'inversify';
 import type { Type } from '@suites/types.common';
-import type { IdentifierMetadata, InjectableIdentifier, WithMetadata } from '@suites/types.di';
-import type { InversifyInjectableMetadata } from './types.js';
-import { INVERSIFY_PRESERVED_KEYS } from './types.js';
-
-export type IdentifierObject = {
-  identifier: InjectableIdentifier;
-  metadata: undefined | Pick<WithMetadata<IdentifierMetadata>, 'metadata'>;
-};
+import type { InjectableIdentifier } from '@suites/types.di';
+import { INVERSIFY_PRESERVED_KEYS, type InversifyInjectableMetadata } from './types.js';
 
 export type IdentifierBuilder = ReturnType<typeof IdentifierBuilder>;
 
 export function IdentifierBuilder() {
   function toIdentifierObject(
-    inversifyInjectableMetadataItems: InversifyInjectableMetadata[],
-    paramType: Type
-  ): IdentifierObject {
-    const obj = inversifyInjectableMetadataItems.reduce(
-      (acc: IdentifierObject, metadataItem: InversifyInjectableMetadata) => {
-        const { key: metadataKey, value: metadataValue } = metadataItem;
-
-        if (INVERSIFY_PRESERVED_KEYS.includes(metadataKey)) {
-          if (metadataValue instanceof LazyServiceIdentifier) {
-            const unwrappedValue = metadataValue.unwrap();
-
-            if (typeof unwrappedValue === 'undefined') {
-              throw new Error('Undefined dependency identifier detected');
-            }
-
-            return { ...acc, identifier: unwrappedValue };
-          }
-
-          return { ...acc, identifier: metadataValue };
-        }
-
-        return { ...acc, metadata: { ...acc.metadata, [metadataKey]: metadataValue } };
-      },
-      {} as IdentifierObject
-    ) as IdentifierObject;
-
-    if (typeof obj.identifier === 'undefined') {
-      return { identifier: paramType, metadata: obj.metadata };
+    items: readonly InversifyInjectableMetadata[],
+    type: Type | undefined
+  ) {
+    const entry = items.find(({ key }) => INVERSIFY_PRESERVED_KEYS.includes(key));
+    const token = entry ? entry.value : type;
+    const identifier = token instanceof LazyServiceIdentifier ? token.unwrap() : token;
+    if (identifier === undefined) {
+      return {
+        kind: 'failure',
+        reason: entry ? 'undefined-token' : 'undefined-dependency',
+      } as const;
     }
-
-    return obj;
+    const tags = items.filter(({ key }) => !INVERSIFY_PRESERVED_KEYS.includes(key));
+    return {
+      kind: 'success' as const,
+      identifier: identifier as InjectableIdentifier,
+      metadata: tags.length
+        ? Object.fromEntries(tags.map(({ key, value }) => [key, value]))
+        : undefined,
+    };
   }
-
   return { toIdentifierObject };
 }

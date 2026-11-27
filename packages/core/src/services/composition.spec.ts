@@ -19,8 +19,11 @@ function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdap
   return {
     canAutoConstruct: (type: Type) => entries.some(([target]) => type === target),
     inspect: (type: Type) => ({
-      list: () => entries.find(([target]) => type === target)?.[1] ?? [],
-      resolve: () => undefined,
+      kind: 'success',
+      registry: {
+        list: () => entries.find(([target]) => type === target)?.[1] ?? [],
+        resolve: () => undefined,
+      },
     }),
   } as DependencyInjectionAdapter;
 }
@@ -458,7 +461,12 @@ describe('opt-in composition', () => {
       composed
     );
 
-    expect(() => current.instantiateClass(One)).toThrow('One -> Two -> One');
+    expect(() => current.instantiateClass(One)).toThrow(
+      expect.objectContaining({
+        code: 'ER044',
+        message: expect.stringContaining("'One' -> 'Two' -> 'One'"),
+      })
+    );
   });
 
   it('keeps independently configured branches of one composed builder isolated', async () => {
@@ -476,17 +484,73 @@ describe('opt-in composition', () => {
     expect(second.unit.repository.client.read()).toBe('two');
   });
 
-  it('resolves an implemented mock before a final for the same identifier in either mode', async () => {
+  it('rejects duplicate overrides for the same identifier and qualifier in both modes', async () => {
     for (const selected of [builder().expose(Repository), builder().compose()]) {
-      const { unit } = await selected
-        .mock(Client)
-        .final({ read: () => 'final' })
-        .mock(Client)
-        .impl(() => ({ read: () => 'implemented' }))
-        .compile();
-
-      expect(unit.repository.client.read()).toBe('implemented');
+      const mock = jest.fn(() => ({ read: () => 'implemented' }));
+      const firstMock = selected.mock(Client).impl(mock);
+      const firstFinal = selected.mock(Client).final({ read: () => 'final' });
+      for (const first of [firstMock, firstFinal]) {
+        await expect(first.mock(Client).impl(mock).compile()).rejects.toMatchObject({
+          code: 'ER042',
+        });
+        await expect(first.mock(Client).final({}).compile()).rejects.toMatchObject({
+          code: 'ER042',
+        });
+      }
+      expect(mock).not.toHaveBeenCalled();
     }
+  });
+
+  it('keeps lookup and injection consistent when a qualified mock refines a final or a real exposure', async () => {
+    class Root {
+      constructor(
+        readonly first: Client,
+        readonly second: Client
+      ) {}
+    }
+    const selector = createBuilder(
+      Root,
+      registry([[Root, [parameter(Client, primary), parameter(Client, secondary)]]])
+    );
+    const fallback = { read: () => 'fallback' };
+    for (const mode of [selector.expose(Client), selector.compose().mock(Client).final(fallback)]) {
+      const { unit, unitRef } = await mode
+        .mock(Client, secondary)
+        .impl(() => ({ read: () => 'secondary' }))
+        .compile();
+      expect(unit.second).toBe(unitRef.get(Client, secondary));
+      expect(unit.second.read()).toBe('secondary');
+      expect(() => unitRef.get(Client, primary)).toThrow();
+    }
+  });
+
+  it('materializes a shared mock once per compile and preserves exceptions from its factory', async () => {
+    class Root {
+      constructor(
+        readonly first: Client,
+        readonly second: Client
+      ) {}
+    }
+    const selector = createBuilder(
+      Root,
+      registry([[Root, [parameter(Client, primary), parameter(Client, secondary)]]])
+    ).compose();
+    const create = jest.fn(() => ({ read: () => 'test' }));
+    const configured = selector.mock(Client).impl(create);
+    const first = await configured.compile();
+    const second = await configured.compile();
+    expect(first.unit.first).toBe(first.unit.second);
+    expect(first.unit.first).not.toBe(second.unit.first);
+    expect(create).toHaveBeenCalledTimes(2);
+    const failure = new TypeError('application callback failed');
+    await expect(
+      selector
+        .mock(Client)
+        .impl(() => {
+          throw failure;
+        })
+        .compile()
+    ).rejects.toBe(failure);
   });
 
   it('retains composed mode through both override forms', async () => {

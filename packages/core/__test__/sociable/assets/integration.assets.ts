@@ -47,22 +47,25 @@ registryToClass.set(UserService, userServiceRegistry);
 export const FakeAdapter: DependencyInjectionAdapter = {
   inspect: (targetClass: Type) => {
     return {
-      list: () => {
-        return registryToClass.get(targetClass)!.list();
-      },
-      resolve(
-        identifier: Type | string,
-        metadata?: IdentifierMetadata
-      ): ClassInjectable | undefined {
-        return registryToClass
-          .get(targetClass)!
-          .list()
-          .find((injectable: WithMetadata<never>) => {
-            const subject = normalizeIdentifier(identifier, metadata);
-            const toFind = normalizeIdentifier(injectable.identifier, injectable.metadata);
+      kind: 'success',
+      registry: {
+        list: () => {
+          return registryToClass.get(targetClass)!.list();
+        },
+        resolve(
+          identifier: Type | string,
+          metadata?: IdentifierMetadata
+        ): ClassInjectable | undefined {
+          return registryToClass
+            .get(targetClass)!
+            .list()
+            .find((injectable: WithMetadata<never>) => {
+              const subject = normalizeIdentifier(identifier, metadata);
+              const toFind = normalizeIdentifier(injectable.identifier, injectable.metadata);
 
-            return isDeepStrictEqual(toFind, subject);
-          });
+              return isDeepStrictEqual(toFind, subject);
+            });
+        },
       },
     };
   },

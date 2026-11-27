@@ -18,6 +18,7 @@ describe('Identifier Builder Unit Spec', () => {
     );
 
     expect(result).toEqual({
+      kind: 'success',
       identifier: paramType,
       metadata: { metadataKey: 'metadataValue' },
     });
@@ -37,6 +38,7 @@ describe('Identifier Builder Unit Spec', () => {
     );
 
     expect(result).toEqual({
+      kind: 'success',
       identifier: paramType,
       metadata: { metadataKey: 'metadataValue' },
     });
@@ -55,19 +57,20 @@ describe('Identifier Builder Unit Spec', () => {
     );
 
     expect(result).toEqual({
+      kind: 'success',
       identifier: paramType,
       metadata: undefined,
     });
   });
 
-  it('should throw an error indicating undefined dependency detected when lazy loader value is undefined', () => {
+  it('identifies an undefined explicit token when lazy loader value is undefined', () => {
     const inversifyInjectableMetadataItems = [
       { key: 'inject', value: new LazyServiceIdentifier(() => undefined as never) },
     ];
 
-    expect(() =>
-      IdentifierBuilder().toIdentifierObject(inversifyInjectableMetadataItems, undefined as never)
-    ).toThrow();
+    expect(
+      IdentifierBuilder().toIdentifierObject(inversifyInjectableMetadataItems, undefined)
+    ).toEqual({ kind: 'failure', reason: 'undefined-token' });
   });
 
   it('should use the parameter type as identifier if identifier left undefined because none of the preserved keys is found', () => {
@@ -80,6 +83,7 @@ describe('Identifier Builder Unit Spec', () => {
     );
 
     expect(result).toEqual({
+      kind: 'success',
       identifier: paramType,
       metadata: { metadataKey: 'metadataValue' },
     });

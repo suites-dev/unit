@@ -1,4 +1,4 @@
-import type { InjectableIdentifier, InjectableReflectedType } from '@suites/types.di';
+import type { InjectableIdentifier } from '@suites/types.di';
 
 /**
  * Represents a forward reference token used by NestJS for circular dependencies.
@@ -6,7 +6,7 @@ import type { InjectableIdentifier, InjectableReflectedType } from '@suites/type
  * @since 3.0.0
  * @see {@link https://docs.nestjs.com/fundamentals/circular-dependency | NestJS Circular Dependency}
  */
-export type ForwardRefToken = { forwardRef: () => InjectableReflectedType };
+export type ForwardRefToken = { readonly forwardRef: () => InjectableIdentifier | undefined };
 
 /**
  * Union type representing all valid NestJS injectable identifiers.
@@ -38,7 +38,7 @@ export type IdentifierMetadata = never;
  */
 export interface ReflectedProperty {
   /** The property key name */
-  key: string;
+  readonly key: string | symbol;
   /** The type or token to inject */
-  type: NestInjectableIdentifier;
+  readonly type: NestInjectableIdentifier | undefined;
 }

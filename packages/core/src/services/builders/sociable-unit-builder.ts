@@ -1,4 +1,5 @@
-import { DependencyResolutionError } from '@suites/types.common';
+import { isDeepStrictEqual } from 'node:util';
+import { DependencyResolutionError, SuitesErrorCode } from '@suites/types.common';
 import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { DoublesAdapter, StubbedInstance } from '@suites/types.doubles';
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
@@ -7,7 +8,11 @@ import type { IdentifierToFinal, IdentifierToMockOrFinal } from '../dependency-c
 import { normalizeIdentifier } from '../../normalize-identifier.static.js';
 import { DependencyContainer } from '../dependency-container.js';
 import type { ResolverOptions } from '../dependency-resolver.js';
-import { CompositionBoundaryContainer, type CompositionBoundary } from '../composition-boundary.js';
+import {
+  CompositionBoundaryContainer,
+  matchDeclaration,
+  type CompositionBoundary,
+} from '../composition-boundary.js';
 import { stringifyIdentifier } from '../functions.static.js';
 import { createGuardedDependency } from '../guarded-dependency.js';
 import { UnitReference } from '../unit-reference.js';
@@ -55,7 +60,6 @@ interface BuilderContext<TClass> {
   readonly doubles: Promise<DoublesAdapter>;
   readonly mocker: UnitMocker;
   readonly targetClass: Type<TClass>;
-  readonly logger: Pick<Console, 'warn'>;
 }
 
 type ConstructionMode =
@@ -89,13 +93,17 @@ export class SociableTestBedBuilder<TClass> {
     mocker: UnitMocker,
     targetClass: Type<TClass>,
     logger: Pick<Console, 'warn'>
-  ) {
-    this.#context = { doubles, mocker, targetClass, logger };
+  );
+  constructor(doubles: Promise<DoublesAdapter>, mocker: UnitMocker, targetClass: Type<TClass>) {
+    this.#context = { doubles, mocker, targetClass };
   }
 
   public expose(first: Type, ...rest: Type[]): SociableTestBedBuilderState<TClass, 'selective'> {
-    if (!first) {
-      throw new TypeError('Selective exposure requires at least one dependency');
+    if (first === undefined) {
+      throw new InvalidBuilderArgument('Selective exposure requires at least one dependency');
+    }
+    if (![first, ...rest].every(isConstructor)) {
+      throw new InvalidBuilderArgument('Each exposed dependency must be a concrete class.');
     }
 
     const mode = { kind: 'selective', classes: [first, ...rest] } satisfies ConstructionMode;
@@ -123,8 +131,11 @@ function composedBuilder<TClass>(
     ),
     forbid(identifier, ...rest) {
       if (identifier === undefined) {
-        throw new TypeError('A forbidden composition boundary requires at least one identifier');
+        throw new InvalidBuilderArgument(
+          'A forbidden composition boundary requires at least one identifier'
+        );
       }
+      for (const token of [identifier, ...rest]) requireIdentifier(token, 'forbid');
       return composedBuilder(context, configuration, [...forbidden, identifier, ...rest]);
     },
   };
@@ -144,8 +155,11 @@ function configuredBuilder<TClass, TSelf extends { compile(): Promise<UnitTestBe
 
   return {
     bind(identifier: InjectableIdentifier, implementation: Type) {
-      if (typeof implementation !== 'function') {
-        throw new TypeError('Binding a dependency token requires a concrete implementation');
+      requireIdentifier(identifier, 'bind');
+      if (!isConstructor(implementation)) {
+        throw new InvalidBuilderArgument(
+          `Binding a dependency token requires a concrete implementation for ${stringifyIdentifier(identifier, undefined)}.`
+        );
       }
       return next({
         ...configuration,
@@ -153,14 +167,19 @@ function configuredBuilder<TClass, TSelf extends { compile(): Promise<UnitTestBe
       });
     },
     mock(identifier, ...[metadata]) {
+      requireIdentifier(identifier, 'mock');
       return {
-        impl: (implementation) =>
-          withOverride({
+        impl: (implementation) => {
+          if (typeof implementation !== 'function') {
+            throw new InvalidBuilderArgument('An implemented mock requires a factory function.');
+          }
+          return withOverride({
             kind: 'mock',
             identifier,
             metadata,
             create: (doubles) => doubles.mock(implementation(doubles.stub)),
-          }),
+          });
+        },
         final: (value) => withOverride({ kind: 'final', identifier, metadata, value }),
       };
     },
@@ -168,45 +187,131 @@ function configuredBuilder<TClass, TSelf extends { compile(): Promise<UnitTestBe
   };
 }
 
+class InvalidBuilderArgument extends TypeError {
+  public readonly code = SuitesErrorCode.INVALID_BUILDER_ARGUMENT;
+  public readonly severity = 'error';
+
+  public constructor(message: string) {
+    super(
+      `Invalid builder argument (code ${SuitesErrorCode.INVALID_BUILDER_ARGUMENT})\n${message}`
+    );
+  }
+}
+
+function requireIdentifier(identifier: InjectableIdentifier, method: string): void {
+  if (identifier === null || identifier === undefined) {
+    throw new InvalidBuilderArgument(`.${method}() requires a dependency identifier.`);
+  }
+}
+
+// The construct trap tests the candidate's [[Construct]] without invoking consumer code.
+function isConstructor(value: unknown): boolean {
+  if (typeof value !== 'function') return false;
+  try {
+    Reflect.construct(new Proxy(value, { construct: () => ({}) }), []);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function conflict(message: string): never {
+  throw new DependencyResolutionError(message, SuitesErrorCode.CONFIGURATION_CONFLICT);
+}
+
+function collectBindings(
+  configuration: SociableConfiguration
+): ReadonlyMap<InjectableIdentifier, Type> {
+  const bindings = new Map<InjectableIdentifier, Type>();
+  for (const { identifier, implementation } of configuration.bindings) {
+    const existing = bindings.get(identifier);
+    if (existing !== undefined && existing !== implementation) {
+      conflict(
+        `Conflicting bindings for ${stringifyIdentifier(identifier, undefined)}: ` +
+          `${stringifyIdentifier(existing, undefined)} and ${stringifyIdentifier(implementation, undefined)}. Bind each token to one implementation.`
+      );
+    }
+    bindings.set(identifier, implementation);
+  }
+  return bindings;
+}
+
+function validateOverrides(
+  overrides: readonly Override[],
+  bindings: ReadonlyMap<InjectableIdentifier, Type>
+): void {
+  const declared = new Map<InjectableIdentifier, Override[]>();
+  for (const override of overrides) {
+    const { identifier, metadata } = override;
+    const matches = declared.get(identifier) ?? [];
+    const previous = matches.find((entry) => isDeepStrictEqual(entry.metadata, metadata));
+    if (previous !== undefined) {
+      conflict(
+        `Conflicting ${previous.kind} and ${override.kind} declarations for ${stringifyIdentifier(identifier, metadata)}. Declare one override per qualifier.`
+      );
+    }
+    if (metadata === undefined && bindings.has(identifier)) {
+      conflict(
+        `Conflicting declarations for ${stringifyIdentifier(identifier, metadata)}. Choose either a binding or an unqualified override for this token.`
+      );
+    }
+    matches.push(override);
+    declared.set(identifier, matches);
+  }
+}
+
+class SociableOverrides extends DependencyContainer {
+  readonly pending: Set<Override>;
+  readonly finalized: IdentifierToFinal[] = [];
+  private readonly mocks = new Map<Override, StubbedInstance<unknown>>();
+
+  constructor(
+    private readonly declarations: readonly Override[],
+    private readonly doubles: DoublesAdapter
+  ) {
+    super([]);
+    this.pending = new Set(declarations);
+  }
+
+  public override resolveEntry(
+    identifier: InjectableIdentifier,
+    metadata?: IdentifierMetadata
+  ): IdentifierToMockOrFinal | undefined {
+    const match = matchDeclaration(this.declarations, identifier, metadata);
+    if (match === undefined) return undefined;
+
+    this.pending.delete(match);
+    const key = normalizeIdentifier(identifier, metadata);
+    if (match.kind === 'final') {
+      const final: IdentifierToFinal = [key, match.value];
+      this.finalized.push(final);
+      this.list().push(final);
+      return final;
+    }
+
+    const mock = this.mocks.get(match) ?? match.create(this.doubles);
+    this.mocks.set(match, mock);
+    const entry: IdentifierToMockOrFinal = [key, mock];
+    this.list().push(entry);
+    return entry;
+  }
+}
+
 async function compile<TClass>(
   context: BuilderContext<TClass>,
   configuration: SociableConfiguration,
   mode: ConstructionMode
 ): Promise<UnitTestBed<TClass>> {
-  const bindings = new Map<InjectableIdentifier, Type>();
-  for (const { identifier, implementation } of configuration.bindings) {
-    const existing = bindings.get(identifier);
-    if (existing !== undefined && existing !== implementation) {
-      throw new DependencyResolutionError(
-        `Conflicting bindings for ${stringifyIdentifier(identifier, undefined)}: ` +
-          `${existing.name} and ${implementation.name}. Bind each requested token to one implementation.`
-      );
-    }
-    bindings.set(identifier, implementation);
-  }
-
-  for (const { identifier, metadata } of configuration.overrides) {
-    if (metadata === undefined && bindings.has(identifier)) {
-      throw new DependencyResolutionError(
-        `Conflicting declarations for ${stringifyIdentifier(identifier, metadata)}: ` +
-          'choose either a binding or an unqualified override for this token.'
-      );
-    }
-  }
-
-  const doubles = await context.doubles;
-  const entries: IdentifierToMockOrFinal[] = [];
-  const finalized: IdentifierToFinal[] = [];
+  const bindings = collectBindings(configuration);
+  validateOverrides(configuration.overrides, bindings);
   const boundaries: CompositionBoundary[] = [];
-
   if (mode.kind === 'composed') {
     for (const identifier of new Set(mode.forbidden)) {
-      if (
-        bindings.has(identifier) ||
-        configuration.overrides.some((entry) => entry.identifier === identifier)
-      ) {
-        throw new DependencyResolutionError(
-          `Conflicting dependency declarations for ${stringifyIdentifier(identifier, undefined)}. A composed dependency cannot be forbidden and also declared as real, mocked, or final.`
+      const override = configuration.overrides.find((entry) => entry.identifier === identifier);
+      if (bindings.has(identifier) || override !== undefined) {
+        const name = stringifyIdentifier(identifier, override?.metadata);
+        conflict(
+          `Conflicting dependency declarations for ${name}. Remove either the forbid or the ${override?.kind ?? 'binding'} declaration.`
         );
       }
       boundaries.push({
@@ -224,23 +329,7 @@ async function compile<TClass>(
     }
   }
 
-  const mocks = configuration.overrides.filter(({ kind }) => kind === 'mock');
-  const finals = configuration.overrides.filter(({ kind }) => kind === 'final');
-  for (const override of [...mocks, ...finals]) {
-    const { identifier, metadata } = override;
-    const key = normalizeIdentifier(identifier, metadata);
-    if (override.kind === 'mock') {
-      const value = override.create(doubles);
-      entries.push([key, value]);
-      boundaries.push({ kind: 'mock', identifier, metadata, value });
-    } else {
-      const entry: IdentifierToFinal = [key, override.value];
-      entries.push(entry);
-      finalized.push(entry);
-      boundaries.push({ kind: 'final', identifier, metadata, value: override.value });
-    }
-  }
-
+  const overrides = new SociableOverrides(configuration.overrides, await context.doubles);
   const classes = mode.kind === 'selective' ? mode.classes : [];
   const options = (
     mode.kind === 'selective'
@@ -248,39 +337,33 @@ async function compile<TClass>(
       : { mode: 'composed', bindings, boundaries: new CompositionBoundaryContainer(boundaries) }
   ) satisfies ResolverOptions;
   const { container, instance, resolution, composedDependencies, exposedDependencies } =
-    await context.mocker.constructUnit(
-      context.targetClass,
-      classes,
-      new DependencyContainer(entries),
-      options
+    await context.mocker.constructUnit(context.targetClass, classes, overrides, options);
+
+  const unreachable = Array.from(
+    overrides.pending,
+    ({ kind, identifier, metadata }) => `${kind} ${stringifyIdentifier(identifier, metadata)}`
+  );
+  for (const identifier of new Set(resolution.exposes)) {
+    unreachable.push(`exposure ${stringifyIdentifier(identifier, undefined)}`);
+  }
+  for (const identifier of bindings.keys()) {
+    if (!exposedDependencies.some((entry) => entry.identifier === identifier)) {
+      unreachable.push(`binding ${stringifyIdentifier(identifier, undefined)}`);
+    }
+  }
+  if (unreachable.length > 0) {
+    throw new DependencyResolutionError(
+      `Unreachable declarations in the ${mode.kind} graph of ${stringifyIdentifier(context.targetClass, undefined)}: ${unreachable.join('; ')}. Remove these declarations or include their dependent classes in the graph.`,
+      SuitesErrorCode.UNREACHABLE_DECLARATION
     );
-
-  resolution.mocks.forEach((identifier) => {
-    context.logger.warn(`Suites Warning: Unreachable Mock Configuration Detected.
-You attempted to mock '${identifier.identifier.name}', which is not directly involved in the current testing context of '${context.targetClass.name}'.
-This mock will not affect the outcome of your tests because '${identifier.identifier.name}' is neither a direct dependency of the tested unit nor is it
-among the dependencies explicitly exposed. If '${identifier.identifier.name}' does not influence the unit under test, consider removing this mock from your
-setup to streamline your test configuration. However, if this mock is crucial, verify that all required dependencies are correctly exposed.
-For detailed guidance on configuring sociable tests, please consult: https://suites.dev/docs.`);
-  });
-
-  resolution.exposes.forEach((identifier) => {
-    context.logger.warn(`Suites Warning: Unreachable Exposed Dependency Detected.
-The dependency '${identifier.name}' has been exposed but cannot be reached within the current testing context.
-This typically occurs because '${identifier.name}' is not a direct dependency of the unit under test (${context.targetClass.name}) nor any
-of its other exposed dependencies. Exposing '${identifier.name}' without it being accessible from the unit under test or
-its dependencies may lead to incorrect test configurations. To resolve this, please review and adjust your testing
-setup to ensure all necessary dependencies are interconnected. Alternatively, if '${identifier.name}' does not influence
-the unit under test, consider removing its exposure from your test setup.
-For detailed instructions and best practices, refer to our documentation: https://suites.dev/docs.`);
-  });
+  }
 
   return {
     unit: instance,
     unitRef: new UnitReference(
       container,
-      classes,
-      finalized,
+      [],
+      overrides.finalized,
       composedDependencies,
       exposedDependencies
     ),

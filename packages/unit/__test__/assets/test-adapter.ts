@@ -6,5 +6,5 @@ const emptyRegistry = {
 } satisfies InjectableRegistry;
 
 export const adapter = {
-  inspect: () => emptyRegistry,
+  inspect: () => ({ kind: 'success', registry: emptyRegistry }),
 } satisfies DependencyInjectionAdapter;

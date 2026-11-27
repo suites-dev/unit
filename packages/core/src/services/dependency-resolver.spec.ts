@@ -18,8 +18,11 @@ const secondary = { named: 'secondary' };
 function adapterFor(target: Type, dependencies: ClassInjectable[]): DependencyInjectionAdapter {
   return {
     inspect: (type) => ({
-      list: () => (type === target ? dependencies : []),
-      resolve: () => undefined,
+      kind: 'success',
+      registry: {
+        list: () => (type === target ? dependencies : []),
+        resolve: () => undefined,
+      },
     }),
   } as DependencyInjectionAdapter;
 }
@@ -149,5 +152,47 @@ describe('qualified dependency resolution', () => {
     expect(first.nested).toBe(second.nested);
     expect(resolver.resolveOrMock(RealProvider, primary)).toBe(first);
     expect(resolver.resolveOrMock(RealProvider, propertyMetadata)).toBe(second);
+  });
+});
+
+describe('DI inspection failures', () => {
+  it('keeps the framework cause and declaring slot when inspecting a dependency', () => {
+    const cause = new Error('invalid framework metadata');
+    const adapter: DependencyInjectionAdapter = {
+      inspect(target) {
+        if (target === Provider) {
+          return {
+            kind: 'failure',
+            reason: 'invalid-metadata',
+            target,
+            location: { kind: 'class' },
+            cause,
+          };
+        }
+        return adapterFor(Root, [{ identifier: Provider, value: Provider, type: 'PARAM' }]).inspect(
+          target
+        );
+      },
+    };
+    const resolver = new DependencyResolver(
+      [Provider],
+      new DependencyContainer([]),
+      adapter,
+      jest.fn,
+      { mode: 'selective', bindings: new Map() },
+      Root
+    );
+    let failure: unknown;
+    try {
+      resolver.instantiateClass(Root);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: 'ER30',
+      context: { root: Root, failure: { target: Provider } },
+    });
+    ok(failure instanceof Error && 'cause' in failure);
+    expect(failure.cause).toBe(cause);
   });
 });

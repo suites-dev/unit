@@ -4,19 +4,18 @@ import { DependencyVerification } from '@suites/core.unit/verification';
 const dependencyVerification = DependencyVerification.install(global);
 
 aroundAll(async (runSuite) => {
-  let suiteFailure: unknown;
   try {
-    await runSuite();
-  } catch (error) {
-    suiteFailure = error;
-  }
+    try {
+      await runSuite();
+    } catch (error) {
+      throw dependencyVerification.finish(error) ?? error;
+    }
 
-  const verificationFailure = dependencyVerification.finish(suiteFailure);
-  dependencyVerification.uninstall();
-  if (verificationFailure !== undefined) {
-    throw verificationFailure;
-  }
-  if (suiteFailure !== undefined) {
-    throw suiteFailure;
+    const failure = dependencyVerification.finish();
+    if (failure !== undefined) {
+      throw failure;
+    }
+  } finally {
+    dependencyVerification.uninstall();
   }
 });

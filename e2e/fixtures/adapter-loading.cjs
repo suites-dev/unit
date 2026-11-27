@@ -10,7 +10,11 @@ module.exports = async function verify(TestBed, scenario, packageName) {
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(globalThis.adapterInitializations, 0, 'An uncompiled builder initialized an adapter');
   for (const builder of builders) {
-    if (scenario === 'valid') {
+    if (['legacy', 'invalid-registry', 'invalid-failure'].includes(scenario)) {
+      await assert.rejects(builder.compile(), { code: 'ER021', message: /Update your DI adapter for v5/ });
+      continue;
+    }
+    if (scenario === 'valid' || scenario === 'multiple') {
       const { unit } = await builder.compile();
       assert.ok(unit instanceof Subject);
       continue;
