@@ -163,8 +163,8 @@ it('observes the original forbidden access after a nested integration uninstalls
   const observed: Error[] = [];
   const observer = (violation: Error) => observed.push(violation);
   const commonJs: typeof verification = createRequire(import.meta.url)('@suites/core.unit/verification');
-  const nested = commonJs.DependencyVerification.install(globalThis);
-  const unsubscribe = verification.subscribeDependencyViolationObserver(globalThis, observer);
+  const nested = commonJs.DependencyVerification.install(global);
+  const unsubscribe = verification.subscribeDependencyViolationObserver(global, observer);
   try {
     expect(() => unit.read()).toThrow(/forbidden dependency/i);
     expect(observed).toHaveLength(1);

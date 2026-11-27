@@ -200,8 +200,8 @@ it('observes the original forbidden access after a nested integration uninstalls
   const { unit } = await TestBed.sociable(Checkout).compose().forbid(Boundary).compile();
   const observed: Error[] = [];
   const observer = (violation: Error) => observed.push(violation);
-  const nested = DependencyVerification.install(globalThis);
-  const unsubscribe = subscribeDependencyViolationObserver(globalThis, observer);
+  const nested = DependencyVerification.install(global);
+  const unsubscribe = subscribeDependencyViolationObserver(global, observer);
   try {
     nested.uninstall();
     let caught: unknown;
