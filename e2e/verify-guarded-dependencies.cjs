@@ -72,6 +72,8 @@ try {
   }
 
   const suiteMessages = report.testResults.map((file) => file.message).join('\n');
+  assert.match(suiteMessages, /\bER050\b/);
+  assert.match(suiteMessages, /\bER052\b/);
   assert.match(suiteMessages, /Suites Unit rule violation:[^\n]*undeclared dependency/i);
   assert.match(suiteMessages, /Dependency path:[^\n]*\bCheckout\b[^\n]*\bInventory\b/i);
 
@@ -125,6 +127,7 @@ try {
   assert.ifError(missingResult.error);
   const missingOutput = missingResult.stdout + missingResult.stderr;
   assert.equal(missingResult.status, 1, missingOutput);
+  assert.match(missingOutput, /\bER053\b/);
   assert.match(missingOutput, /dependency verification is not configured/i);
   assert.match(missingOutput, runner === 'jest' ? /testEnvironment/i : /setupFiles/i);
   assert.ok(existsSync(missingOutputFile), `${runner} did not produce a missing-setup report.`);
@@ -180,6 +183,7 @@ try {
         'jest',
         '--config',
         'jest.custom-guards.config.cjs',
+        '--testFailureExitCode=7',
         '--runInBand',
         '--json',
         '--outputFile',
@@ -189,7 +193,7 @@ try {
     );
     assert.ifError(customResult.error);
     const customOutput = customResult.stdout + customResult.stderr;
-    assert.equal(customResult.status, 1, customOutput);
+    assert.equal(customResult.status, 7, customOutput);
     const customReport = JSON.parse(readFileSync(customOutputFile, 'utf8'));
     assert.equal(customReport.numFailedTestSuites, 1, customOutput);
     assert.equal(customReport.numFailedTests, 0, customOutput);
