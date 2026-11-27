@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import { DependencyResolutionError, SuitesError, SuitesErrorCode } from '@suites/types.common';
+import { stringifyIdentifier } from './functions.static.js';
 import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
 import type {
@@ -21,7 +22,7 @@ export type ResolverOptions =
   | { readonly mode: 'solitary' }
   | { readonly mode: 'selective'; readonly bindings: ReadonlyMap<InjectableIdentifier, Type> }
   | {
-      readonly mode: 'composed';
+      readonly mode: 'composed' | 'selective';
       readonly bindings: ReadonlyMap<InjectableIdentifier, Type>;
       readonly boundaries: CompositionBoundaryLookup;
     };
@@ -55,6 +56,7 @@ export class DependencyResolver {
   private readonly inspected = new Map<Type, InjectableRegistry>();
   private readonly dependencyMap = new DependencyMap();
   private readonly usedMockEntries = new Set<IdentifierToMockOrFinal>();
+  private readonly selectedExposures = new Set<Type>();
   private readonly availableClassesToExpose = new Set<InjectableIdentifier>();
   private readonly constructionPath: DependencyPathEntry[] = [];
   private readonly exposedDependencies: IdentifierToMockOrFinal[0][] = [];
@@ -87,25 +89,16 @@ export class DependencyResolver {
     identifier: InjectableIdentifier,
     metadata?: IdentifierMetadata
   ): ResolvedBoundary | undefined {
-    const boundary =
-      this.options.mode === 'composed'
-        ? this.options.boundaries.resolve(identifier, metadata)
-        : undefined;
-    if (boundary !== undefined) {
-      if (boundary.kind === 'guard') {
-        return {
-          value: boundary.create([...this.constructionPath, { identifier, metadata }]),
-        };
+    if ('boundaries' in this.options) {
+      const boundary = this.options.boundaries.resolve(identifier, metadata);
+      if (boundary !== undefined) {
+        if (boundary.kind === 'guard' || boundary.kind === 'override') {
+          return { value: boundary.create([...this.constructionPath, { identifier, metadata }]) };
+        }
+        const selected = this.mockedFromBeforeContainer.resolveEntry(identifier, boundary.metadata);
+        if (selected !== undefined) this.usedMockEntries.add(selected);
+        return { value: boundary.value };
       }
-
-      const selectedEntry = this.mockedFromBeforeContainer.resolveEntry(
-        identifier,
-        boundary.metadata
-      );
-      if (selectedEntry !== undefined) {
-        this.usedMockEntries.add(selectedEntry);
-      }
-      return { value: boundary.value };
     }
 
     if (
@@ -205,7 +198,11 @@ export class DependencyResolver {
       return guard;
     }
 
-    if (this.isExposedClass(identifier)) return this.instantiateClass(identifier, metadata);
+    if (this.isExposedClass(identifier)) {
+      this.selectedExposures.add(identifier);
+      this.exposedDependencies.push({ identifier, metadata });
+      return this.instantiateClass(identifier, metadata);
+    }
     const mock = this.mockFunction();
     this.dependencyMap.set(identifier, mock, metadata);
     return mock;
@@ -228,12 +225,11 @@ export class DependencyResolver {
       )
     ) {
       const path = [...this.constructionPath, { identifier, metadata }]
-        .map(({ identifier: pathIdentifier }) =>
-          typeof pathIdentifier === 'function' ? pathIdentifier.name : String(pathIdentifier)
-        )
+        .map((entry) => stringifyIdentifier(entry.identifier, entry.metadata))
         .join(' -> ');
       throw new DependencyResolutionError(
-        `Cannot compose circular constructor dependencies: ${path}. Declare an explicit dependency boundary to stop traversal.`
+        `Cannot compose circular constructor dependencies: ${path}. Declare an explicit dependency boundary to stop traversal.`,
+        SuitesErrorCode.DEPENDENCY_CYCLE
       );
     }
 
@@ -292,7 +288,7 @@ export class DependencyResolver {
     exposes: Type[];
     notFound: IdentifierToMockOrFinal[];
   } {
-    const exposes = this.classesToExpose.filter((cls) => !this.availableClassesToExpose.has(cls));
+    const exposes = this.classesToExpose.filter((cls) => !this.selectedExposures.has(cls));
     const mocks = this.mockedFromBeforeContainer
       .list()
       .filter(([injectable]) => typeof injectable.identifier === 'function')

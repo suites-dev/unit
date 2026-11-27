@@ -32,7 +32,11 @@ describe('sociable declaration validation', () => {
         await expect(declaration.compile()).rejects.toMatchObject({ code: 'ER043' });
       }
     }
-    await expect(selector().expose(class Outside {}).compile()).rejects.toMatchObject({
+    await expect(
+      selector()
+        .expose(class Outside {})
+        .compile()
+    ).rejects.toMatchObject({
       code: 'ER043',
     });
     expect(configure).toHaveBeenCalledTimes(0);
@@ -42,7 +46,9 @@ describe('sociable declaration validation', () => {
     const configure = jest.fn(() => ({}));
     for (const mode of [selector().expose(Leaf), selector().compose()]) {
       const primary = mode.mock(PORT, { named: 'primary' }).impl(configure);
-      await expect(primary.mock(PORT, { named: 'primary' }).final({}).compile()).rejects.toMatchObject({
+      await expect(
+        primary.mock(PORT, { named: 'primary' }).final({}).compile()
+      ).rejects.toMatchObject({
         code: 'ER042',
       });
     }
@@ -54,8 +60,10 @@ describe('sociable declaration validation', () => {
     const primary = {};
     const secondary = {};
     const { unit } = await current
-      .mock(PORT, { named: 'primary' }).final(primary)
-      .mock(PORT, { named: 'secondary' }).final(secondary)
+      .mock(PORT, { named: 'primary' })
+      .final(primary)
+      .mock(PORT, { named: 'secondary' })
+      .final(secondary)
       .compile();
     expect(unit.primary).toBe(primary);
     expect(unit.secondary).toBe(secondary);
@@ -80,8 +88,10 @@ describe('sociable declaration validation', () => {
     const warning = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     try {
       await TestBed.solitary(Root)
-        .mock(PORT, { named: 'primary' }).final({})
-        .mock(PORT, { named: 'absent' }).final({})
+        .mock(PORT, { named: 'primary' })
+        .final({})
+        .mock(PORT, { named: 'absent' })
+        .final({})
         .compile();
       expect(warning).toHaveBeenCalledTimes(1);
       expect(warning).toHaveBeenCalledWith(expect.stringContaining('WR001'));

@@ -12,7 +12,16 @@ export type CompositionBoundary = DependencyPathEntry &
   (
     | { readonly kind: 'mock'; readonly value: StubbedInstance<unknown> }
     | { readonly kind: 'final'; readonly value: FinalValue }
-    | { readonly kind: 'guard'; readonly create: (path: readonly DependencyPathEntry[]) => FinalValue }
+    | {
+        readonly kind: 'guard';
+        readonly create: (path: readonly DependencyPathEntry[]) => FinalValue;
+      }
+    | {
+        readonly kind: 'override';
+        readonly create: (
+          path: readonly DependencyPathEntry[]
+        ) => FinalValue | StubbedInstance<unknown>;
+      }
   );
 
 export interface CompositionBoundaryLookup {
