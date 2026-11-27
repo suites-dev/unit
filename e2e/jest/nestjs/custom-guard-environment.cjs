@@ -1,6 +1,6 @@
 const process = require('node:process');
 const { TestEnvironment: NodeEnvironment } = require('jest-environment-node');
-const { withDependencyVerification } = require('@suites/runners.jest/environment');
+const { withDependencyVerification } = require('@suites/runners.jest');
 
 class CustomGuardEnvironment extends NodeEnvironment {
   async setup() {

@@ -71,7 +71,7 @@ export interface DependencyInjectionAdapter {
    * Returns true when framework metadata identifies a class for automatic composition.
    * Adapters that omit this capability still support explicit construction through inspect().
    */
-  isConstructable?(targetClass: Type): boolean;
+  canAutoConstruct?(targetClass: Type): boolean;
 }
 
 /**
