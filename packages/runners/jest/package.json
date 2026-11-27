@@ -17,12 +17,10 @@
   "packageManager": "pnpm@12.16.1",
   "description": "Suites integration for the jest test runner",
   "type": "commonjs",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+    "./setup": {
+      "types": "./dist/setup.d.ts",
+      "default": "./dist/setup.js"
     }
   },
   "scripts": {
@@ -31,5 +29,12 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "typesVersions": {
+    "*": {
+      "setup": [
+        "dist/setup.d.ts"
+      ]
+    }
+  }
 }
