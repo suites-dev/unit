@@ -1,25 +1,44 @@
 import type { IdentifierMetadata, InjectableIdentifier } from '@suites/types.di';
+import { types } from 'node:util';
+
+// Coercing a user token can run application code before the runner records the violation.
+function tokenName(identifier: InjectableIdentifier): string {
+  if (typeof identifier === 'string' || typeof identifier === 'symbol') return String(identifier);
+  if (types.isProxy(identifier)) return '[opaque token]';
+  if (typeof identifier === 'function') {
+    const name = Object.getOwnPropertyDescriptor(identifier, 'name')?.value;
+    return typeof name === 'string' ? name : '[function]';
+  }
+  // InjectionJS stores its human-readable token description as an own data property.
+  const description = Object.getOwnPropertyDescriptor(identifier, '_desc')?.value;
+  return typeof description === 'string' ? description : '[object token]';
+}
+
+function formatMetadata(metadata: IdentifierMetadata): string {
+  if (types.isProxy(metadata)) return '[opaque]';
+  const fields = Object.keys(metadata);
+  if (fields.length > 8) return '[opaque]';
+  return `{${fields
+    .map((key) => {
+      const descriptor = Object.getOwnPropertyDescriptor(metadata, key);
+      const value: unknown = descriptor?.value;
+      const scalar = value === null || ['string', 'number', 'boolean'].includes(typeof value);
+      return `${JSON.stringify(key)}:${scalar ? JSON.stringify(value) : '[opaque]'}`;
+    })
+    .join(',')}}`;
+}
 
 export function stringifyIdentifier(
   identifier: InjectableIdentifier,
   metadata: IdentifierMetadata | undefined
 ): string {
-  const identifierName = typeof identifier === 'function' ? identifier.name : String(identifier);
-
-  const metadataMsg = metadata ? `, with metadata ${JSON.stringify(metadata)}` : '';
-  return `'${identifierName}'${metadataMsg}`;
-}
-
-export function referenceDependencyNotFoundError(
-  identifier: InjectableIdentifier,
-  metadata: IdentifierMetadata | undefined
-): string {
-  const details = stringifyIdentifier(identifier, metadata);
-
-  return `The dependency identified by '${details}' could not be located within the current testing context.
-This error usually occurs when attempting to access a dependency that has not been mocked or exposed
-during the test setup. Please verify that '${details}' is correctly mocked or explicitly exposed in the
-TestBed configuration if it is essential for your tests.
-Review your testing setup to ensure all required dependencies are correctly included and configured.
-For detailed setup instructions and troubleshooting, please visit: https://suites.dev/docs.`;
+  try {
+    const name = tokenName(identifier);
+    return metadata === undefined
+      ? `'${name}'`
+      : `'${name}', with metadata ${formatMetadata(metadata)}`;
+  } catch {
+    // Reflection on an exotic object (such as an uninitialized module namespace) may throw.
+    return metadata === undefined ? "'[opaque token]'" : "'[opaque token]', with metadata [opaque]";
+  }
 }
