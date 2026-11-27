@@ -72,7 +72,7 @@ interface SociableConfiguration {
 export class SociableTestBedBuilder<TClass> {
   readonly #context: BuilderContext<TClass>;
 
-  public constructor(
+  constructor(
     doubles: Promise<DoublesAdapter>,
     mocker: UnitMocker,
     targetClass: Type<TClass>,

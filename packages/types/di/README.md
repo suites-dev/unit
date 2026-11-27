@@ -35,9 +35,9 @@ Shared contracts between Suites core and DI adapters. Application tests select `
 
 ### Automatic construction in sociable composition
 
-Implement `isConstructable(targetClass)` to identify classes your framework can construct automatically. Return `true` only when you have positive construction evidence, such as a framework-owned marker on the class. An empty dependency list could describe either an injectable leaf or a token.
+Implement `canAutoConstruct(targetClass)` to identify classes your framework can construct automatically. Return `true` only when you have positive construction evidence, such as a framework-owned marker on the class. An empty dependency list could describe either an injectable leaf or a token.
 
-Existing adapters that implement only `inspect()` remain valid. Without `isConstructable`, Suites can inspect an explicitly selected class, but composition cannot automatically expand through classes provided by that adapter. In a guarded sociable test, a required dependency without another declaration fails when used. Test both a marked class with no dependencies and a class token your adapter must leave unresolved.
+Existing adapters that implement only `inspect()` remain valid. Without `canAutoConstruct`, Suites can inspect an explicitly selected class, but composition cannot automatically expand through classes provided by that adapter. In a guarded sociable test, a required dependency without another declaration fails when used. Test both a marked class with no dependencies and a class token your adapter must leave unresolved.
 
 ## Load adapter declarations
 

@@ -86,7 +86,7 @@ function verifyPlan(bundle, repository) {
     { project: 'jest/nestjs', node: '26.x', id: 'jest-nestjs-26-x' },
   ]);
   const releaseGroup = plan.target.packages.filter((pkg) => v5ReleaseGroup.has(pkg.name));
-  const supporting = plan.target.packages.filter((pkg) => pkg.name.startsWith('@suites/di.') || pkg.name.startsWith('@suites/types.'));
+  const supporting = plan.target.packages.filter((pkg) => !v5ReleaseGroup.has(pkg.name));
   assert.equal(releaseGroup.length, v5ReleaseGroup.size);
   assert(
     releaseGroup.every((pkg) => pkg.version === '5.0.0-e2e.0'),

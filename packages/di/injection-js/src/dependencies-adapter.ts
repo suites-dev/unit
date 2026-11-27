@@ -11,7 +11,7 @@ export function DependenciesAdapter(
   classCtorReflector: ClassCtorReflector
 ): DependencyInjectionAdapter {
   return {
-    isConstructable(targetClass: Type): boolean {
+    canAutoConstruct(targetClass: Type): boolean {
       const annotations: unknown = Reflect.getOwnMetadata('annotations', targetClass);
       return (
         Array.isArray(annotations) &&
