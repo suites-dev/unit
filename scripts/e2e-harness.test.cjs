@@ -36,7 +36,7 @@ function candidatePackages(
   ];
 }
 
-test('V5 canary staging keeps supporting packages and their dependency ranges on V4', (t) => {
+test('v5 canary stages the DI contract and each implementing adapter', (t) => {
   const root = mkdtempSync(join(tmpdir(), 'suites-e2e-canary-versions-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const manifests = [
@@ -65,11 +65,14 @@ test('V5 canary staging keeps supporting packages and their dependency ranges on
   assert.equal(readManifest('packages/runners/vitest/package.json').version, '5.0.0-e2e.0');
   assert.equal(
     readManifest('packages/core/package.json').dependencies['@suites/types.di'],
-    'workspace:^4.1.2'
+    'workspace:^5.0.0-e2e.0'
   );
   assert.equal(readManifest('packages/types/common/package.json').version, '5.0.0-e2e.0');
   assert.equal(readManifest('packages/types/di/package.json').dependencies['@suites/types.common'], 'workspace:^5.0.0-e2e.0');
-  assert.equal(readManifest('packages/types/di/package.json').version, '4.1.3');
+  for (const path of ['types/di', 'di/nestjs', 'di/inversify', 'di/injection-js']) {
+    assert.equal(readManifest(`packages/${path}/package.json`).version, '5.0.0-e2e.0');
+  }
+  assert.equal(readManifest('packages/types/doubles/package.json').version, '4.1.3');
   assert.equal(
     readManifest('packages/unit/package.json').dependencies['@suites/core.unit'],
     'workspace:^5.0.0-e2e.0'

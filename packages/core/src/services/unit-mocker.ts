@@ -35,7 +35,8 @@ export class UnitMocker {
       mockContainer,
       await this.diAdapter,
       await this.mockFunction,
-      resolverOptions
+      resolverOptions,
+      targetClass
     );
 
     const instance = dependencyResolver.instantiateClass(targetClass);

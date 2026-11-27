@@ -31,7 +31,7 @@ export type InjectableReflectedType = ConstantValue | Type | undefined;
 /**
  * @since 3.0.0
  */
-export type InjectableFinalValue = ConstantValue | Type | UndefinedDependencySymbol;
+export type InjectableFinalValue = ConstantValue | AbstractType | UndefinedDependencySymbol;
 
 /**
  * @since 3.0.0
@@ -40,7 +40,7 @@ export type WithoutMetadata = {
   identifier: InjectableIdentifier;
   value: InjectableFinalValue;
   type: 'PROPERTY' | 'PARAM';
-  property?: Record<string, string>;
+  property?: { readonly key: string | symbol };
 };
 
 /**
@@ -51,7 +51,7 @@ export type WithMetadata<Metadata extends IdentifierMetadata> = {
   value: InjectableFinalValue;
   type: 'PROPERTY' | 'PARAM';
   metadata: Metadata;
-  property?: Record<string, string>;
+  property?: { readonly key: string | symbol };
 };
 
 /**
@@ -62,11 +62,26 @@ export type ClassInjectable<
   TIdentifier extends InjectableIdentifier = InjectableIdentifier,
 > = TIdentifier extends AbstractType ? WithoutMetadata : WithMetadata<Metadata>;
 
-/**
- * @since 3.0.0
- */
+/** Location reported by a DI adapter while inspecting a class. */
+export type InspectionLocation =
+  | { readonly kind: 'class' }
+  | { readonly kind: 'parameter'; readonly index: number }
+  | { readonly kind: 'property'; readonly key: string | symbol };
+
+export interface InspectionFailure {
+  readonly kind: 'failure';
+  readonly reason:
+    'undefined-dependency' | 'undefined-token' | 'unsupported-token' | 'invalid-metadata';
+  readonly target: Type;
+  readonly location: InspectionLocation;
+  readonly cause: unknown;
+}
+
+export type InspectionResult =
+  { readonly kind: 'success'; readonly registry: InjectableRegistry } | InspectionFailure;
+
 export interface DependencyInjectionAdapter {
-  inspect(targetClass: Type): InjectableRegistry;
+  inspect(targetClass: Type): InspectionResult;
   /**
    * Returns true when framework metadata identifies a class for automatic composition.
    * Adapters that omit this capability still support explicit construction through inspect().

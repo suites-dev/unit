@@ -3,7 +3,7 @@ import { DependencyContainer, type IdentifierToMockOrFinal } from './dependency-
 import { DependencyResolver } from './dependency-resolver.js';
 
 const adapter = {
-  inspect: () => ({ list: () => [] }),
+  inspect: () => ({ kind: 'success', registry: { list: () => [], resolve: () => undefined } }),
 } as DependencyInjectionAdapter;
 
 function resolver(entries: IdentifierToMockOrFinal[]) {
