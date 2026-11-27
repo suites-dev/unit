@@ -11,7 +11,13 @@ function tokenName(identifier: InjectableIdentifier): string {
   }
   // InjectionJS stores its human-readable token description as an own data property.
   const description = Object.getOwnPropertyDescriptor(identifier, '_desc')?.value;
-  return typeof description === 'string' ? description : '[object token]';
+  if (typeof description !== 'string') return '[object token]';
+  const prototype = Reflect.getPrototypeOf(identifier);
+  if (prototype === null || types.isProxy(prototype)) return description;
+  const ctor: unknown = Reflect.getOwnPropertyDescriptor(prototype, 'constructor')?.value;
+  if (typeof ctor !== 'function' || types.isProxy(ctor)) return description;
+  const name: unknown = Reflect.getOwnPropertyDescriptor(ctor, 'name')?.value;
+  return typeof name === 'string' && name && name !== 'Object' ? `${name} ${description}` : description;
 }
 
 function formatMetadata(metadata: IdentifierMetadata): string {
