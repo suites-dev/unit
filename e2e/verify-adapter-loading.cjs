@@ -25,7 +25,7 @@ const manifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8'
 const fromUnit = createRequire(realpathSync(join(installed, 'package.json')));
 const packages = { di: 'di.nestjs', doubles: 'doubles.jest' };
 const valid = {
-  di: 'exports.adapter = { inspect: () => ({ list: () => [], resolve: () => undefined }) };',
+  di: 'exports.adapter = { inspect: () => ({ kind: "success", registry: { list: () => [], resolve: () => undefined } }) };',
   doubles: 'exports.adapter = { mock: () => ({}), stub: () => () => {} };',
 };
 
@@ -42,6 +42,10 @@ function installAdapter(kind, scenario) {
   const sources = {
     valid: valid[kind],
     throws: 'throw globalThis.adapterFailure;',
+    legacy: 'exports.adapter = { inspect: () => ({ list: () => [], resolve: () => undefined }) };',
+    'invalid-registry': 'exports.adapter = { inspect: () => ({ kind: "success", registry: {} }) };',
+    'invalid-failure': 'exports.adapter = { inspect: (target) => ({ kind: "failure", target, reason: "undefined-token", location: { kind: "parameter", index: -1 }, cause: undefined }) };',
+    multiple: valid[kind],
     'no-export': 'exports.unrelated = true;',
     malformed:
       kind === 'di' ? 'exports.adapter = { inspect: 1 };' : 'exports.adapter = { mock() {} };',
@@ -71,6 +75,7 @@ try {
   for (const [kind, name] of Object.entries(packages)) {
     for (const scenario of [
       'valid',
+      ...(kind === 'di' ? ['legacy', 'invalid-registry', 'invalid-failure', 'multiple'] : []),
       'missing',
       'throws',
       'no-export',
@@ -80,6 +85,12 @@ try {
     ]) {
       for (const adapter of Object.keys(packages)) {
         installAdapter(adapter, adapter === kind ? scenario : 'valid');
+      }
+      const secondary = join(scope, 'di.inversify');
+      if (scenario === 'multiple') {
+        mkdirSync(secondary);
+        // Both packages are loadable. A call to the second adapter fails this consumer.
+        writeFileSync(join(secondary, 'index.js'), "exports.adapter = { inspect() { throw new Error('Expected NestJS to take precedence'); } };");
       }
       const result = spawnSync(
         process.execPath,
@@ -99,6 +110,7 @@ try {
         }
       );
       assert.ifError(result.error);
+      if (scenario === 'multiple') rmSync(secondary, { recursive: true });
       assert.equal(result.status, 0, `${format} ${kind} ${scenario}\n${result.stderr}`);
     }
   }

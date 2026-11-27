@@ -1,53 +1,43 @@
-import type { ClassInjectable, InjectableReflectedType } from '@suites/types.di';
-import { UndefinedDependencyError } from '@suites/types.di';
-import type { Type } from '@suites/types.common';
 import { PROPERTY_DEPS_METADATA } from '@nestjs/common/constants';
+import type { ClassInjectable, InspectionFailure } from '@suites/types.di';
+import { UndefinedDependency } from '@suites/types.di';
+import type { Type } from '@suites/types.common';
 import type { MetadataReflector, ReflectedProperty } from './types.js';
-import type { PropertyReflectionStrategy } from './property-reflection-strategies.static.js';
+import { resolveToken } from './params-token-resolver.js';
 
 export type ClassPropsReflector = ReturnType<typeof ClassPropsReflector>;
 
-export function ClassPropsReflector(
-  reflector: MetadataReflector,
-  reflectionStrategies: ReadonlyArray<PropertyReflectionStrategy>
-) {
-  function reflectInjectables(targetClass: Type): ClassInjectable[] {
-    const classProperties = reflectProperties(targetClass);
-    const classInstance = Object.create(targetClass.prototype);
-
-    return classProperties.map(({ key, type: reflectedValue }) => {
-      const reflectedType = reflector.getMetadata(
-        'design:type',
-        classInstance,
-        key
-      ) as InjectableReflectedType;
-
-      if (!reflectedType && !reflectedValue) {
-        throw new UndefinedDependencyError(`Suites encountered an error while attempting to detect a token or type for the dependency for property '${key}' in the class '${targetClass.name}'.
-This issue is commonly caused by either improper decoration of the property or a problem during the reflection of the parameter type.
-In some cases, this error may arise due to circular dependencies. If this is the case, please ensure that the circular dependency
-is resolved, or consider using 'forwardRef()' to address it.`);
+export function ClassPropsReflector(reflector: MetadataReflector) {
+  function reflectInjectables(target: Type): ClassInjectable[] | InspectionFailure {
+    const properties: ReflectedProperty[] =
+      reflector.getMetadata(PROPERTY_DEPS_METADATA, target) ?? [];
+    const injectables: ClassInjectable[] = [];
+    for (const { key, type: token } of properties) {
+      const type: Type | undefined = reflector.getMetadata('design:type', target.prototype, key);
+      const identifier = resolveToken(token);
+      if (identifier === undefined) {
+        return {
+          kind: 'failure',
+          reason: token === undefined ? 'undefined-dependency' : 'undefined-token',
+          target,
+          location: { kind: 'property', key },
+          cause: undefined,
+        };
       }
-
-      for (const strategy of reflectionStrategies) {
-        if (strategy.condition(reflectedType, reflectedValue)) {
-          const result = strategy.exec(reflectedType, reflectedValue);
-          return { ...result, type: 'PROPERTY', property: { key } } as ClassInjectable;
-        }
-      }
-
-      return {
+      const value =
+        type === undefined
+          ? UndefinedDependency
+          : typeof identifier === 'string'
+            ? type
+            : identifier;
+      injectables.push({
         type: 'PROPERTY',
-        identifier: reflectedValue as Type,
-        value: reflectedValue as Type,
+        identifier,
+        value,
         property: { key },
-      } as ClassInjectable;
-    });
+      } satisfies ClassInjectable);
+    }
+    return injectables;
   }
-
-  function reflectProperties(targetClass: Type): ReflectedProperty[] {
-    return reflector.getMetadata(PROPERTY_DEPS_METADATA, targetClass) || [];
-  }
-
   return { reflectInjectables };
 }

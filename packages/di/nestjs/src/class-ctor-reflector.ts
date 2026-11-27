@@ -1,60 +1,45 @@
 import { SELF_DECLARED_DEPS_METADATA, PARAMTYPES_METADATA } from '@nestjs/common/constants';
-import type { ClassInjectable } from '@suites/types.di';
-import { UndefinedDependencyError } from '@suites/types.di';
+import type { ClassInjectable, InspectionFailure } from '@suites/types.di';
+import { UndefinedDependency } from '@suites/types.di';
 import type { Type } from '@suites/types.common';
-import type { MetadataReflector, NestInjectableIdentifier } from './types.js';
-import type { NestCustomToken, ParamsTokensReflector } from './params-token-resolver.js';
+import type { MetadataReflector } from './types.js';
+import { type NestCustomToken, resolveToken } from './params-token-resolver.js';
 
 export type ClassCtorReflector = ReturnType<typeof ClassCtorReflector>;
 
-export function ClassCtorReflector(
-  reflector: MetadataReflector,
-  paramsTokensReflector: ParamsTokensReflector
-) {
-  function reflectInjectables(targetClass: Type): ClassInjectable[] | never {
-    const paramTypes = reflectParamTypes(targetClass);
-    const paramTokens = reflectParamTokens(targetClass);
-    const tokensIndexes = paramTokens.map(({ index }) => index);
-    const resolveParamTokenCb = paramsTokensReflector.resolveDependencyValue(paramTokens);
+export function ClassCtorReflector(reflector: MetadataReflector) {
+  function reflectInjectables(target: Type): ClassInjectable[] | InspectionFailure {
+    const types: (Type | undefined)[] = reflector.getMetadata(PARAMTYPES_METADATA, target) ?? [];
+    const tokens: NestCustomToken[] =
+      reflector.getMetadata(SELF_DECLARED_DEPS_METADATA, target) ?? [];
+    const slots = tokens.reduce(
+      (count, token) => Math.max(count, token.index + 1),
+      Math.max(target.length, types.length)
+    );
+    const injectables: ClassInjectable[] = [];
 
-    return paramTypes.map((typeOrUndefined, paramIndex) => {
-      const isToken = tokensIndexes.includes(paramIndex);
-      const error =
-        new UndefinedDependencyError(`Suites encountered an error while attempting to detect a token or type for the
-dependency at index [${paramIndex}] in the class '${targetClass.name}'.
-This issue is commonly caused by either improper parameter decoration or a problem during the reflection of
-the parameter type. In some cases, this error may arise due to circular dependencies. If this is the case,
-please ensure that the circular dependency is resolved, or consider using 'forwardRef()' to address it.`);
-
-      if (isToken) {
-        // eslint-disable-next-line no-useless-catch
-        try {
-          const resolved = resolveParamTokenCb(typeOrUndefined, paramIndex);
-          return { ...resolved, type: 'PARAM' };
-        } catch (error) {
-          throw error;
-        }
+    for (let index = 0; index < slots; index++) {
+      const type = types[index];
+      const token = tokens.find((entry) => entry.index === index);
+      const identifier = token ? resolveToken(token.param) : type;
+      if (identifier === undefined || (!token && identifier === Object)) {
+        return {
+          kind: 'failure',
+          reason: token ? 'undefined-token' : 'undefined-dependency',
+          target,
+          location: { kind: 'parameter', index },
+          cause: undefined,
+        };
       }
-
-      if (!typeOrUndefined) {
-        throw error;
-      }
-
-      return {
-        type: 'PARAM',
-        identifier: typeOrUndefined as Type,
-        value: typeOrUndefined as Type,
-      } as ClassInjectable;
-    });
+      const value =
+        type === undefined
+          ? UndefinedDependency
+          : typeof identifier === 'string'
+            ? type
+            : identifier;
+      injectables.push({ type: 'PARAM', identifier, value } satisfies ClassInjectable);
+    }
+    return injectables;
   }
-
-  function reflectParamTokens(targetClass: Type): NestCustomToken[] {
-    return reflector.getMetadata(SELF_DECLARED_DEPS_METADATA, targetClass) || [];
-  }
-
-  function reflectParamTypes(targetClass: Type): (NestInjectableIdentifier | undefined)[] {
-    return reflector.getMetadata(PARAMTYPES_METADATA, targetClass) || [];
-  }
-
   return { reflectInjectables };
 }

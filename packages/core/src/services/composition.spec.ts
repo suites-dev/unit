@@ -19,8 +19,11 @@ function registry(entries: [Type, ClassInjectable[]][]): DependencyInjectionAdap
   return {
     canAutoConstruct: (type: Type) => entries.some(([target]) => type === target),
     inspect: (type: Type) => ({
-      list: () => entries.find(([target]) => type === target)?.[1] ?? [],
-      resolve: () => undefined,
+      kind: 'success',
+      registry: {
+        list: () => entries.find(([target]) => type === target)?.[1] ?? [],
+        resolve: () => undefined,
+      },
     }),
   } as DependencyInjectionAdapter;
 }

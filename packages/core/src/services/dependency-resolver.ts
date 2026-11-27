@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { DependencyResolutionError } from '@suites/types.common';
+import { DependencyResolutionError, SuitesError, UnitErrorCode } from '@suites/types.common';
 import type { AbstractType, FinalValue, Type } from '@suites/types.common';
 import type { MockFunction, StubbedInstance } from '@suites/types.doubles';
 import type {
@@ -7,7 +7,11 @@ import type {
   DependencyInjectionAdapter,
   IdentifierMetadata,
   InjectableIdentifier,
+  InjectableRegistry,
+  InspectionFailure,
+  InspectionResult,
 } from '@suites/types.di';
+import { UndefinedDependencyError, UndefinedTokenError } from '@suites/types.di';
 import type { CompositionBoundaryLookup, DependencyPathEntry } from './composition-boundary.js';
 import type { DependencyContainer, IdentifierToMockOrFinal } from './dependency-container.js';
 import { createGuardedDependency } from './guarded-dependency.js';
@@ -25,7 +29,30 @@ export type ResolverOptions =
 type ResolvedDependency = Type | FinalValue | StubbedInstance<unknown>;
 type ResolvedBoundary = { value: ResolvedDependency };
 
+function validFailure(result: InspectionResult, target: Type): result is InspectionFailure {
+  if (result?.kind !== 'failure' || result.target !== target || !('cause' in result)) return false;
+  const { reason, location } = result;
+  if (
+    reason !== 'undefined-dependency' &&
+    reason !== 'undefined-token' &&
+    reason !== 'invalid-metadata' &&
+    reason !== 'unsupported-token'
+  )
+    return false;
+  switch (location?.kind) {
+    case 'class':
+      return true;
+    case 'parameter':
+      return Number.isInteger(location.index) && location.index >= 0;
+    case 'property':
+      return typeof location.key === 'string' || typeof location.key === 'symbol';
+    default:
+      return false;
+  }
+}
+
 export class DependencyResolver {
+  private readonly inspected = new Map<Type, InjectableRegistry>();
   private readonly dependencyMap = new DependencyMap();
   private readonly usedMockEntries = new Set<IdentifierToMockOrFinal>();
   private readonly availableClassesToExpose = new Set<InjectableIdentifier>();
@@ -38,7 +65,8 @@ export class DependencyResolver {
     private readonly mockedFromBeforeContainer: DependencyContainer,
     private readonly adapter: DependencyInjectionAdapter,
     private readonly mockFunction: MockFunction,
-    private readonly options: ResolverOptions = { mode: 'solitary' }
+    private readonly options: ResolverOptions = { mode: 'solitary' },
+    private readonly root: Type | undefined = undefined
   ) {}
 
   private isExposedClass(identifier: InjectableIdentifier): identifier is Type {
@@ -97,11 +125,47 @@ export class DependencyResolver {
     return undefined;
   }
 
-  public isLeafOrPrimitive(identifier: InjectableIdentifier): boolean {
-    return (
-      typeof identifier !== 'function' ||
-      this.adapter.inspect(identifier as Type).list().length === 0
-    );
+  private inspect(target: Type) {
+    const registry = this.inspected.get(target);
+    if (registry) return registry;
+    const result = this.adapter.inspect(target);
+    if (
+      result?.kind === 'success' &&
+      typeof result.registry?.list === 'function' &&
+      typeof result.registry.resolve === 'function'
+    ) {
+      this.inspected.set(target, result.registry);
+      return result.registry;
+    }
+    if (!validFailure(result, target)) {
+      throw new SuitesError(
+        UnitErrorCode.ADAPTER_UNUSABLE,
+        'Invalid DI adapter inspection result',
+        'Update your DI adapter for v5. inspect() must return an InspectionResult containing a registry or a reflection failure.'
+      );
+    }
+
+    const { location, reason } = result;
+    const slot =
+      location.kind === 'parameter'
+        ? `dependency at index [${location.index}]`
+        : location.kind === 'property'
+          ? `dependency for property '${String(location.key)}'`
+          : 'constructor dependencies';
+    const root = this.root ?? target;
+    const detail = `Cannot resolve ${slot} in '${target.name}' while constructing '${root.name}'.`;
+    const context = { root, failure: result };
+    if (reason === 'undefined-token') {
+      throw new UndefinedTokenError(
+        `${detail} Check the declared token and any lazy reference.`,
+        context
+      );
+    }
+    const advice =
+      reason === 'unsupported-token'
+        ? 'Use a dependency token supported by the installed adapter.'
+        : 'Check the injection decorator and emitted metadata. Use @Inject(token) in NestJS or InjectionJS, or @inject(token) in InversifyJS, for an erased constructor type.';
+    throw new UndefinedDependencyError(`${detail} ${advice}`, context);
   }
 
   public resolveOrMock(
@@ -141,23 +205,10 @@ export class DependencyResolver {
       return guard;
     }
 
-    if (this.isLeafOrPrimitive(identifier)) {
-      if (this.isExposedClass(identifier)) {
-        return this.instantiateClass(identifier, metadata);
-      }
-
-      const mock = this.mockFunction();
-      this.dependencyMap.set(identifier, mock, metadata);
-      return mock;
-    }
-
-    if (typeof identifier === 'function' && !this.isExposedClass(identifier)) {
-      const mock = this.mockFunction();
-      this.dependencyMap.set(identifier, mock, metadata);
-      return mock;
-    }
-
-    return this.instantiateClass(identifier as Type, metadata);
+    if (this.isExposedClass(identifier)) return this.instantiateClass(identifier, metadata);
+    const mock = this.mockFunction();
+    this.dependencyMap.set(identifier, mock, metadata);
+    return mock;
   }
 
   public instantiateClass(
@@ -191,7 +242,7 @@ export class DependencyResolver {
     }
 
     try {
-      const injectableRegistry = this.adapter.inspect(type);
+      const injectableRegistry = this.inspect(type);
 
       injectableRegistry.list().forEach((injectable: ClassInjectable) => {
         this.availableClassesToExpose.add(injectable.identifier);

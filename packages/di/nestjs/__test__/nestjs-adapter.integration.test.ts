@@ -1,3 +1,6 @@
+import { Inject, forwardRef } from '@nestjs/common';
+import { PARAMTYPES_METADATA } from '@nestjs/common/constants';
+import { ok } from 'node:assert/strict';
 import {
   ClassWithUndefinedDependency,
   ClassWithUndefinedDependencyProps,
@@ -15,18 +18,26 @@ import { UndefinedDependency } from '@suites/types.di';
 import type { Type } from '@suites/types.common';
 import { adapter } from '../src.js';
 
+function registryFor(target: Type) {
+  const result = adapter.inspect(target);
+  ok(result.kind === 'success');
+  return result.registry;
+}
+
 describe('NestJS Suites DI Adapter Integration Test', () => {
   const dependencyInjectionAdapter = adapter;
 
   it('positively identifies only NestJS injectable classes for composition', () => {
     class Unmarked {}
 
-    expect(dependencyInjectionAdapter.canAutoConstruct?.(ConstructorBasedInjectionClass)).toBe(true);
+    expect(dependencyInjectionAdapter.canAutoConstruct?.(ConstructorBasedInjectionClass)).toBe(
+      true
+    );
     expect(dependencyInjectionAdapter.canAutoConstruct?.(Unmarked)).toBe(false);
   });
 
   describe('reflecting a class with constructor based injection', () => {
-    const injectablesContainer = dependencyInjectionAdapter.inspect(ConstructorBasedInjectionClass);
+    const injectablesContainer = registryFor(ConstructorBasedInjectionClass);
 
     it('should list the dependencies in the dependencies container corresponding to the class injectables', () => {
       expect(injectablesContainer.list()).toStrictEqual<WithoutMetadata[]>([
@@ -103,7 +114,7 @@ describe('NestJS Suites DI Adapter Integration Test', () => {
   });
 
   describe('reflecting a class with property based injection', () => {
-    const injectablesContainer = dependencyInjectionAdapter.inspect(PropsBasedMainClass);
+    const injectablesContainer = registryFor(PropsBasedMainClass);
 
     it('should list the dependencies in the dependencies container corresponding to the class injectables', () => {
       expect(injectablesContainer.list()).toStrictEqual<WithoutMetadata[]>([
@@ -183,9 +194,7 @@ describe('NestJS Suites DI Adapter Integration Test', () => {
   });
 
   describe('reflecting a class with constructor and properties combined', () => {
-    const injectablesContainer = dependencyInjectionAdapter.inspect(
-      ConstructorCombinedWithPropsClass
-    );
+    const injectablesContainer = registryFor(ConstructorCombinedWithPropsClass);
 
     it('should list the dependencies in the dependencies container corresponding to the class injectables', () => {
       expect(injectablesContainer.list()).toEqual<WithoutMetadata[]>([
@@ -235,8 +244,77 @@ describe('NestJS Suites DI Adapter Integration Test', () => {
     it.each([[ClassWithUndefinedDependency], [ClassWithUndefinedDependencyProps]])(
       'should fail with an error indicating that the dependency is not defined',
       (type: Type) => {
-        expect(() => dependencyInjectionAdapter.inspect(type)).toThrow();
+        expect(adapter.inspect(type)).toMatchObject({
+          kind: 'failure',
+          reason: 'undefined-dependency',
+          target: type,
+        });
       }
     );
+  });
+});
+
+describe('missing constructor metadata', () => {
+  it('distinguishes a required parameter from an empty constructor', () => {
+    class Undecorated {
+      constructor(readonly client: unknown) {}
+    }
+    class Empty {}
+    expect(adapter.inspect(Undecorated)).toMatchObject({
+      kind: 'failure',
+      reason: 'undefined-dependency',
+      location: { kind: 'parameter', index: 0 },
+    });
+    expect(registryFor(Empty).list()).toEqual([]);
+  });
+
+  it('requires a token when the emitted parameter type is Object', () => {
+    class Service {
+      constructor(readonly client: unknown) {}
+    }
+    Reflect.defineMetadata('design:paramtypes', [Object], Service);
+    expect(adapter.inspect(Service)).toMatchObject({
+      kind: 'failure',
+      reason: 'undefined-dependency',
+      location: { kind: 'parameter', index: 0 },
+    });
+  });
+});
+
+describe('explicit tokens', () => {
+  it('reads a token recorded without any design:paramtypes metadata', () => {
+    class Checkout {
+      constructor(@Inject('payment') readonly payment: unknown) {}
+    }
+    Reflect.deleteMetadata(PARAMTYPES_METADATA, Checkout);
+    expect(registryFor(Checkout).resolve('payment')).toEqual({
+      identifier: 'payment',
+      type: 'PARAM',
+      value: UndefinedDependency,
+    });
+  });
+
+  it('reports the symbol property of an undefined lazy token', () => {
+    const key = Symbol('audit');
+    class Checkout {
+      @Inject(forwardRef(() => undefined))
+      readonly [key]!: unknown;
+    }
+    expect(adapter.inspect(Checkout)).toEqual({
+      kind: 'failure',
+      reason: 'undefined-token',
+      target: Checkout,
+      location: { kind: 'property', key },
+      cause: undefined,
+    });
+  });
+
+  it('keeps a usable explicit token when its design type is Object', () => {
+    class Checkout {
+      constructor(@Inject('payment') readonly payment: unknown) {}
+    }
+    expect(registryFor(Checkout).list()).toEqual([
+      { identifier: 'payment', type: 'PARAM', value: Object },
+    ]);
   });
 });

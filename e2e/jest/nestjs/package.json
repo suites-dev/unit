@@ -23,6 +23,7 @@
     "@jest/globals": "^30.5.2",
     "@types/node": "^26.6.6",
     "@suites/types.common": "e2e",
+    "@suites/types.di": "e2e",
     "jest-jasmine2": "^30.5.2",
     "jest-environment-node": "^30.5.2"
   },

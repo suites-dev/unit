@@ -51,3 +51,11 @@ test('allows optional and mutable properties outside the named core state contra
   });
   assert.deepEqual(result.messages, []);
 });
+
+test('requires immutable fields on DI inspection results and locations', async () => {
+  const filePath = 'packages/types/di/src/index.ts';
+  for (const name of ['InspectionResult', 'InspectionFailure', 'InspectionLocation']) {
+    const [invalid] = await linter.lintText(`type ${name} = { readonly kind: "failure"; target?: string };`, { filePath });
+    assert.equal(invalid.errorCount, 2);
+  }
+});

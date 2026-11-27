@@ -1,4 +1,13 @@
-import { inject, injectable, injectFromBase, named, tagged } from 'inversify';
+import type { Type } from '@suites/types.common';
+import { ok } from 'node:assert/strict';
+import {
+  LazyServiceIdentifier,
+  inject,
+  injectable,
+  injectFromBase,
+  named,
+  tagged,
+} from 'inversify';
 import 'reflect-metadata';
 import {
   ConstructorBasedInjectionClass,
@@ -25,6 +34,12 @@ import {
 import { InversifyInjectableIdentifierMetadata } from '../src/types.js';
 import { adapter } from '../src.js';
 
+function registryFor(target: Type) {
+  const result = adapter.inspect(target);
+  ok(result.kind === 'success');
+  return result.registry;
+}
+
 describe('InversifyJS Suites DI Adapter Integration Test', () => {
   const dependenciesAdapter = adapter;
 
@@ -39,7 +54,7 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
     let injectablesRegistry: InjectableRegistry;
 
     beforeAll(() => {
-      injectablesRegistry = dependenciesAdapter.inspect(ConstructorBasedInjectionClass);
+      injectablesRegistry = registryFor(ConstructorBasedInjectionClass);
     });
 
     describe('reflecting a class with constructor based injection', () => {
@@ -158,7 +173,7 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
     let injectablesRegistry: InjectableRegistry;
 
     beforeAll(() => {
-      injectablesRegistry = dependenciesAdapter.inspect(PropertiesBasedInjectionClass);
+      injectablesRegistry = registryFor(PropertiesBasedInjectionClass);
     });
 
     describe('reflecting a class with property based injection', () => {
@@ -245,9 +260,7 @@ describe('InversifyJS Suites DI Adapter Integration Test', () => {
   });
 
   describe('class constructor and properties combined', () => {
-    const injectablesRegistry = dependenciesAdapter
-      .inspect(ConstructorCombinedWithPropsClass)
-      .list();
+    const injectablesRegistry = registryFor(ConstructorCombinedWithPropsClass).list();
 
     it('should return an array of tuples with the class dependencies', () => {
       expect(injectablesRegistry).toEqual<InversifyInjectableIdentifierMetadata[]>([
@@ -303,7 +316,7 @@ describe('Inversify 8 metadata', () => {
     }
 
     const metadata = { named: 'primary', region: 'eu', enabled: true };
-    const dependency = adapter.inspect(Service).resolve('dependency', metadata);
+    const dependency = registryFor(Service).resolve('dependency', metadata);
     expect(dependency?.metadata).toEqual(metadata);
   });
 
@@ -315,7 +328,7 @@ describe('Inversify 8 metadata', () => {
       readonly [property]: unknown;
     }
 
-    expect(adapter.inspect(Service).resolve('dependency')?.property).toEqual({ key: property });
+    expect(registryFor(Service).resolve('dependency')?.property).toEqual({ key: property });
   });
 
   it('reflects dependencies inherited with injectFromBase', () => {
@@ -328,6 +341,77 @@ describe('Inversify 8 metadata', () => {
     @injectFromBase()
     class Derived extends Base {}
 
-    expect(adapter.inspect(Derived).list()).toEqual(adapter.inspect(Base).list());
+    expect(registryFor(Derived).list()).toEqual(registryFor(Base).list());
+  });
+});
+
+describe('Inversify reflection failures', () => {
+  it('preserves the symbol property for an undefined lazy token', () => {
+    const key = Symbol('client');
+    @injectable()
+    class Service {
+      @inject(new LazyServiceIdentifier(() => undefined as never))
+      readonly [key]!: unknown;
+    }
+    expect(adapter.inspect(Service)).toMatchObject({
+      kind: 'failure',
+      reason: 'undefined-token',
+      target: Service,
+      location: { kind: 'property', key },
+    });
+  });
+  it('preserves exceptions thrown by a lazy constructor token', () => {
+    const cause = new Error('application callback');
+    @injectable()
+    class Service {
+      constructor(
+        @inject(
+          new LazyServiceIdentifier(() => {
+            throw cause;
+          })
+        )
+        readonly port: unknown
+      ) {}
+    }
+    let caught: unknown;
+    try {
+      adapter.inspect(Service);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBe(cause);
+  });
+});
+
+describe('constructor diagnostics', () => {
+  it('reports a constructor token whose lazy reference resolves to undefined', () => {
+    @injectable()
+    class Checkout {
+      constructor(
+        @inject('audit') readonly audit: unknown,
+        @inject(new LazyServiceIdentifier(() => undefined as never)) readonly payments: unknown
+      ) {}
+    }
+    expect(adapter.inspect(Checkout)).toEqual({
+      kind: 'failure',
+      reason: 'undefined-token',
+      target: Checkout,
+      location: { kind: 'parameter', index: 1 },
+      cause: undefined,
+    });
+  });
+
+  it('retains the framework rejection for a constructor with incomplete metadata', () => {
+    class Undecorated {
+      constructor(readonly missing: unknown) {}
+    }
+    const result = adapter.inspect(Undecorated);
+    expect(result).toMatchObject({
+      kind: 'failure',
+      reason: 'invalid-metadata',
+      target: Undecorated,
+      location: { kind: 'class' },
+      cause: expect.any(Error),
+    });
   });
 });
