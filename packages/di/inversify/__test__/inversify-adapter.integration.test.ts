@@ -382,3 +382,36 @@ describe('Inversify reflection failures', () => {
     expect(caught).toBe(cause);
   });
 });
+
+describe('constructor diagnostics', () => {
+  it('reports a constructor token whose lazy reference resolves to undefined', () => {
+    @injectable()
+    class Checkout {
+      constructor(
+        @inject('audit') readonly audit: unknown,
+        @inject(new LazyServiceIdentifier(() => undefined as never)) readonly payments: unknown
+      ) {}
+    }
+    expect(adapter.inspect(Checkout)).toEqual({
+      kind: 'failure',
+      reason: 'undefined-token',
+      target: Checkout,
+      location: { kind: 'parameter', index: 1 },
+      cause: undefined,
+    });
+  });
+
+  it('retains the framework rejection for a constructor with incomplete metadata', () => {
+    class Undecorated {
+      constructor(readonly missing: unknown) {}
+    }
+    const result = adapter.inspect(Undecorated);
+    expect(result).toMatchObject({
+      kind: 'failure',
+      reason: 'invalid-metadata',
+      target: Undecorated,
+      location: { kind: 'class' },
+      cause: expect.any(Error),
+    });
+  });
+});
