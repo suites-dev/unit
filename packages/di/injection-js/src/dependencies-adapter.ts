@@ -20,12 +20,16 @@ export function DependenciesAdapter(
     },
     inspect(targetClass: Type) {
       const injectables = classCtorReflector.reflectInjectables(targetClass);
+      if (!Array.isArray(injectables)) return injectables;
       return {
-        resolve(identifier: InjectableIdentifier) {
-          return injectables.find((injectable) => injectable.identifier === identifier);
-        },
-        list() {
-          return injectables;
+        kind: 'success',
+        registry: {
+          resolve(identifier: InjectableIdentifier) {
+            return injectables.find((injectable) => injectable.identifier === identifier);
+          },
+          list() {
+            return injectables;
+          },
         },
       };
     },

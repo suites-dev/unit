@@ -21,8 +21,11 @@ class Checkout {
 function adapterFor(target: Type, dependencies: ClassInjectable[]): DependencyInjectionAdapter {
   return {
     inspect: (type) => ({
-      list: () => (type === target ? dependencies : []),
-      resolve: () => undefined,
+      kind: 'success',
+      registry: {
+        list: () => (type === target ? dependencies : []),
+        resolve: () => undefined,
+      },
     }),
   } as DependencyInjectionAdapter;
 }
@@ -46,24 +49,20 @@ describe('sociable dependency guards', () => {
   it('injects an unused undeclared dependency without failing construction', async () => {
     const mocker = new UnitMocker(Promise.resolve(jest.fn), Promise.resolve(adapter));
 
-    const result = await mocker.constructUnit(
-      Checkout,
-      [],
-      new DependencyContainer([]),
-      { mode: 'selective', bindings: new Map() }
-    );
+    const result = await mocker.constructUnit(Checkout, [], new DependencyContainer([]), {
+      mode: 'selective',
+      bindings: new Map(),
+    });
 
     expect(result.instance).toBeInstanceOf(Checkout);
   });
 
   it('throws a path-aware violation when an undeclared dependency is used', async () => {
     const mocker = new UnitMocker(Promise.resolve(jest.fn), Promise.resolve(adapter));
-    const { instance } = await mocker.constructUnit(
-      Checkout,
-      [],
-      new DependencyContainer([]),
-      { mode: 'selective', bindings: new Map() }
-    );
+    const { instance } = await mocker.constructUnit(Checkout, [], new DependencyContainer([]), {
+      mode: 'selective',
+      bindings: new Map(),
+    });
 
     expect(() => instance.available()).toThrow(
       /Cannot read available on undeclared dependency 'Inventory'.*Dependency path: 'Checkout' -> 'Inventory'/i

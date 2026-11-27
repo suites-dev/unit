@@ -1,12 +1,13 @@
 import { isDeepStrictEqual } from 'node:util';
-import {
+import type {
   DependencyInjectionAdapter,
   ClassInjectable,
   IdentifierMetadata,
-  UndefinedDependency,
-  WithMetadata,
+  WithMetadata} from '@suites/types.di';
+import {
+  UndefinedDependency
 } from '@suites/types.di';
-import { Type } from '@suites/types.common';
+import type { Type } from '@suites/types.common';
 import { normalizeIdentifier } from '../../../src/normalize-identifier.static.js';
 
 interface Printer {
@@ -168,17 +169,20 @@ const classInjectables: ClassInjectable[] = [
 export const FakeDIAdapter: DependencyInjectionAdapter = {
   inspect: () => {
     return {
-      list: () => classInjectables,
-      resolve(
-        identifier: Type | string,
-        metadata?: IdentifierMetadata
-      ): ClassInjectable | undefined {
-        return classInjectables.find((injectable: WithMetadata<never>) => {
-          const subject = normalizeIdentifier(identifier, metadata);
-          const toFind = normalizeIdentifier(injectable.identifier, injectable.metadata);
+      kind: 'success',
+      registry: {
+        list: () => classInjectables,
+        resolve(
+          identifier: Type | string,
+          metadata?: IdentifierMetadata
+        ): ClassInjectable | undefined {
+          return classInjectables.find((injectable: WithMetadata<never>) => {
+            const subject = normalizeIdentifier(identifier, metadata);
+            const toFind = normalizeIdentifier(injectable.identifier, injectable.metadata);
 
-          return isDeepStrictEqual(toFind, subject);
-        });
+            return isDeepStrictEqual(toFind, subject);
+          });
+        },
       },
     };
   },

@@ -3,7 +3,7 @@ import typescript from '@typescript-eslint/eslint-plugin';
 
 const stateTypes =
   ':matches(TSInterfaceDeclaration, TSTypeAliasDeclaration)' +
-  '[id.name=/^(ConstructionMode|SociableConfiguration|ResolverOptions|DependencyPathEntry|CompositionBoundary)$/]';
+  '[id.name=/^(ConstructionMode|SociableConfiguration|ResolverOptions|DependencyPathEntry|CompositionBoundary|InspectionResult|InspectionFailure|InspectionLocation)$/]';
 
 const chainedAssertion = {
   selector:
@@ -31,6 +31,7 @@ export default [
   },
   {
     files: [
+      'packages/types/di/src/index.ts',
       'packages/core/src/services/builders/sociable-unit-builder.ts',
       'packages/core/src/services/composition-boundary.ts',
       'packages/core/src/services/dependency-resolver.ts',

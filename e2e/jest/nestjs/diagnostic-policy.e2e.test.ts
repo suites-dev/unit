@@ -4,6 +4,8 @@ describe('Suites diagnostic codes', () => {
   it('preserves published identifiers for programmatic handling', () => {
     const token: 'ER31' = SuitesErrorCode.UNDEFINED_TOKEN;
     expect(token).toBe('ER31');
+    expect(Object.isFrozen(SuitesErrorCode)).toBe(true);
+    expect(Object.isFrozen(SuitesWarningCode)).toBe(true);
     expect(SuitesErrorCode).toMatchObject({
       IDENTIFIER_NOT_FOUND: 'ER010',
       ADAPTER_NOT_FOUND: 'ER020',
